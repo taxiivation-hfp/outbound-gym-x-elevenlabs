@@ -1,31 +1,33 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import membersData from "@/data/members_scored.json";
+import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
+import type { CallType } from "@/lib/callType";
+import { compileVariables } from "@/lib/compileVariables";
+import { evaluateEligibility } from "@/lib/eligibility";
+import { getGym } from "@/lib/gyms";
+import { insertCallRecord } from "@/lib/callRecords";
 import type { Member } from "@/lib/types";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const members = membersData as Member[];
 
-const GYM_NAME = process.env.GYM_NAME ?? "the gym";
+/** One agent per call type. Created by `scripts/sync-agents.mjs`. */
+const AGENT_ID_ENV: Record<CallType, string> = {
+  renewal: "ELEVENLABS_AGENT_ID_RENEWAL",
+  reengagement: "ELEVENLABS_AGENT_ID_REENGAGEMENT",
+  winback: "ELEVENLABS_AGENT_ID_WINBACK",
+};
 
-// The agent's prompt expects a plain number ("about 3 times a week"), not a
-// formatted rate string like "3.1x/week".
-function formatOldRate(oldRate: number): string {
-  return String(Math.round(oldRate));
-}
-
-function formatTenure(tenureDays: number): string {
-  if (tenureDays < 14) {
-    return `${tenureDays} day${tenureDays === 1 ? "" : "s"}`;
-  }
-  if (tenureDays < 60) {
-    const weeks = Math.round(tenureDays / 7);
-    return `${weeks} week${weeks === 1 ? "" : "s"}`;
-  }
-  const months = Math.round(tenureDays / 30);
-  return `${months} month${months === 1 ? "" : "s"}`;
-}
-
+/**
+ * Place one outbound call.
+ *
+ * The client sends a `member_id` and, optionally, which gym's rules to use.
+ * Everything else — the member's facts, whether they may be called at all,
+ * which agent answers, what it is told — is resolved here. That is what makes
+ * "we never call an auto-renewing member" a property of the system rather than
+ * a property of the dashboard: a hand-rolled POST for an auto-renewer gets a
+ * 403 no matter what it claims about them.
+ */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const memberId = body?.member_id;
@@ -34,36 +36,71 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
 
-  // Resolve the member from the authoritative dataset rather than trusting
-  // whatever the client sent — this is what actually enforces "who not to
-  // call" as a real constraint, not just a UI convention.
   const member = members.find((m) => m.member_id === memberId);
   if (!member) {
     return NextResponse.json({ error: "Unknown member_id" }, { status: 404 });
   }
-  if (member.channel !== "ai_call" || !member.last_visit || !member.expiry || !member.offer) {
+
+  // Call history is a gate, not a nicety: it carries do-not-contact and the
+  // cooldown. If it cannot be read, refuse rather than dial blind — the cost of
+  // a missed call is nothing next to ringing someone who asked us to stop.
+  let history: CallHistory;
+  try {
+    history = await getCallHistory(member.member_id);
+  } catch (err) {
+    console.error("Refusing to call: call history unreadable", err);
     return NextResponse.json(
-      { error: "Member is not eligible for an outbound call" },
+      {
+        error:
+          "Cannot verify call history, so the call was not placed. Do-not-contact " +
+          "and the cooldown are enforced from it.",
+      },
+      { status: 503 }
+    );
+  }
+
+  const eligibility = evaluateEligibility(member, history);
+  if (!eligibility.allowed || !eligibility.routing.call_type) {
+    return NextResponse.json(
+      {
+        error: "Member is not eligible for an outbound call",
+        blocked_by: eligibility.blockedBy,
+        reason: eligibility.blockedReason,
+      },
       { status: 403 }
     );
   }
 
+  const callType = eligibility.routing.call_type;
+  const gym = getGym(typeof body?.gym_id === "string" ? body.gym_id : null);
+
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const agentId = process.env.ELEVENLABS_AGENT_ID;
+  const agentId = process.env[AGENT_ID_ENV[callType]];
   const phoneNumberId = process.env.ELEVENLABS_PHONE_NUMBER_ID;
   if (!apiKey || !agentId || !phoneNumberId) {
-    return NextResponse.json({ error: "ElevenLabs env vars not configured" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: `ElevenLabs env vars not configured (need ELEVENLABS_API_KEY, ${AGENT_ID_ENV[callType]}, ELEVENLABS_PHONE_NUMBER_ID)`,
+      },
+      { status: 500 }
+    );
   }
 
-  const dynamicVariables = {
-    gym_name: GYM_NAME,
-    member_name: member.name,
-    expiry_date: member.expiry,
-    last_visit: member.last_visit,
-    old_rate: formatOldRate(member.signals.old_rate),
-    tenure: formatTenure(member.signals.tenure_days),
-    offer: member.offer,
-  };
+  const dynamicVariables = compileVariables({
+    member,
+    gym,
+    routing: eligibility.routing,
+    callType,
+    attemptNumber: eligibility.attemptNumber,
+    priorCall: history.priorCall,
+  });
+
+  // The dataset's 500 phone numbers are Faker output in six formats and belong
+  // to nobody. Rather than normalise fiction into E.164, every call goes to one
+  // verified test number when the override is set. Documented in LIMITATIONS,
+  // not hidden: nothing about the routing changes, only the last hop.
+  const override = process.env.CALL_OVERRIDE_NUMBER?.trim();
+  const toNumber = override || member.phone;
 
   let elevenLabsResponse: Response;
   try {
@@ -75,7 +112,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           agent_id: agentId,
           agent_phone_number_id: phoneNumberId,
-          to_number: member.phone,
+          to_number: toNumber,
           conversation_initiation_client_data: { dynamic_variables: dynamicVariables },
         }),
       }
@@ -94,23 +131,31 @@ export async function POST(req: NextRequest) {
 
   const conversationId: string | undefined = result?.conversation_id;
 
-  const { error: dbError } = await supabaseAdmin.from("call_records").insert({
+  // The call has already gone out by now, so a bookkeeping failure is logged
+  // rather than reported as a failed call — but it is never swallowed silently.
+  const { error: dbError } = await insertCallRecord({
     id: randomUUID(),
     member_id: member.member_id,
     member_name: member.name,
     conversation_id: conversationId ?? null,
     status: "initiated",
+    call_type: callType,
+    attempt_number: eligibility.attemptNumber,
+    gym_id: gym.gym_id,
     transcript: null,
     outcome: null,
-    reason_for_leaving: null,
     created_at: new Date().toISOString(),
   });
+  if (dbError) console.error("Failed to write call_records row:", dbError);
 
-  if (dbError) {
-    // The call already went out — a bookkeeping failure shouldn't look like
-    // a failed call to the caller, but it must not be silent either.
-    console.error("Failed to write call_records row:", dbError);
-  }
-
-  return NextResponse.json({ conversation_id: conversationId, status: "initiated" });
+  return NextResponse.json({
+    conversation_id: conversationId,
+    status: "initiated",
+    call_type: callType,
+    attempt_number: eligibility.attemptNumber,
+    gym_id: gym.gym_id,
+    dialled: override ? "override number" : "member number",
+    // Echoed back so the dashboard can show exactly what the agent was told.
+    dynamic_variables: dynamicVariables,
+  });
 }
