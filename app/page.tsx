@@ -14,59 +14,5 @@ const members = USE_FALLBACK_REASONING
   : rawMembers;
 
 export default function Home() {
-<<<<<<< HEAD
   return <Dashboard members={members} />;
 }
-=======
-  return (
-    <main className="min-h-screen">
-      {/* Purple band: header */}
-      <div className="bg-[#C9A6FF] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="text-3xl font-black uppercase tracking-tight text-black sm:text-4xl">
-            Retention Router
-          </h1>
-          <p className="mt-1 text-sm text-black/70">
-            Who to contact, who to leave alone, and why.
-          </p>
-        </div>
-      </div>
-
-      {/* White band: cohort view */}
-      <div className="bg-white px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-3 text-xl font-black uppercase tracking-tight text-zinc-900">
-            Cohort view
-          </h2>
-          <QuadrantView members={members} />
-        </div>
-      </div>
-
-      {/* Purple band: everything after the cohort view */}
-      <div className="bg-[#C9A6FF] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-5xl space-y-8 sm:space-y-10">
-          <section>
-            <h2 className="mb-3 text-xl font-black uppercase tracking-tight text-black">
-              Member list
-            </h2>
-            <MemberTable members={members} />
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-xl font-black uppercase tracking-tight text-black">
-              Winback calls
-            </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {winbackMembers.map((m) => (
-                // callRecord is null until Dan's webhook is writing to Supabase —
-                // swap this for a real fetch by member_id once /api/webhook is live
-                <TranscriptPanel key={m.member_id} member={m} callRecord={null} />
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
-  );
-}
->>>>>>> 4f76ee62a5e54c23aa91f10bd9ca5b9c753ede87
