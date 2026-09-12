@@ -1,8 +1,8 @@
-import type { Member, Quadrant } from "@/lib/types";
+import type { Cohort, Member } from "@/lib/types";
 import Avatar from "@/components/Avatar";
 
-const quadrantMeta: Record<
-  Quadrant,
+const cohortMeta: Record<
+  Cohort,
   {
     title: string;
     hint: string;
@@ -11,18 +11,32 @@ const quadrantMeta: Record<
     ringColor: string;
   }
 > = {
-  persuadable: {
-    title: "Persuadables",
-    hint: "This is where contact drives uplift",
+  winback: {
+    title: "Winback",
+    hint: "Outbound reactivation call",
     titleColor: "text-[#D6FF3D]",
     badgeColor: "bg-[#D6FF3D] text-black",
     ringColor: "",
   },
-  sure_thing: {
-    title: "Sure things",
-    hint: "Leave them; they stay anyway",
+  sliding: {
+    title: "Sliding",
+    hint: "Floor conversation on next visit",
+    titleColor: "text-amber-400",
+    badgeColor: "bg-amber-500 text-black",
+    ringColor: "",
+  },
+  new_joiner: {
+    title: "New joiners",
+    hint: "In-person welcome conversation",
     titleColor: "text-cyan-400",
     badgeColor: "bg-cyan-500 text-black",
+    ringColor: "",
+  },
+  steady: {
+    title: "Steady",
+    hint: "Leave them; they stay anyway",
+    titleColor: "text-zinc-400",
+    badgeColor: "bg-zinc-700 text-zinc-200",
     ringColor: "",
   },
   sleeping_dog: {
@@ -32,31 +46,25 @@ const quadrantMeta: Record<
     badgeColor: "bg-red-500 text-black",
     ringColor: "ring-1 ring-red-900/60",
   },
-  lost_cause: {
-    title: "Lost causes",
-    hint: "Low priority, low engagement history",
-    titleColor: "text-zinc-400",
-    badgeColor: "bg-zinc-700 text-zinc-200",
-    ringColor: "",
-  },
 };
 
-// Fixed order, always the same 4 quadrants regardless of data order.
-const layout: Quadrant[] = ["persuadable", "sure_thing", "sleeping_dog", "lost_cause"];
+// Fixed order, always the same 5 cohorts regardless of data order.
+const layout: Cohort[] = ["winback", "sliding", "new_joiner", "steady", "sleeping_dog"];
 
 export default function OpportunityRoutingMap({ members }: { members: Member[] }) {
-  const grouped: Record<Quadrant, Member[]> = {
-    persuadable: [],
-    sure_thing: [],
-    lost_cause: [],
+  const grouped: Record<Cohort, Member[]> = {
+    winback: [],
+    sliding: [],
+    new_joiner: [],
+    steady: [],
     sleeping_dog: [],
   };
-  members.forEach((m) => grouped[m.quadrant].push(m));
+  members.forEach((m) => grouped[m.cohort].push(m));
 
   return (
-    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible lg:pb-0">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
       {layout.map((q) => {
-        const meta = quadrantMeta[q];
+        const meta = cohortMeta[q];
         const list = grouped[q];
         return (
           <div
@@ -86,13 +94,8 @@ export default function OpportunityRoutingMap({ members }: { members: Member[] }
                   <Avatar id={m.member_id} size="sm" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-white">{m.name}</p>
-                    <p
-                      className={`text-xs font-medium ${
-                        m.uplift >= 0 ? "text-[#D6FF3D]" : "text-red-400"
-                      }`}
-                    >
-                      Uplift Potential: {m.uplift >= 0 ? "+" : ""}
-                      {(m.uplift * 100).toFixed(0)}%
+                    <p className="text-xs font-medium text-zinc-500">
+                      Last visit: {m.signals.days_since_visit} days ago
                     </p>
                   </div>
                 </div>

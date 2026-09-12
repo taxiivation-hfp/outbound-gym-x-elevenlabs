@@ -20,7 +20,7 @@ export default function Dashboard({ members }: { members: Member[] }) {
   const winbackMembers = members.filter((m) => m.channel === "ai_call");
 
   const atRiskCount = members.filter(
-    (m) => m.quadrant === "sleeping_dog" || m.quadrant === "lost_cause"
+    (m) => m.cohort === "sleeping_dog" || m.cohort === "winback"
   ).length;
   const callQueueCount = members.filter((m) => m.channel === "ai_call").length;
 

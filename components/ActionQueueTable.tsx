@@ -78,7 +78,6 @@ export default function ActionQueueTable({ members }: { members: Member[] }) {
               <th className="px-5 py-3.5 font-semibold">Member</th>
               <th className="px-5 py-3.5 font-semibold">Opportunity Cohort</th>
               <th className="px-5 py-3.5 font-semibold">Last Visit</th>
-              <th className="px-5 py-3.5 font-semibold">Est. Uplift</th>
               <th className="px-5 py-3.5 font-semibold">Context / Churn Root Cause</th>
               <th className="px-5 py-3.5 text-right font-semibold">Quick Action</th>
             </tr>
@@ -102,16 +101,6 @@ export default function ActionQueueTable({ members }: { members: Member[] }) {
                 <td className="whitespace-nowrap px-5 py-4 text-zinc-500">
                   {m.signals.days_since_visit} days ago
                 </td>
-                <td className="px-5 py-4">
-                  <span
-                    className={`font-bold ${
-                      m.uplift >= 0 ? "text-[#D6FF3D]" : "text-red-400"
-                    }`}
-                  >
-                    {m.uplift >= 0 ? "+" : ""}
-                    {(m.uplift * 100).toFixed(0)}%
-                  </span>
-                </td>
                 <td className="max-w-sm px-5 py-4 text-zinc-500" title={m.reason}>
                   <span className="line-clamp-2">{m.reason}</span>
                 </td>
@@ -122,7 +111,7 @@ export default function ActionQueueTable({ members }: { members: Member[] }) {
             ))}
             {members.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-sm text-zinc-600">
+                <td colSpan={5} className="px-5 py-8 text-center text-sm text-zinc-600">
                   No members match this search.
                 </td>
               </tr>
@@ -143,14 +132,6 @@ export default function ActionQueueTable({ members }: { members: Member[] }) {
                 <Avatar id={m.member_id} size="sm" />
                 <p className="truncate font-bold text-white">{m.name}</p>
               </div>
-              <span
-                className={`flex-shrink-0 text-xs font-bold ${
-                  m.uplift >= 0 ? "text-[#D6FF3D]" : "text-red-400"
-                }`}
-              >
-                {m.uplift >= 0 ? "+" : ""}
-                {(m.uplift * 100).toFixed(0)}%
-              </span>
             </div>
 
             <div className="mt-2.5 flex items-center gap-2">

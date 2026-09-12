@@ -1,5 +1,3 @@
-export type Quadrant = "persuadable" | "sure_thing" | "lost_cause" | "sleeping_dog";
-
 export type Cohort = "new_joiner" | "sliding" | "sleeping_dog" | "winback" | "steady";
 
 export type Channel = "staff" | "ai_call" | null;
@@ -15,8 +13,6 @@ export interface Member {
   name: string;
   phone: string;
   cohort: Cohort;
-  uplift: number;
-  quadrant: Quadrant;
   contact: boolean;
   channel: Channel;
   action: string;
