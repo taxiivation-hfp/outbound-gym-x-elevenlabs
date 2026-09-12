@@ -51,6 +51,8 @@ const cohortMeta: Record<
 // Fixed order, always the same 5 cohorts regardless of data order.
 const layout: Cohort[] = ["winback", "sliding", "new_joiner", "steady", "sleeping_dog"];
 
+const BUCKET_LIMIT = 5;
+
 export default function OpportunityRoutingMap({ members }: { members: Member[] }) {
   const grouped: Record<Cohort, Member[]> = {
     winback: [],
@@ -60,12 +62,18 @@ export default function OpportunityRoutingMap({ members }: { members: Member[] }
     sleeping_dog: [],
   };
   members.forEach((m) => grouped[m.cohort].push(m));
+  // most-dormant-first within each bucket, same head/N pattern as the Action Queue
+  (Object.keys(grouped) as Cohort[]).forEach((c) => {
+    grouped[c].sort((a, b) => b.signals.days_since_visit - a.signals.days_since_visit);
+  });
 
   return (
     <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
       {layout.map((q) => {
         const meta = cohortMeta[q];
         const list = grouped[q];
+        const visible = list.slice(0, BUCKET_LIMIT);
+        const overflow = list.length - visible.length;
         return (
           <div
             key={q}
@@ -86,7 +94,7 @@ export default function OpportunityRoutingMap({ members }: { members: Member[] }
             </div>
 
             <div className="mt-4 space-y-2">
-              {list.map((m) => (
+              {visible.map((m) => (
                 <div
                   key={m.member_id}
                   className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-black/40 p-3"
@@ -103,6 +111,11 @@ export default function OpportunityRoutingMap({ members }: { members: Member[] }
               {list.length === 0 && (
                 <p className="rounded-xl border border-dashed border-zinc-800 p-3 text-center text-xs text-zinc-700">
                   No members
+                </p>
+              )}
+              {overflow > 0 && (
+                <p className="pt-1 text-center text-xs text-zinc-600">
+                  +{overflow} more
                 </p>
               )}
             </div>
