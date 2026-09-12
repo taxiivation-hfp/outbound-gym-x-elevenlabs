@@ -11,7 +11,7 @@ import requests
 SID   = "ACcd469ea9fd1836bfb22d6ab11677ef17"  
 TOKEN = "29ee0d11cef2ac94434feafecee6247e"                
 FROM  = "+14128662936"                        # the US number we bought
-TO    = "+61470517310"                        # dan's number rn.
+TO    = "+61491749433"                        # lando's number rn.
 # 
 
 SAY = "If you can hear this, the hard part is done. Orlando Tan works at KebabX Clayton."
