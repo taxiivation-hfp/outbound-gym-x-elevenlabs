@@ -27,3 +27,17 @@ export interface Member {
   expiry?: string;
   offer?: string;
 }
+
+// Matches the call_records table (Dan -> Jesslyn contract, Section 1.3/1.6)
+export type CallStatus = "not_started" | "initiated" | "completed" | "failed";
+export type CallOutcome = "rebooked" | "callback" | "not_interested" | null;
+
+export interface CallRecord {
+  id: string;
+  member_id: string;
+  status: CallStatus;
+  conversation_id?: string;
+  transcript: string | null;
+  outcome: CallOutcome;
+  created_at: string;
+}

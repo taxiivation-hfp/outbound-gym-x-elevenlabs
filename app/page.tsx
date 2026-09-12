@@ -2,8 +2,10 @@ import membersData from "@/data/members_scored.json";
 import type { Member } from "@/lib/types";
 import MemberTable from "@/components/MemberTable";
 import QuadrantView from "@/components/QuadrantView";
+import TranscriptPanel from "@/components/TranscriptPanel";
 
 const members = membersData as Member[];
+const winbackMembers = members.filter((m) => m.channel === "ai_call");
 
 export default function Home() {
   return (
@@ -28,6 +30,19 @@ export default function Home() {
             Member list
           </h2>
           <MemberTable members={members} />
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-400">
+            Winback calls
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {winbackMembers.map((m) => (
+              // callRecord is null until Dan's webhook is writing to Supabase —
+              // swap this for a real fetch by member_id once /api/webhook is live
+              <TranscriptPanel key={m.member_id} member={m} callRecord={null} />
+            ))}
+          </div>
         </section>
       </div>
     </main>
