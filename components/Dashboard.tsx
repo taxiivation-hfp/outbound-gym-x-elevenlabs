@@ -29,7 +29,10 @@ export default function Dashboard({ members }: { members: Member[] }) {
   );
   const topMembers = priorityMembers.slice(0, TOP_N);
 
-  const winbackMembers = members.filter((m) => m.channel === "ai_call");
+  const winbackMembers = useMemo(
+    () => members.filter((m) => m.channel === "ai_call"),
+    [members]
+  );
   const winbackMemberIds = useMemo(
     () => winbackMembers.map((m) => m.member_id),
     [winbackMembers]
