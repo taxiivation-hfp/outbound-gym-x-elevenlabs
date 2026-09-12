@@ -1,13 +1,22 @@
 @import "tailwindcss";
 
+/*
+ * Dark by construction, not by toggle. This is a back-office screen a front-desk
+ * manager keeps open next to a booking system; it is never printed and never
+ * embedded, so a single committed palette is simpler than two half-tuned ones.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #fafafa;
+  /* The one accent. Used for the win state and nothing else, so that when it
+     appears it means something. */
+  --accent: #d6ff3d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -15,5 +24,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Long member lists and transcript panes get their own scrollbars; the default
+   Windows ones are wide enough to change the layout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
 }

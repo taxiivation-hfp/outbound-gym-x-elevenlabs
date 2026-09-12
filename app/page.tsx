@@ -1,18 +1,18 @@
-import membersData from "@/data/members_scored.json";
-import type { Member } from "@/lib/types";
 import Dashboard from "@/components/Dashboard";
-import { applyFallbackReasons } from "@/lib/reasoningFallback";
+import { buildQueueView } from "@/lib/queueView";
 
-// Flip this to true if the LLM reasoning layer falls behind or breaks —
-// every member's `reason` field gets regenerated from a template instead,
-// grounded only in the signals already in the JSON. No other code changes.
-const USE_FALLBACK_REASONING = false;
+/**
+ * The queue, computed on the server.
+ *
+ * Eligibility needs Supabase — do-not-contact and the cooldown live in call
+ * history — so this is a server component that calls the view builder directly
+ * rather than having the browser fetch its own API. The screen and the call
+ * route then share one definition of who is due, which is the only way the
+ * "never call an auto-renewer" rule can be true of both.
+ */
+export const dynamic = "force-dynamic";
 
-const rawMembers = membersData as Member[];
-const members = USE_FALLBACK_REASONING
-  ? applyFallbackReasons(rawMembers)
-  : rawMembers;
-
-export default function Home() {
-  return <Dashboard members={members} />;
+export default async function Home() {
+  const view = await buildQueueView();
+  return <Dashboard view={view} />;
 }

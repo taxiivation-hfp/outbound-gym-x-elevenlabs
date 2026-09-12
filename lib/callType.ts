@@ -53,6 +53,19 @@ function weeks(days: number): string {
   return `${w} week${w === 1 ? "" : "s"}`;
 }
 
+/** "today" / "yesterday" / "6 days ago" — these lines are read by a human. */
+function daysAgo(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}
+
+function daysLeft(days: number): string {
+  if (days <= 0) return "ends today";
+  if (days === 1) return "ends tomorrow";
+  return `ends in ${days} days`;
+}
+
 export function routeMember(member: Member, asOf: Date = today()): Routing {
   const daysToExpiry = daysUntil(member.expiry_date, asOf);
   const daysSinceExpiry = -daysToExpiry;
@@ -116,9 +129,8 @@ export function routeMember(member: Member, asOf: Date = today()): Routing {
       ...base,
       call_type: "renewal",
       trigger:
-        `Fixed term ends in ${daysToExpiry} day${daysToExpiry === 1 ? "" : "s"} and ` +
-        "will not renew itself. Still training — last visit " +
-        `${absent} day${absent === 1 ? "" : "s"} ago.`,
+        `Fixed term ${daysLeft(daysToExpiry)} and will not renew itself. ` +
+        `Still training — last visit ${daysAgo(absent)}.`,
     };
   }
 
@@ -130,9 +142,8 @@ export function routeMember(member: Member, asOf: Date = today()): Routing {
         ...base,
         call_type: "reengagement",
         trigger:
-          `Away ${weeks(absent)} with only ${daysToExpiry} day` +
-          `${daysToExpiry === 1 ? "" : "s"} left on the term. Get them back in ` +
-          "first; the renewal is a heads-up, not a pitch.",
+          `Away ${weeks(absent)} and the term ${daysLeft(daysToExpiry)}. Get them back ` +
+          "in first; the renewal is a heads-up, not a pitch.",
       };
     }
     if (oldRate >= HABIT_MIN_RATE) {
@@ -158,7 +169,7 @@ export function routeMember(member: Member, asOf: Date = today()): Routing {
     excluded_reason:
       daysToExpiry > RENEWAL_DAYS_BEFORE_EXPIRY
         ? `Training normally and the term runs another ${daysToExpiry} days. ` +
-          "Nothing to say yet."
+          "Nothing worth a phone call yet."
         : "Training normally. Nothing to say yet.",
   };
 }
