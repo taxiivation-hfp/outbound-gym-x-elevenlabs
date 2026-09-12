@@ -7,17 +7,39 @@ cohorts using explainable rules (NOT a trained/statistical model), and writes
 `members_scored.json` matching the dashboard's `Member` type (lib/types.ts).
 
 The `_true_cohort` column in members.csv is an answer key from the synthetic
-data generator — it is stripped before classification and used only for the
-accuracy report at the end, never as an input signal to the router.
+data generator — it is stripped before classification and never used as an
+input signal to the router.
+
+## What this file does NOT do
+
+It emits raw per-member facts only: ISO dates, booleans, counts, rates. Every
+plain-English string the voice agent hears (`time_left`, `context`,
+`expiry_line`, `last_visit`, `tenure`) is compiled in `lib/compileVariables.ts`
+at call time instead, and `call_type` is derived in `lib/callType.ts`. Two
+reasons: this pipeline's clock is frozen (see TODAY below) while the app's is
+not, and `context` has to fold in live call history from Supabase, which an
+offline batch job cannot see.
+
+## No accuracy number
+
+An earlier version of this file reported ~90% "accuracy" against
+`_true_cohort`. That number was withdrawn: the answer key is produced by the
+same rules the router applies, so the comparison is circular and measures
+nothing. What remains below is a data-sufficiency report — does the dataset
+contain a population in every call window — plus the real evaluation, which
+lives in `evals/` and scores agent behaviour on transcripts.
 """
 
 import json
 import os
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
 
+# Frozen reference date. The whole dataset — check-ins, expiries, tenures — is
+# generated relative to this instant, so the app reads it back from
+# `data/dataset_meta.json` (see lib/clock.ts) rather than using the wall clock,
+# and a member who was twelve days from expiry stays twelve days from expiry.
 TODAY = datetime(2026, 9, 12)  # matches generate_gym_data.py's fixed "today"
 
 BASE_DIR = os.path.dirname(__file__)
@@ -32,8 +54,8 @@ members = pd.read_csv(os.path.join(DATA_DIR, "members.csv"))
 contracts = pd.read_csv(os.path.join(DATA_DIR, "contracts.csv"))
 checkins = pd.read_csv(os.path.join(DATA_DIR, "checkins.csv"), parse_dates=["timestamp"])
 
-# Answer key — pulled aside now, never fed into the router below.
-true_cohort = members.set_index("member_id")["_true_cohort"]
+# Answer key — dropped here so it cannot leak into a feature or a rule below.
+# Nothing downstream reads it; the discipline is the point.
 members = members.drop(columns=["_true_cohort"])
 
 members["join_date"] = pd.to_datetime(members["join_date"])
@@ -49,6 +71,7 @@ df = df.set_index("member_id")
 
 WINDOW_4WK = pd.Timedelta(days=28)
 WINDOW_8WK = pd.Timedelta(days=56)
+WINDOW_90D = pd.Timedelta(days=90)
 
 checkins_by_member = checkins.groupby("member_id")["timestamp"]
 last_visit = checkins_by_member.max()
@@ -67,6 +90,7 @@ features["days_since_last_visit"] = features["days_since_last_visit"].fillna(
 
 visits_last_4wk = {}
 visits_prior_4wk = {}
+visits_90d = {}
 old_rate = {}
 
 for member_id, group in checkins.groupby("member_id"):
@@ -75,6 +99,7 @@ for member_id, group in checkins.groupby("member_id"):
     visits_prior_4wk[member_id] = int(
         ((ts >= TODAY - WINDOW_8WK) & (ts < TODAY - WINDOW_4WK)).sum()
     )
+    visits_90d[member_id] = int((ts >= TODAY - WINDOW_90D).sum())
 
     # old_rate: average weekly rate over history *prior to* the last 4 weeks —
     # mirrors the "trained Nx/week" framing already used in reasoningFallback.ts
@@ -86,6 +111,7 @@ for member_id, group in checkins.groupby("member_id"):
 
 features["visits_last_4wk"] = pd.Series(visits_last_4wk).reindex(df.index).fillna(0).astype(int)
 features["visits_prior_4wk"] = pd.Series(visits_prior_4wk).reindex(df.index).fillna(0).astype(int)
+features["visit_count_90d"] = pd.Series(visits_90d).reindex(df.index).fillna(0).astype(int)
 features["old_rate"] = pd.Series(old_rate).reindex(df.index).fillna(0.0)
 
 df = df.join(features)
@@ -154,7 +180,9 @@ def format_days_since(days: int) -> str:
     return f"{months} month{plural(months)}"
 
 
-def generate_reason(name: str, cohort: str, tenure_days: int, old_rate_val: float, days_since: int) -> str:
+def generate_reason(
+    name: str, cohort: str, tenure_days: int, old_rate_val: float, days_since: int, auto_renew: bool
+) -> str:
     tenure_months = max(1, round(tenure_days / 30))
     rate_str = format_rate(old_rate_val)
     since_str = format_days_since(days_since)
@@ -166,9 +194,16 @@ def generate_reason(name: str, cohort: str, tenure_days: int, old_rate_val: floa
             "nothing left to cancel."
         )
     if cohort == "sleeping_dog":
+        # Dormancy alone is not the reason to stay away — the contract type is.
+        # A dormant auto-renewer is the one member a call can actively lose.
+        if auto_renew:
+            return (
+                f"{name} hasn't visited in {since_str} but is still billing on an auto-renewing "
+                "membership. A call reminds them to cancel — never contacted."
+            )
         return (
-            f"{name} hasn't visited in {since_str} but is still an active, paying member. "
-            "Contacting them risks reminding them to cancel — do not contact."
+            f"{name} hasn't visited in {since_str} and is on a fixed term that will simply lapse. "
+            "Nothing is lost by calling and a lapse is lost either way."
         )
     if cohort == "sliding":
         return (
@@ -187,46 +222,28 @@ def generate_reason(name: str, cohort: str, tenure_days: int, old_rate_val: floa
     return f"{name}: no action."
 
 
-def format_last_visit(days: int) -> str:
-    if days < 7:
-        return f"{days} day{plural(days)} ago"
-    if days < 60:
-        weeks = round(days / 7)
-        return f"{weeks} week{plural(weeks)} ago"
-    months = round(days / 30)
-    return f"{months} month{plural(months)} ago"
-
-
-def format_expiry(expiry_date) -> str:
-    return expiry_date.strftime("%-d %B") if os.name != "nt" else expiry_date.strftime("%#d %B")
-
-
-OFFERS = [
-    "a free PT session and a two-week trial",
-    "a two-week trial and a class pass",
-    "a free recovery-focused PT session",
-]
-
-
-def pick_offer(member_id: str) -> str:
-    # deterministic pseudo-rotation so re-runs are stable
-    idx = int(member_id[1:]) % len(OFFERS)
-    return OFFERS[idx]
-
-
 # ---------------------------------------------------------------------------
 # Assemble output rows
+#
+# Raw facts only. Anything the agent says out loud is compiled in
+# lib/compileVariables.ts at call time — see the module docstring.
 # ---------------------------------------------------------------------------
 
 records = []
 for member_id, row in df.iterrows():
     cohort = row["cohort"]
     action_meta = COHORT_ACTIONS[cohort]
+    auto_renew = bool(row["auto_renew"])
     reason = generate_reason(
-        row["name"], cohort, int(row["tenure_days"]), float(row["old_rate"]), int(row["days_since_last_visit"])
+        row["name"],
+        cohort,
+        int(row["tenure_days"]),
+        float(row["old_rate"]),
+        int(row["days_since_last_visit"]),
+        auto_renew,
     )
 
-    record = {
+    records.append({
         "member_id": member_id,
         "name": row["name"],
         "phone": row["phone"],
@@ -235,56 +252,92 @@ for member_id, row in df.iterrows():
         "channel": action_meta["channel"],
         "action": action_meta["action"],
         "reason": reason,
+        # Contract facts. `auto_renew` is the hard exclusion the whole product
+        # rests on; `expiry_date` is ISO for every member, not just the lapsed
+        # ones, because all three call triggers are dated off it.
+        "auto_renew": auto_renew,
+        "contract_type": row["contract_type"],
+        "contract_status": row["status"],
+        "expiry_date": row["expiry_date"].date().isoformat(),
+        "monthly_fee": int(row["monthly_fee"]),
+        "renewal_fee": int(row["renewal_fee"]),
         "signals": {
             "days_since_visit": int(row["days_since_last_visit"]),
             "old_rate": float(row["old_rate"]),
             "tenure_days": int(row["tenure_days"]),
+            "visit_count_90d": int(row["visit_count_90d"]),
         },
-    }
-
-    if cohort == "winback":
-        record["last_visit"] = format_last_visit(int(row["days_since_last_visit"]))
-        record["expiry"] = format_expiry(row["expiry_date"])
-        record["offer"] = pick_offer(member_id)
-
-    records.append(record)
+    })
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 output_path = os.path.join(OUTPUT_DIR, "members_scored.json")
 with open(output_path, "w") as f:
     json.dump(records, f, indent=2)
 
+meta_path = os.path.join(OUTPUT_DIR, "dataset_meta.json")
+with open(meta_path, "w") as f:
+    json.dump(
+        {
+            "as_of": TODAY.date().isoformat(),
+            "generator_seed": 42,
+            "members": len(records),
+            "note": (
+                "Synthetic dataset with a frozen reference date. The app reads `as_of` "
+                "from here so relative phrases like 'twelve days' stay true as real time "
+                "passes. Re-run the pipeline to move it."
+            ),
+        },
+        f,
+        indent=2,
+    )
+
 print(f"Wrote {len(records)} members to {output_path}")
+print(f"Wrote dataset metadata to {meta_path}")
 
 # ---------------------------------------------------------------------------
-# Accuracy report vs. the answer key (never used as a router input above)
+# Data-sufficiency report
+#
+# Not an accuracy metric — see the module docstring for why the old one was
+# withdrawn. This answers a narrower, checkable question: does the dataset
+# actually contain members sitting in each window a call type fires on? If any
+# line here reads 0, that call type cannot be demonstrated.
 # ---------------------------------------------------------------------------
 
-predicted = df["cohort"]
-comparison = pd.DataFrame({"true": true_cohort.reindex(df.index), "predicted": predicted})
-accuracy = (comparison["true"] == comparison["predicted"]).mean()
+live = df["status"] != "expired"
+fixed_term = ~df["auto_renew"].astype(bool)
+days_to_expiry = (df["expiry_date"] - TODAY).dt.days
+days_since_expiry = -days_to_expiry
+absent_4wk = df["days_since_last_visit"] >= 28
+had_habit = df["old_rate"] >= 1.0
 
-print(f"\nAccuracy vs. _true_cohort answer key: {accuracy:.1%}")
-print("\nConfusion matrix (rows = true cohort, cols = predicted):")
-print(pd.crosstab(comparison["true"], comparison["predicted"]))
+windows = {
+    "renewal            (live, fixed term, <=14d to expiry, visited in last 28d)":
+        live & fixed_term & (days_to_expiry >= 0) & (days_to_expiry <= 14) & ~absent_4wk,
+    "reengagement-early (live, fixed term, absent 28d+, habit, >30d to expiry)":
+        live & fixed_term & absent_4wk & had_habit & (days_to_expiry > 30),
+    "reengagement-near  (live, fixed term, absent 28d+, <=14d to expiry)":
+        live & fixed_term & absent_4wk & (days_to_expiry >= 0) & (days_to_expiry <= 14),
+    "winback ~1 month   (expired 20-45d ago)":
+        ~live & days_since_expiry.between(20, 45),
+    "winback ~3 months  (expired 75-105d ago)":
+        ~live & days_since_expiry.between(75, 105),
+    "winback ~6 months  (expired 165-195d ago)":
+        ~live & days_since_expiry.between(165, 195),
+}
 
-mismatches = comparison[comparison["true"] != comparison["predicted"]]
-if len(mismatches):
-    print(f"\n{len(mismatches)} mismatches:")
-    print(mismatches)
+print("\nCallable population per window (the router's own triggers live in lib/callType.ts):")
+for label, mask in windows.items():
+    count = int(mask.sum())
+    flag = "" if count else "   <-- EMPTY, this call type cannot be demoed"
+    print(f"  {label:<74} {count:>4}{flag}")
 
-    signal_cols = [
-        "status",
-        "tenure_days",
-        "days_since_last_visit",
-        "visits_last_4wk",
-        "visits_prior_4wk",
-        "old_rate",
-    ]
-    detail = df.loc[mismatches.index, signal_cols].join(mismatches)
+excluded = int(df["auto_renew"].astype(bool).sum())
+looks_due = int((df["auto_renew"].astype(bool) & days_to_expiry.between(0, 14)).sum())
+print(
+    f"\nExcluded by the auto-renew rule: {excluded} of {len(df)} "
+    f"({excluded / len(df):.0%}); {looks_due} of them sit inside a 14-day expiry window "
+    "and would be dialled by a date-triggered system."
+)
 
-    print("\nSample mismatches with raw signals, grouped by (true -> predicted):")
-    for (true_c, pred_c), group in detail.groupby(["true", "predicted"]):
-        sample = group.head(5)
-        print(f"\n  {true_c} -> {pred_c}  ({len(group)} total, showing up to 5)")
-        print(sample[["true", "predicted"] + signal_cols].to_string())
+print("\nCohort mix (router output, for reference):")
+print(df["cohort"].value_counts().to_string())

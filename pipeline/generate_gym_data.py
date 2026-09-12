@@ -10,11 +10,40 @@ so the demo always has a known number of members in every category:
   - new_joiner    : joined <=21 days ago, too early to read a trend
   - sliding       : was attending consistently, meaningfully dropped in last 4 weeks
   - sleeping_dog  : long-dormant (60+ days no visit) but still on an ACTIVE paying contract
-  - winback       : contract has expired/is expiring, hasn't been back
+  - winback       : contract has already expired, hasn't been back
 
 These cohort labels are written to members.csv as ground truth for testing the
 router/reasoning logic against — NOT as an input the model should see. Treat this
 column as an answer key, not a feature.
+
+## auto_renew, and why it drives the expiry dates
+
+`auto_renew` is the product's core rule: an auto-renewing member is never called,
+however absent they are, because the call reminds them to cancel. It is modelled
+as a property of the contract term — `month-to-month` rolls over, `6-month` and
+`12-month` do not:
+
+    auto_renew == (contract_type == "month-to-month")
+
+That mapping then decides what `expiry_date` means, which matters more than it
+looks. For an auto-renewing contract the expiry date is the *next rollover*, so
+it is always within ~30 days; for a fixed-term contract it is the date the
+membership actually lapses. The consequence is deliberate: roughly a quarter of
+the member base permanently looks "about to expire" to any date-triggered
+dialer, and every one of them must be excluded. That exclusion is the product.
+
+An expired contract is therefore always fixed-term — an auto-renewing membership
+does not lapse, it keeps billing until someone cancels it (cancellation is a
+different event and is not modelled here).
+
+## Guaranteed sub-slices
+
+The three call types (renewal / reengagement / winback) fire on dates relative
+to expiry, so each needs a population that sits in the right window on the
+dataset's reference date. Those slices are allocated explicitly below rather
+than hoped for from random expiry draws. This is synthetic data built to
+exercise every path in the router; it is not a claim about any real gym's
+distribution. See LIMITATIONS in the README.
 """
 
 import numpy as np
@@ -37,16 +66,37 @@ N_MEMBERS = 500
 
 # Guaranteed cohort proportions (sum to N_MEMBERS)
 COHORT_COUNTS = {
-    "steady": 300,
-    "new_joiner": 80,
-    "sliding": 60,
-    "sleeping_dog": 40,
-    "winback": 20,
+    "steady": 245,
+    "new_joiner": 50,
+    "sliding": 55,
+    "sleeping_dog": 60,
+    "winback": 90,
 }
 assert sum(COHORT_COUNTS.values()) == N_MEMBERS
 
 CONTRACT_TYPES = ["month-to-month", "6-month", "12-month"]
-CONTRACT_TYPE_WEIGHTS = [0.55, 0.30, 0.15]  # most gyms skew month-to-month
+# Weights for members NOT in a guaranteed fixed-term slice. Tuned so that
+# month-to-month (= auto-renew) lands at roughly a quarter of the whole base
+# once the forced-fixed-term slices are accounted for.
+CONTRACT_TYPE_WEIGHTS = [0.44, 0.33, 0.23]
+FIXED_TERM_TYPES = ["6-month", "12-month"]
+FIXED_TERM_WEIGHTS = [0.6, 0.4]
+
+# How long one contract term runs, in days — used to derive the contract's own
+# start_date, which is not the same thing as the member's join_date once a
+# member has renewed at least once.
+TERM_DAYS = {"month-to-month": 30, "6-month": 180, "12-month": 365}
+
+# --- Guaranteed sub-slices, so every call type has a population -------------
+# Steady members whose fixed term lapses within a fortnight while they are
+# still training — the renewal call's audience.
+NEAR_EXPIRY_STEADY = 40
+# Dormant members whose fixed term also lapses within a fortnight — the
+# reengagement call's near-expiry variant (expiry_line changes, prompt doesn't).
+NEAR_EXPIRY_SLEEPING = 25
+# Days since expiry for the three winback windows: ~1 month, ~3 months,
+# ~6 months. Winback members are assigned round-robin across them.
+WINBACK_WINDOWS = [(20, 45), (75, 105), (165, 195)]
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data")
 
@@ -79,6 +129,17 @@ def draw_weekly_rate() -> float:
     return max(0.5, np.random.normal(loc=3.0, scale=1.0))
 
 
+def draw_contract_type(force_fixed_term: bool = False) -> str:
+    if force_fixed_term:
+        return random.choices(FIXED_TERM_TYPES, FIXED_TERM_WEIGHTS)[0]
+    return random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
+
+
+def rollover_expiry() -> datetime:
+    """Next billing rollover for an auto-renewing (month-to-month) contract."""
+    return TODAY + timedelta(days=random.randint(1, 30))
+
+
 def generate_checkins(member_id, start_date, end_date, weekly_rate, dropoff_date=None, dropoff_factor=0.0):
     """
     Generate check-in timestamps between start_date and end_date at ~weekly_rate/week.
@@ -104,33 +165,53 @@ def generate_checkins(member_id, start_date, end_date, weekly_rate, dropoff_date
 
 # ---------------------------------------------------------------------------
 # Cohort generators
+#
+# Each takes the member's index within its cohort so the guaranteed sub-slices
+# above are deterministic rather than left to a random draw.
 # ---------------------------------------------------------------------------
 
-def make_steady():
+def make_steady(i: int):
     mid = new_member_id()
     tenure_days = random.randint(90, 540)
     join_date = TODAY - timedelta(days=tenure_days)
-    rate = draw_weekly_rate()
+    near_expiry = i < NEAR_EXPIRY_STEADY
+    if near_expiry:
+        # Still training and the fixed term lapses within a fortnight: this is
+        # the renewal call. Rate is floored at 1x/week so "visited in the last
+        # 28 days" holds — the renewal trigger requires it.
+        contract_type = draw_contract_type(force_fixed_term=True)
+        rate = max(1.0, np.random.normal(loc=2.5, scale=0.8))
+        expiry = TODAY + timedelta(days=random.randint(3, 14))
+    else:
+        contract_type = draw_contract_type()
+        rate = draw_weekly_rate()
+        expiry = (
+            rollover_expiry()
+            if contract_type == "month-to-month"
+            else TODAY + timedelta(days=random.randint(31, 300))
+        )
     near_gym = random.random() < 0.75  # steady members skew near the gym
-    contract_type = random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
-    expiry = TODAY + timedelta(days=random.randint(31, 300))
     checkins = generate_checkins(mid, join_date, TODAY, rate)
     return mid, join_date, near_gym, contract_type, "active", expiry, checkins, rate
 
 
-def make_new_joiner():
+def make_new_joiner(i: int):
     mid = new_member_id()
     tenure_days = random.randint(1, 21)
     join_date = TODAY - timedelta(days=tenure_days)
     rate = draw_weekly_rate()
     near_gym = random.random() < 0.6
-    contract_type = random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
-    expiry = TODAY + timedelta(days=random.randint(300, 365))
+    contract_type = draw_contract_type()
+    expiry = (
+        rollover_expiry()
+        if contract_type == "month-to-month"
+        else TODAY + timedelta(days=random.randint(300, 365))
+    )
     checkins = generate_checkins(mid, join_date, TODAY, rate)
     return mid, join_date, near_gym, contract_type, "active", expiry, checkins, rate
 
 
-def make_sliding():
+def make_sliding(i: int):
     mid = new_member_id()
     tenure_days = random.randint(120, 400)
     join_date = TODAY - timedelta(days=tenure_days)
@@ -138,13 +219,17 @@ def make_sliding():
     dropoff_date = TODAY - timedelta(days=random.randint(21, 35))  # dropped in last ~4-5 weeks
     dropoff_factor = random.uniform(0.15, 0.45)  # 55-85% reduction, not a hard stop
     near_gym = random.random() < 0.6
-    contract_type = random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
-    expiry = TODAY + timedelta(days=random.randint(31, 300))
+    contract_type = draw_contract_type()
+    expiry = (
+        rollover_expiry()
+        if contract_type == "month-to-month"
+        else TODAY + timedelta(days=random.randint(31, 300))
+    )
     checkins = generate_checkins(mid, join_date, TODAY, rate, dropoff_date, dropoff_factor)
     return mid, join_date, near_gym, contract_type, "active", expiry, checkins, rate
 
 
-def make_sleeping_dog():
+def make_sleeping_dog(i: int):
     mid = new_member_id()
     tenure_days = random.randint(200, 600)
     join_date = TODAY - timedelta(days=tenure_days)
@@ -152,28 +237,43 @@ def make_sleeping_dog():
     dropoff_date = TODAY - timedelta(days=random.randint(65, 150))  # fully dormant 65+ days
     dropoff_factor = 0.0  # hard stop — this is the defining trait
     near_gym = random.random() < 0.4
-    contract_type = random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
-    # KEY: contract stays ACTIVE and still billing despite zero attendance
-    expiry = TODAY + timedelta(days=random.randint(31, 300))
+    near_expiry = i < NEAR_EXPIRY_SLEEPING
+    if near_expiry:
+        # Absent AND the fixed term lapses within a fortnight: same
+        # reengagement prompt, different expiry_line.
+        contract_type = draw_contract_type(force_fixed_term=True)
+        expiry = TODAY + timedelta(days=random.randint(3, 14))
+    else:
+        contract_type = draw_contract_type()
+        # KEY: contract stays ACTIVE and still billing despite zero attendance
+        expiry = (
+            rollover_expiry()
+            if contract_type == "month-to-month"
+            else TODAY + timedelta(days=random.randint(31, 300))
+        )
     checkins = generate_checkins(mid, join_date, TODAY, rate, dropoff_date, dropoff_factor)
     return mid, join_date, near_gym, contract_type, "active", expiry, checkins, rate
 
 
-def make_winback():
+def make_winback(i: int):
     mid = new_member_id()
-    tenure_days = random.randint(90, 500)
+    # Round-robin across the ~1-month / ~3-month / ~6-month windows so all
+    # three winback call moments have an audience.
+    low, high = WINBACK_WINDOWS[i % len(WINBACK_WINDOWS)]
+    days_expired = random.randint(low, high)
+    expiry = TODAY - timedelta(days=days_expired)
+    # An expired contract is always fixed-term: auto-renewing memberships do
+    # not lapse, they keep billing until cancelled.
+    contract_type = draw_contract_type(force_fixed_term=True)
+    tenure_days = days_expired + random.randint(120, 500)
     join_date = TODAY - timedelta(days=tenure_days)
     rate = max(0.5, np.random.normal(loc=1.8, scale=0.6))
-    dropoff_date = TODAY - timedelta(days=random.randint(45, 120))
+    # They drifted off at or before the expiry rather than on the day of it.
+    dropoff_date = expiry - timedelta(days=random.randint(0, 45))
     dropoff_factor = 0.0
     near_gym = random.random() < 0.5
-    contract_type = random.choices(CONTRACT_TYPES, CONTRACT_TYPE_WEIGHTS)[0]
-    # KEY: contract has already expired or expires very soon — nothing left to lose by calling
-    expiry_offset = random.randint(-60, 5)  # negative = already expired
-    expiry = TODAY + timedelta(days=expiry_offset)
-    status = "expired" if expiry_offset < 0 else "expiring"
     checkins = generate_checkins(mid, join_date, TODAY, rate, dropoff_date, dropoff_factor)
-    return mid, join_date, near_gym, contract_type, status, expiry, checkins, rate
+    return mid, join_date, near_gym, contract_type, "expired", expiry, checkins, rate
 
 
 COHORT_FUNCS = {
@@ -189,8 +289,8 @@ COHORT_FUNCS = {
 # ---------------------------------------------------------------------------
 
 for cohort, count in COHORT_COUNTS.items():
-    for _ in range(count):
-        mid, join_date, near_gym, contract_type, status, expiry, checkins, rate = COHORT_FUNCS[cohort]()
+    for i in range(count):
+        mid, join_date, near_gym, contract_type, status, expiry, checkins, rate = COHORT_FUNCS[cohort](i)
 
         age = int(np.clip(np.random.normal(30, 8), 18, 65))
         gender = random.choice(["male", "female", "prefer_not_to_say"])
@@ -209,12 +309,25 @@ for cohort, count in COHORT_COUNTS.items():
             "_true_cohort": cohort,  # ANSWER KEY — strip before feeding to the router blind
         })
 
+        # The contract's own term, which is not the member's whole history: a
+        # member who has renewed twice has one contract row per term in a real
+        # system, and only the current one is here.
+        term_days = TERM_DAYS[contract_type]
+        contract_start = max(join_date, expiry - timedelta(days=term_days))
+        monthly_fee = random.choice([59, 69, 79, 89, 99])
+        # What renewing actually costs this member today. ~25% of members are on
+        # a legacy rate the gym has since raised, and Charlie quotes the new
+        # number out loud when asked — the gym needs to know that.
+        renewal_fee = monthly_fee + (10 if random.random() < 0.25 else 0)
+
         contracts_rows.append({
             "member_id": mid,
             "contract_type": contract_type,
-            "start_date": join_date.date().isoformat(),
+            "auto_renew": contract_type == "month-to-month",
+            "start_date": contract_start.date().isoformat(),
             "expiry_date": expiry.date().isoformat(),
-            "monthly_fee": random.choice([59, 69, 79, 89, 99]),
+            "monthly_fee": monthly_fee,
+            "renewal_fee": renewal_fee,
             "status": status,
         })
 
@@ -238,3 +351,11 @@ print(f"contracts: {len(contracts_df)} rows")
 print(f"checkins: {len(checkins_df)} rows")
 print("\nCohort breakdown (answer key, for testing only):")
 print(members_df["_true_cohort"].value_counts())
+
+auto_renew_count = int(contracts_df["auto_renew"].sum())
+print(
+    f"\nauto_renew: {auto_renew_count} of {len(contracts_df)} "
+    f"({auto_renew_count / len(contracts_df):.0%}) — never called, by design"
+)
+print("\nContract type mix:")
+print(contracts_df["contract_type"].value_counts())

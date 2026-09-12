@@ -30,14 +30,11 @@ export default function ActionQueueTable({ members }: { members: Member[] }) {
       const res = await fetch("/api/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          member_id: member.member_id,
-          name: member.name,
-          phone: member.phone,
-          last_visit: member.last_visit,
-          expiry: member.expiry,
-          offer: member.offer,
-        }),
+        // member_id only, deliberately: the route resolves the member from the
+        // dataset itself and ignores anything else the client sends, which is
+        // what makes the auto-renew exclusion an actual constraint rather than
+        // a UI convention.
+        body: JSON.stringify({ member_id: member.member_id }),
       });
       if (!res.ok) throw new Error(`Call trigger failed: ${res.status}`);
       setCalledIds((prev) => new Set(prev).add(member.member_id));
