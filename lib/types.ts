@@ -31,9 +31,11 @@ export type CallOutcome = "rebooked" | "callback" | "not_interested" | null;
 export interface CallRecord {
   id: string;
   member_id: string;
+  member_name?: string | null;
   status: CallStatus;
   conversation_id?: string;
   transcript: string | null;
   outcome: CallOutcome;
+  reason_for_leaving?: string | null;
   created_at: string;
 }
