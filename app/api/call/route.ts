@@ -4,6 +4,7 @@ import membersData from "@/data/members_scored.json";
 import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { compileVariables } from "@/lib/compileVariables";
+import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
 import { insertCallRecord } from "@/lib/callRecords";
@@ -95,12 +96,17 @@ export async function POST(req: NextRequest) {
     priorCall: history.priorCall,
   });
 
-  // The dataset's 500 phone numbers are Faker output in six formats and belong
-  // to nobody. Rather than normalise fiction into E.164, every call goes to one
-  // verified test number when the override is set. Documented in LIMITATIONS,
-  // not hidden: nothing about the routing changes, only the last hop.
-  const override = process.env.CALL_OVERRIDE_NUMBER?.trim();
-  const toNumber = override || member.phone;
+  // The last check before a phone rings. Every number in this dataset is Faker
+  // output — well-formed, and belonging to a stranger — so the route refuses to
+  // dial it unless an override number is set or someone has deliberately opted
+  // in. Nothing about the routing changes, only the last hop.
+  const dial = resolveDialTarget(member.phone);
+  if (!dial.allowed || !dial.to) {
+    return NextResponse.json(
+      { error: "Refusing to dial", reason: dial.reason, blocked_by: "unverified_number" },
+      { status: 409 }
+    );
+  }
 
   let elevenLabsResponse: Response;
   try {
@@ -112,7 +118,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           agent_id: agentId,
           agent_phone_number_id: phoneNumberId,
-          to_number: toNumber,
+          to_number: dial.to,
           conversation_initiation_client_data: { dynamic_variables: dynamicVariables },
         }),
       }
@@ -154,7 +160,7 @@ export async function POST(req: NextRequest) {
     call_type: callType,
     attempt_number: eligibility.attemptNumber,
     gym_id: gym.gym_id,
-    dialled: override ? "override number" : "member number",
+    dialled: dial.overridden ? "override number" : "member number",
     // Echoed back so the dashboard can show exactly what the agent was told.
     dynamic_variables: dynamicVariables,
   });

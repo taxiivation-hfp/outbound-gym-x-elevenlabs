@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import membersData from "@/data/members_scored.json";
 import { firstName } from "@/lib/compileVariables";
+import { resolveDialTarget } from "@/lib/dialSafety";
 import { getGym } from "@/lib/gyms";
 import type { Member } from "@/lib/types";
 
@@ -128,15 +129,23 @@ export async function POST(req: NextRequest) {
   const link = buildLink(baseUrl, member, gym.gym_id, linkType as LinkType);
   const message = buildMessage(member, gym.gym_name, linkType as LinkType, link);
 
-  // Same override as the call route, same reason: the member phone numbers are
-  // synthetic. With it set, the text lands on the one verified handset.
-  const override = process.env.CALL_OVERRIDE_NUMBER?.trim();
-  const to = override || member.phone;
+  // Same guard as the call route, same reason: these numbers belong to
+  // strangers. A refusal here degrades into something the agent can say rather
+  // than an error it might read out.
+  const dial = resolveDialTarget(member.phone);
+  if (!dial.allowed || !dial.to) {
+    console.error("send_text refused:", dial.reason, { memberId, linkType });
+    return NextResponse.json({
+      success: false,
+      message: "I couldn't send that text just now — someone from the gym will follow up.",
+      detail: dial.reason,
+    });
+  }
 
-  const result = await sendSms(to, message);
+  const result = await sendSms(dial.to, message);
 
   if (!result.sent) {
-    console.error("send_text failed:", result.detail, { memberId, linkType, to });
+    console.error("send_text failed:", result.detail, { memberId, linkType });
     return NextResponse.json(
       {
         success: false,
@@ -147,7 +156,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  console.log("send_text sent", { memberId, linkType, to: override ? "override" : "member", sid: result.sid });
+  console.log("send_text sent", {
+    memberId,
+    linkType,
+    to: dial.overridden ? "override" : "member",
+    sid: result.sid,
+  });
 
   // The agent reads this back to the member, so it is written as a sentence
   // rather than a status code.

@@ -5,6 +5,7 @@ import { referenceDate } from "@/lib/compileVariables";
 import { campaignEconomics, ASSUMPTIONS, type CampaignEconomics, type Assumption } from "@/lib/economics";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { DEFAULT_GYM_ID, gyms } from "@/lib/gyms";
+import { sortByPriority } from "@/lib/sortMembers";
 import type { Cohort, Member } from "@/lib/types";
 
 const members = membersData as Member[];
@@ -114,7 +115,11 @@ export async function buildQueueView(): Promise<QueueView> {
     historyError = err instanceof Error ? err.message : String(err);
   }
 
-  const entries = members.map((m) => toEntry(m, history.get(m.member_id) ?? NO_HISTORY));
+  // Cohort urgency first, most dormant first within each — the framework's own
+  // definition of priority, kept as the default order of the member list.
+  const entries = sortByPriority(
+    members.map((m) => toEntry(m, history.get(m.member_id) ?? NO_HISTORY))
+  );
   const count = (predicate: (e: QueueEntry) => boolean) => entries.filter(predicate).length;
 
   const counts: QueueCounts = {

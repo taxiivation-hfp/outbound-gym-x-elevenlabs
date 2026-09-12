@@ -1,20 +1,53 @@
 """
-Twilio test call; US Twilio ringing an Australian mobile.
+Twilio test call: a US Twilio number ringing an Australian mobile.
+
+This was the first thing that proved the telephony leg worked, and it is kept
+because it is still the shortest way to check whether Twilio itself is healthy
+without going through ElevenLabs or the app.
+
+SECURITY NOTE — read this before using it.
+
+An earlier version of this file had the Account SID and auth token hardcoded in
+plaintext and was committed. They are therefore in this repository's git history
+and must be treated as compromised: rotate them in the Twilio console. Removing
+them from this file does not remove them from history. See REVIEW_NOTES.md.
 
 RUN:
-  pip install requests
-  python test_call.py
+  pip install requests python-dotenv
+  python twilio_call.py +61400000000
 """
+
+import os
+import sys
+from pathlib import Path
 
 import requests
 
-SID   = "ACcd469ea9fd1836bfb22d6ab11677ef17"  
-TOKEN = "29ee0d11cef2ac94434feafecee6247e"                
-FROM  = "+14128662936"                        # the US number we bought
-TO    = "+61491749433"                        # lando's number rn.
-# 
+try:
+    from dotenv import load_dotenv
+except ImportError:  # dotenv is optional; env vars work on their own
+    load_dotenv = None
 
-SAY = "If you can hear this, the hard part is done. Orlando Tan works at KebabX Clayton."
+if load_dotenv:
+    for folder in [Path.cwd(), *list(Path.cwd().parents)[:2]]:
+        env = folder / ".env.local"
+        if env.exists():
+            load_dotenv(env)
+            break
+
+SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+FROM = os.environ.get("TWILIO_SMS_FROM")
+TO = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("CALL_OVERRIDE_NUMBER")
+
+SAY = "If you can hear this, the telephony leg is working."
+
+if not (SID and TOKEN and FROM):
+    sys.exit(
+        "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_SMS_FROM in .env.local first."
+    )
+if not TO:
+    sys.exit("Pass a number to call, or set CALL_OVERRIDE_NUMBER in .env.local.")
 
 r = requests.post(
     f"https://api.twilio.com/2010-04-01/Accounts/{SID}/Calls.json",
@@ -24,10 +57,11 @@ r = requests.post(
         "From": FROM,
         "Twiml": f"<Response><Say>{SAY}</Say></Response>",
     },
+    timeout=30,
 )
 
 if r.ok:
-    print("Request accepted. Watch your phone.")
+    print("Request accepted. Watch the phone.")
     print("Call SID:", r.json().get("sid"))
 else:
     err = r.json()
@@ -37,7 +71,7 @@ else:
         21215: "Australia not enabled. Voice -> Settings -> Geographic Permissions.",
         21210: "The From number isn't yours. Check you copied the Twilio number.",
         21211: "The To number is malformed. Needs +61 and no leading zero.",
-        21219: "Trial account: verify your mobile under Verified Caller IDs.",
+        21219: "Trial account: verify the mobile under Verified Caller IDs.",
         21216: "Missing customer profile in TrustHub.",
         20003: "Bad SID or auth token.",
     }

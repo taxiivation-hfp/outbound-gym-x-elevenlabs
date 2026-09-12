@@ -2,5 +2,6 @@
   "as_of": "2026-09-12",
   "generator_seed": 42,
   "members": 500,
-  "note": "Synthetic dataset with a frozen reference date. The app reads `as_of` from here so relative phrases like 'twelve days' stay true as real time passes. Re-run the pipeline to move it."
+  "note": "Synthetic dataset with a frozen reference date. The app reads `as_of` from here so relative phrases like 'twelve days' stay true as real time passes. Re-run the pipeline to move it.",
+  "synthetic": true
 }

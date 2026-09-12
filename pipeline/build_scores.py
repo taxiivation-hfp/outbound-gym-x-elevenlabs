@@ -281,6 +281,10 @@ with open(meta_path, "w") as f:
             "as_of": TODAY.date().isoformat(),
             "generator_seed": 42,
             "members": len(records),
+            # Read by /api/call, which refuses to dial a synthetic dataset
+            # unless an override number is set. Faker's Australian numbers are
+            # well-formed and belong to real strangers.
+            "synthetic": True,
             "note": (
                 "Synthetic dataset with a frozen reference date. The app reads `as_of` "
                 "from here so relative phrases like 'twelve days' stay true as real time "

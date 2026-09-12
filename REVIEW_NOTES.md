@@ -1,0 +1,260 @@
+# Review notes — read this first
+
+Written overnight, 13 September 2026. Everything in `MERGE_PLAN.md` is built and
+pushed to `main`. This file is the handover: what needs a human, in the order it
+needs doing, then what I decided on your behalf and where the risk sits.
+
+**Live now:** <https://retention-router.vercel.app> — already deploying from
+`main`, nobody needed to do anything. `/`, `/members`, `/intelligence`, `/evals`
+and the API routes are all up and reading Supabase.
+
+**Verified in production**, just now, with a real POST:
+
+```
+POST /api/call {"member_id":"M0105"}
+403 {"blocked_by":"auto_renew",
+     "reason":"Auto-renewing membership. The call is the only thing that could
+               end it, so they are never called — however long they have been away."}
+```
+
+M0105 is on auto-renew with a renewal date eleven days out. The core rule holds
+on the live URL, not just locally.
+
+---
+
+## 1. Things only you can do
+
+### 1a. Rotate the Twilio credentials. Do this first.
+
+`twilio_call.py` had a live Account SID and auth token in plaintext, committed,
+in a public repo. I have replaced them with env-var reads, **but they are still
+in git history and must be treated as compromised.**
+
+Twilio console → Account → API keys & tokens → rotate the auth token, then put
+the new one in `.env.local` and in Vercel. Ten minutes, and it is the only item
+here with a real-money downside.
+
+### 1b. Apply the `call_records` migration
+
+Eight of the eleven fields every call extracts have nowhere to land until this
+runs. Without it: no `reason_for_absence`, so `/intelligence` stays empty; no
+`do_not_contact` column, so that flag is only inferred from `outcome`; no
+`attempt_number`, so the closed loop is half blind.
+
+Supabase dashboard → SQL Editor → paste the whole of
+`supabase/migrations/20260913120000_call_records_analysis.sql` → Run. It is
+idempotent, so running it twice is safe.
+
+I could not do this myself: PostgREST does not execute DDL, and the service-role
+key is not a database password. The code degrades rather than crashing in the
+meantime — `lib/callRecords.ts` retries with the pre-migration column subset and
+logs loudly — but that fallback is scaffolding and should be deleted once the
+migration is applied everywhere.
+
+### 1c. Add six environment variables in Vercel
+
+Settings → Environment Variables. `.env.local` has all the values; it is
+gitignored, so here they are:
+
+```
+ELEVENLABS_AGENT_ID_RENEWAL=agent_2501m2b7vj32eewtgj7nxcecx061
+ELEVENLABS_AGENT_ID_REENGAGEMENT=agent_6101m2b7vkzmed1bstqatsc98gaf
+ELEVENLABS_AGENT_ID_WINBACK=agent_3701m2b7vnvse2z8yzte3w00hkxh
+PUBLIC_BASE_URL=https://retention-router.vercel.app
+CALL_OVERRIDE_NUMBER=<the verified handset — see .env.local>
+TWILIO_ACCOUNT_SID=<from .env.local, after you have rotated it>
+TWILIO_AUTH_TOKEN=<from .env.local, after you have rotated it>
+TWILIO_SMS_FROM=<the Twilio number, see .env.local>
+```
+
+**Read this before you add them.** `CALL_OVERRIDE_NUMBER` is the one that stops
+the app dialling strangers. `.env.local` has it set to the handset that was
+already hardcoded as the test number in `twilio_call.py` — Orlando's, I think.
+Check with him, and change it if that is wrong. I have deliberately not written
+anyone's mobile number into a file in a public repo; copy it across from
+`.env.local`.
+
+I did not want that to depend on anyone remembering, so it no longer does:
+`data/dataset_meta.json` marks the dataset synthetic, and `/api/call` returns
+`409 Refusing to dial` when no override is set. Filling in the agent ids and
+forgetting the override cannot ring 173 real Australians — it will refuse and
+tell you why. `ALLOW_UNVERIFIED_NUMBERS=true` is the deliberate override, for
+real member data.
+
+### 1d. Nothing else
+
+The post-call webhook was already registered in the workspace (`Retention
+Router` → `https://retention-router.vercel.app/api/webhook`) and I have attached
+it to all three agents. The `send_text` webhook tool is created and pointed at
+the production URL. Both verified against the live agent config.
+
+---
+
+## 2. Before you record the video
+
+Three real calls, in this order, after steps 1b and 1c. Each takes about two
+minutes and they are what make the demo land.
+
+1. **A renewal call.** Top of the Renewal column on the dashboard. Watch the
+   member card fill in afterwards: outcome badge, and if they took a link, the
+   text arriving on the handset.
+2. **A winback call**, and on it, say something specific about why you stopped —
+   "the six o'clock crowd", "did my knee". That sentence is what populates
+   `/intelligence`, which is otherwise empty and says so honestly. **Without at
+   least one call carrying a stated reason, the best page in the build shows an
+   empty state.**
+3. **A reengagement call**, and on it, agree to come in on a named day. That
+   fills the "Expected at the desk" panel.
+
+Then the two beats that need no calls at all:
+
+- **Switch gym** in the dashboard header, Southbank → Kensington Barbell, and
+  place a renewal call. Same prompt, and the agent now has nothing to offer —
+  say the price is too much and it will tell you it will pass that on. That is
+  the "one agent, config per gym" claim being demonstrated rather than asserted.
+- **Filter `/members` to auto-renew.** Every row reads *never called*, including
+  members who have been away for six months. Then the header line on the
+  dashboard: 148 excluded, 72 of them with a renewal date inside the fortnight.
+
+One thing to avoid saying on camera: do not quote a conversion rate or a dollar
+return. The cost panel deliberately does not assume one. The line that survives
+questioning is *"one save in about 1,200 calls pays for the whole run, and
+today's queue is 173 calls at $70"*.
+
+---
+
+## 3. What runs, and what does not
+
+### Works, verified
+
+- **Routing.** 173 of 500 due today: 42 renewal, 43 reengagement, 88 winback.
+  148 excluded on auto-renew, 2 on cooldown, 177 nothing-due. Every window
+  populated, which was not true of the old dataset — two of the three call types
+  had no audience at all.
+- **The three agents**, created from this repo, with eleven data-collection
+  fields, three evaluation criteria, mu-law 8000 both directions, `end_call`
+  enabled and the `send_text` tool attached. Re-runnable: `npm run agents:sync`.
+- **The eval suite.** 19/19 routing guards, 15/15 conversations. Three runs
+  committed, including the two that failed (10/15, then 12/15). Rendered at
+  `/evals`.
+- **The closed loop.** Attempt number counts conversations rather than dials;
+  a prior call's reason is folded into the next call's `context`; do-not-contact
+  is permanent across all three call types; the cooldown backs off three months
+  after a call that changed nothing and lifts the moment one works. All under
+  test.
+- **The dashboard**, live: three call-type columns, five excluded buckets with
+  reasons, the cost panel with every assumption on screen, the churn view, the
+  evals view, and the three texted-link landing pages.
+- **SMS.** Built properly against Twilio. The account is active and the number
+  is SMS-capable — I checked read-only. **I did not send a test message**,
+  because it was three in the morning and it would have buzzed a real phone.
+  That is the one item on this list I have not seen work end to end; send one in
+  the morning before you rely on it. Australian SMS geo-permissions may need
+  enabling in the Twilio console.
+
+### Not built, on purpose
+
+Voicemail detection. A scheduler — the triggers are dated but a human presses
+the button. Live push to the browser, so a call at "initiated" needs the refresh
+button. The member who came in once after a call and then stopped again. All
+three are in the README's LIMITATIONS section with the reasoning.
+
+### The riskiest thing left
+
+**No call has been placed end to end through the new stack.** Every part is
+verified in isolation — routing in production, the agents against the live API,
+the variable compiler under test, the webhook signature logic, Twilio's account
+state — but the whole chain, dashboard button to phone ringing to transcript
+landing in Supabase, has not run once. It needs 1b and 1c first, which is why
+they are at the top.
+
+Second riskiest: the webhook's last delivery attempt failed with a 404, before
+the current deployment. It should work now that the route is live and attached,
+but the first real call is the proof.
+
+---
+
+## 4. Decisions I made for you
+
+`MERGE_PLAN.md` said to note anything that looked wrong and carry on with it
+anyway. Nothing in it turned out wrong. These are the calls it left open, and two
+places where I went further than it asked.
+
+**Decided as the plan directed:**
+
+- Month-to-month means auto-renew, 6- and 12-month mean fixed term. I re-weighted
+  the contract mix to land auto-renew at 30% rather than 55%, because the plan
+  asked for 25–30% and the semantic link was worth keeping.
+- An auto-renewing contract's `expiry_date` is its next rollover, so it is always
+  within 30 days. This is what makes the exclusion load-bearing: 72 auto-renewers
+  permanently look imminent to a date trigger.
+- Expired contracts are always fixed-term. An auto-renewing membership does not
+  lapse; it bills until cancelled. A side effect is that the `expiring` contract
+  status no longer occurs, which removes the one-member cohort/call-type label
+  mismatch `CONFLICTS.md` flagged under C4.
+- The habit guard (`old_rate >= 1.0`) applies to the pure-absence trigger only.
+  Absent *and* about to lapse fires regardless: the membership is going either
+  way, so there is nothing left to protect by staying quiet. Guard asserted.
+- `first_message` override: dropped, as instructed. Brief verification item 14 is
+  replaced in the suite by a closed-loop scenario — a second call that must not
+  re-ask what the first answered — which is more useful and tests something we
+  actually built.
+- Brief item 15 (fire a call with `quiet_hours` omitted) tests something the
+  route cannot do: `compileVariables` spreads the defaults into every payload, so
+  a variable is never absent. Recast as the case that does happen — a gym that
+  skipped a question at onboarding. A routing guard covers the original claim.
+
+**Three bugs in the brief, fixed while transcribing** (as the plan listed), plus
+a fourth I found:
+
+1. The winback prompt reads "Their membership expired `{{time_left}}`" while the
+   example value also began with "expired". I dropped it from the value.
+2. `expiry_line`'s month-or-less block contained a literal `{{time_left}}`.
+   ElevenLabs does not re-scan a variable's value, so the compiler inlines it.
+3. Two of the three `context` templates did not exist. Written.
+4. **New:** the brief gives five incentive blocks and no winback block for a gym
+   with nothing to offer (`CONFLICTS.md` O14). Kensington needed one, so I wrote
+   it to the brief's own pattern — state what you have, how to deliver it, then
+   close the door.
+
+**Two things I did that the plan did not ask for.** Both are small, and I would
+rather flag them than have you find them:
+
+- **The dial-safety guard** (`lib/dialSafety.ts`), described in 1c. The plan said
+  to use a phone override and document the decision. I made the refusal
+  structural instead, because a documented convention is not a safeguard when
+  the failure mode is ringing 173 strangers.
+- **A frozen reference date** (`lib/clock.ts`). The pipeline's clock is fixed at
+  2026-09-12, so the app reads that date from `data/dataset_meta.json` rather
+  than using the wall clock. Otherwise the dataset ages: a member twelve days
+  from expiry lapses in a fortnight and the renewal queue empties. The cost is
+  that the app's "today" is the dataset's. **If the agent's arithmetic sounds a
+  day out on the demo, run `npm run data:build` to re-anchor the dataset to
+  today** — the agent knows the real date from its timezone and reconciles it
+  against `{{time_left}}`, which is where the discrepancy comes from.
+
+**Deleted, and worth knowing:** `ActionQueueTable`, `OpportunityRoutingMap`,
+`StatCards` (whose `+3.2%` and `-12.4%` deltas were fabricated) and
+`reasoningFallback` (which guarded an LLM reasoning layer that does not exist).
+Also the empty `agents.json` / `tools.json` / `tests.json` and their three empty
+directories, left over from an ElevenLabs CLI attempt that
+`scripts/sync-agents.mjs` supersedes. The cohort priority sort survived: it is
+now the default order of `/members`.
+
+**The withdrawn 90.4%.** Removed from `FEATURES_AND_DECISIONS.md` and from
+`build_scores.py`, with the reasoning in both places and in the README. If
+anyone asks in Q&A, the honest answer is: the answer key was generated by the
+same rules the router applies, so the number measured whether two copies of one
+ruleset agreed. The router is validated in structure, not in accuracy, and the
+real evaluation is in `evals/`.
+
+---
+
+## 5. One known wart
+
+The `sleeping_dog` cohort still carries `contact: false` and
+`action: "do not contact"` from the framework's original model, where the
+exclusion was keyed on dormancy. It is now keyed on contract type, so those two
+fields are wrong for a dormant fixed-term member the queue is calling. Nothing
+reads them — the dashboard renders the derived routing — and `MERGE_PLAN.md`
+said to leave the cohort fields alone, so I did. Worth a one-line fix later.

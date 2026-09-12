@@ -281,9 +281,12 @@ export function sendTextToolConfig(baseUrl) {
             description:
               "Which link to send: renewal for a membership renewal link, incentive for a guest pass or discount, booking to book a session or class.",
           },
+          // Populated by the platform from the `member_id` dynamic variable, so
+          // the agent never chooses it. A `description` is rejected alongside
+          // `dynamic_variable` ("Can only set one of..."), which is the API
+          // saying the same thing: this is not a parameter the model fills in.
           member_id: {
             type: "string",
-            description: "The member's id, taken from the member_id dynamic variable.",
             dynamic_variable: "member_id",
           },
         },

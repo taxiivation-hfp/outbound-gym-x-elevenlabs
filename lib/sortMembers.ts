@@ -1,4 +1,4 @@
-import type { Cohort, Member } from "@/lib/types";
+import type { Cohort } from "@/lib/types";
 
 // Actionability/urgency order, not alphabetical or generation order —
 // winback is time-sensitive (contract already expired/expiring), sleeping_dog
@@ -12,10 +12,16 @@ const cohortPriority: Record<Cohort, number> = {
   steady: 4,
 };
 
-export function sortMembersByPriority(members: Member[]): Member[] {
-  return [...members].sort((a, b) => {
+/** Anything carrying a cohort and a dormancy figure can be ordered by this. */
+interface Rankable {
+  cohort: Cohort;
+  days_since_visit: number;
+}
+
+export function sortByPriority<T extends Rankable>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
     const cohortDiff = cohortPriority[a.cohort] - cohortPriority[b.cohort];
     if (cohortDiff !== 0) return cohortDiff;
-    return b.signals.days_since_visit - a.signals.days_since_visit;
+    return b.days_since_visit - a.days_since_visit;
   });
 }
