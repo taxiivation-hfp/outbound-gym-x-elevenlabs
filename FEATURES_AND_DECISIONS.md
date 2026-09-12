@@ -1,0 +1,203 @@
+# Retention Router — Features & Decisions
+
+What's actually built, in what order, and why each call was made the way it
+was. Written as a reference for the team, not a sales pitch — gaps and open
+flags are called out explicitly rather than smoothed over.
+
+## 1. Offline scoring pipeline (`pipeline/`)
+
+**What's there:** `generate_gym_data.py` (deterministic synthetic data
+generator, seed=42) produces `members.csv` / `contracts.csv` / `checkins.csv`.
+`build_scores.py` does feature engineering (tenure, 4-week visit windows,
+historical weekly rate) and classifies every member into one of 5 cohorts
+using explainable rules — no ML, no uplift modeling — then writes
+`pipeline/output/members_scored.json` (500 members).
+
+**Cohort rules, first match wins:**
+1. `new_joiner` — tenure ≤ 21 days
+2. `winback` — contract expired/expiring
+3. `sleeping_dog` — active, dormant ≥60 days
+4. `sliding` — active, meaningful recent drop (≥1.5x/week historical habit,
+   ≥2 visits in the prior window, ≥50% drop, not fully dormant)
+5. `steady` — everything else
+
+**Decision — rules over ML:** the team explicitly rejected uplift-modeling in
+favor of explainable, auditable rules. A rule you can read out loud in a demo
+beats a model whose reasoning you have to trust.
+
+**Decision — answer-key discipline:** the generator's `_true_cohort` column
+is stripped before classification and used only for a post-hoc accuracy
+check, never as a router input. This is what makes the accuracy number below
+meaningful rather than circular.
+
+**Result — 90.4% accuracy** against `_true_cohort`, after grid-search
+threshold tuning (`old_rate_min=1.5, prior_min=2, ratio=0.5, dsv_max=55`).
+100% on `new_joiner` and `winback`. The residual ~9.6% mismatch was
+investigated with a confusion matrix and per-case signal inspection, not left
+as an unexamined number — it's almost entirely finite-sample noise in the
+synthetic check-in data (e.g. a naturally low-frequency member going quiet
+for 79 days by chance, misread as `sleeping_dog` when the design intent was
+`steady`), not a rule-ordering bug. Further threshold tuning was deliberately
+not pursued past this point — it would fit this specific random seed's noise
+rather than encode a generalizable rule.
+
+**Flagged, not fixed:** the standalone `twilio_call.py` test script has a
+live Twilio Account SID + Auth Token hardcoded in plaintext, already
+committed to git history. Rotating it is a Twilio-console action, out of
+scope for any of this work — raised with the team, not silently left.
+
+## 2. Dashboard type contract cleanup
+
+`lib/types.ts`'s `Member` type carried `uplift: number` and a 4-value
+`quadrant` field — leftover vocabulary from the uplift-modeling approach the
+team dropped in favor of the 5-cohort router above. Both fields were removed
+entirely (not deprecated/kept-for-compat) once confirmed with the team, along
+with the two components that rendered them (`MemberTable.tsx`'s "Uplift"
+column, the old 4-quadrant grid).
+
+**Decision — delete, don't shim:** since nothing in the actual pipeline ever
+produced these fields, keeping them around as optional/unused would just be
+a stale contract lying about what the data looks like.
+
+## 3. Real data wired into the dashboard
+
+`data/members_scored.json` (previously 8 hand-written mock rows) was swapped
+for the real 500-member pipeline output. Verified against the live dashboard,
+not just `tsc`/`build`: all 5 cohort buckets populate with real counts
+(steady 284, new_joiner 80, sliding 58, sleeping_dog 58, winback 20), the
+20 real winback `TranscriptPanel`s render without crashing (the first time
+that code path saw more than a couple of hand-written rows), and cohort
+filter pills match exactly.
+
+## 4. Member list prioritization
+
+Members aren't shown in generation order — they're ranked by actionability.
+
+**`lib/sortMembers.ts`** — `sortMembersByPriority()`: primary sort is cohort
+urgency (`winback → sliding → new_joiner → sleeping_dog → steady`), secondary
+sort is `days_since_last_visit` descending within each cohort (most extreme
+case surfaces first). Written as a standalone function specifically so the
+main dashboard, the bucket view, and the full member-list page can all share
+one definition of "priority" rather than three drifting copies.
+
+**Decision on `sleeping_dog` ranking:** it sits ahead of `steady` despite
+being a genuine no-action cohort, because "who we correctly did *not* call"
+is part of the product's pitch — it needs to be visible early, not buried.
+
+**Dashboard Action Queue** shows only the top 5 by this sort (`Dashboard.tsx`),
+with a "View all members" link to a new `/members` page (`app/members/page.tsx`)
+that renders the full 500 in the same priority order. `MemberTable.tsx`
+(pre-redesign, no longer imported anywhere) was deleted as dead code rather
+than left to rot.
+
+**Opportunity Routing Map** (the 5-cohort bucket view) applies the same
+most-dormant-first ordering *within* each bucket and caps each bucket at 5
+cards with a "+N more" line, instead of rendering all 500 members as cards
+(the `steady` bucket alone was rendering 284 cards). Verified against real
+data: Winback +15, Sliding +53, New joiners +75, Steady +279, Sleeping dogs
++53 — all exactly `true_count − 5`. `QuadrantView.tsx`, an orphaned
+pre-redesign duplicate of this same bucket view, was deleted for the same
+dead-code reason as `MemberTable.tsx`.
+
+## 5. Live call integration
+
+**Starting state, verified rather than assumed:** a task came in describing
+"Dan's existing, working `/api/call` route and webhook." Checking git
+history, every branch, `package.json`, and the filesystem found none of that
+existed — no `app/api/` directory anywhere, no Supabase client dependency,
+no local `.env.local`. The only prior "integration" was two standalone
+Python CLI scripts run manually from someone's terminal
+(`eleven_labs_call.py` with a hardcoded example member, `twilio_call.py` with
+the hardcoded credential above). This was surfaced to the team before
+building anything, rather than silently building around a wrong premise.
+
+Once real credentials landed in `.env.local`, three routes were built:
+
+**`app/api/call/route.ts`** — triggers an outbound ElevenLabs/Twilio call.
+
+- **Decision — server resolves the member, ignores client-supplied fields.**
+  The route takes only `member_id` and looks up name/phone/cohort/signals
+  from `data/members_scored.json` itself. This is what actually enforces
+  "only winback members get called" as a real constraint: a direct POST for
+  any non-`ai_call` member_id gets a 403, regardless of what a buggy or
+  malicious client sends. The product's whole pitch — knowing who *not* to
+  call — depends on this being enforced server-side, not just true by UI
+  convention.
+- Dynamic variables sent to ElevenLabs (`gym_name`, `member_name`,
+  `expiry_date`, `last_visit`, `old_rate`, `tenure`, `offer`) were confirmed
+  against the *live* agent's actual prompt (fetched via the ElevenLabs API,
+  not assumed from the old test script) — all 7 placeholders accounted for.
+  `gym_name` isn't in the member data at all (it's a property of the gym, not
+  the member), so it's read from a `GYM_NAME` env var per the team's choice.
+- On success, inserts a `call_records` row (`status: "initiated"`) into
+  Supabase. If that insert fails, the call has already gone out — a
+  bookkeeping failure is logged, not surfaced as a failed call to the caller.
+
+**`app/api/webhook/route.ts`** — receives the post-call transcript.
+
+- **Decision — don't hand-roll the signature scheme from a guess.**
+  ElevenLabs' public docs describe only their SDK helper
+  (`elevenlabs.webhooks.constructEvent`) and don't publish the raw HMAC
+  format. Rather than guess, the actual scheme was pulled from
+  `@elevenlabs/elevenlabs-js`'s shipped source (`wrapper/webhooks.js`):
+  header `elevenlabs-signature` = `t=<unix_seconds>,v0=<hex hmac>`, signed
+  message `${timestamp}.${rawBody}`, HMAC-SHA256, 30-minute tolerance. That
+  exact scheme is reimplemented with Node's built-in `crypto` rather than
+  adding the SDK as a dependency for one function.
+- `outcome` / `reason_for_leaving` are read from the webhook's
+  `data.analysis.data_collection_results` under those same field names — a
+  reasonable inference from the `call_records` column names (Dan's schema
+  already used those exact names), but **unverified** — no access to the
+  live agent's actual data-collection field configuration. If those fields
+  aren't configured on the agent, they simply stay `null`; the transcript is
+  captured regardless.
+
+**`app/api/call-records/route.ts`** — reads call records for the dashboard,
+server-side, through the service-role key. The client never touches
+Supabase directly, because only a service-role key exists (no RLS-safe anon
+key) — exposing that to the browser would bypass row-level security
+entirely.
+
+**`TranscriptPanel` wiring:** previously hardcoded `callRecord={null}` for
+every member. `Dashboard.tsx` now fetches real records on load via
+`/api/call-records`, plus a manual "Refresh" button.
+**Decision — documented manual refresh, not silent polling infra.** A call
+still `"initiated"` won't flip to `"completed"` in the UI on its own; there's
+no live push. Building real-time polling/subscriptions was deliberately
+deferred rather than half-built, especially since (see below) the webhook
+isn't even reachable from ElevenLabs' side yet.
+
+### Real end-to-end test
+
+Ran for real, not simulated: `M0496` (Douglas Hodge, real winback member,
+lapsed 67 days, offer "a two-week trial and a class pass") — placed via the
+actual `/api/call` route, `HTTP 200`, real `conversation_id` returned. His
+synthetic phone number (synthetic data doesn't have real dialable numbers)
+was temporarily swapped for a verified test number for this one call only,
+confirmed reverted afterward with a clean diff. Confirmed in Supabase: the
+`call_records` row landed correctly. Webhook logic was verified with a
+correctly-signed synthetic event referencing that real `conversation_id` —
+row updated to `completed` with a real transcript and outcome fields; a
+forged signature was correctly rejected with 401.
+
+### Known gap — not yet a real round trip
+
+The ElevenLabs agent's own config (`platform_settings.workspace_overrides.webhooks.post_call_webhook_id`)
+is `None` — **no webhook is attached to the agent yet**, independent of
+whether our route works. A real call today will not hit `/api/webhook` at
+all until: (1) this app is deployed somewhere with a public URL, and (2)
+that URL + the webhook secret are registered on the agent in the ElevenLabs
+dashboard. Both are account/deployment actions, intentionally not done
+without the team present.
+
+## Branch / PR map
+
+| PR | Branch | Contents |
+|----|--------|----------|
+| #1, #2 | `offline-cohort-pipeline` | Raw data, generator, `build_scores.py`, real `members_scored.json` |
+| #3 | `member-list-priority-sort` | `sortMembers.ts`, dashboard top-5 slice, `/members` page |
+| #4 | `document-call-records-schema` | `supabase/migrations/`, `CallRecord` type fix |
+| #5 | `wire-elevenlabs-call-route` | `/api/call`, `/api/webhook`, `/api/call-records`, Supabase admin client, real TranscriptPanel wiring |
+
+A sixth branch, `routing-map-bucket-limit` (bucket cap + "+N more",
+`QuadrantView.tsx` deletion), is implemented and verified but not yet merged.
