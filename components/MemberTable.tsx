@@ -19,9 +19,21 @@ const cohortColor: Record<Member["cohort"], string> = {
   steady: "bg-slate-800 text-slate-300 border-slate-700",
 };
 
+const cohortOrder: Member["cohort"][] = [
+  "winback",
+  "sliding",
+  "new_joiner",
+  "sleeping_dog",
+  "steady",
+];
+
 export default function MemberTable({ members }: { members: Member[] }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [calledIds, setCalledIds] = useState<Set<string>>(new Set());
+  const [activeCohort, setActiveCohort] = useState<Member["cohort"] | "all">("all");
+
+  const visibleMembers =
+    activeCohort === "all" ? members : members.filter((m) => m.cohort === activeCohort);
 
   async function handleCall(member: Member) {
     setLoadingId(member.member_id);
@@ -48,7 +60,38 @@ export default function MemberTable({ members }: { members: Member[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-800">
+    <div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveCohort("all")}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+            activeCohort === "all"
+              ? "border-slate-300 bg-slate-200 text-slate-900"
+              : "border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+          }`}
+        >
+          All ({members.length})
+        </button>
+        {cohortOrder.map((c) => {
+          const count = members.filter((m) => m.cohort === c).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={c}
+              onClick={() => setActiveCohort(c)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                activeCohort === c
+                  ? "border-slate-300 bg-slate-200 text-slate-900"
+                  : "border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+              }`}
+            >
+              {cohortLabel[c]} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-slate-800">
       <table className="min-w-full divide-y divide-slate-800 text-sm">
         <thead className="bg-slate-900">
           <tr className="text-left text-slate-400">
@@ -61,7 +104,7 @@ export default function MemberTable({ members }: { members: Member[] }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800 bg-slate-950">
-          {members.map((m) => (
+          {visibleMembers.map((m) => (
             <tr key={m.member_id} className="text-slate-200">
               <td className="px-4 py-3 font-medium">{m.name}</td>
               <td className="px-4 py-3">
@@ -108,6 +151,7 @@ export default function MemberTable({ members }: { members: Member[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
