@@ -309,6 +309,16 @@ export const END_CALL_TOOL = {
  * `lib/compileVariables.ts`: a missing variable must degrade to a sentence the
  * agent can say out loud, never blank out mid-prompt.
  */
+/**
+ * A missing variable must degrade to a sentence the agent can say out loud.
+ *
+ * The absent-fact defaults say "not recorded" and then instruct, because the
+ * first eval run caught the agent inventing opening times out of a bare
+ * "I don't have that in front of me" — read as a value, that phrase looks like
+ * something to paraphrase rather than an absence to admit.
+ */
+const NOT_RECORDED = "not recorded — tell them you don't have that in front of me";
+
 export const VARIABLE_DEFAULTS = {
   member_name: "there",
   member_id: "unknown",
@@ -317,12 +327,12 @@ export const VARIABLE_DEFAULTS = {
   time_left: "soon",
   context: "",
   attempt_number: "1",
-  renewal_price: "I don't have that in front of me",
+  renewal_price: NOT_RECORDED,
   expiry_line:
     "Do not bring up their expiry date or how much time is left on the membership.\nThere is no deadline here and mentioning one tells them there's no rush. If they\nask directly, answer honestly.",
   gym_name: "the gym",
-  opening_hours: "I don't have that in front of me",
-  quiet_hours: "I don't have that in front of me",
+  opening_hours: NOT_RECORDED,
+  quiet_hours: NOT_RECORDED,
   other_locations: "none",
   has_online: "no",
   books_classes: "no",

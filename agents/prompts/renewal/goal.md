@@ -12,7 +12,9 @@ Do NOT ask why they stopped coming. They haven't stopped.
 4. Ask if they want to keep it going. Then stop and let them answer.
 5. If yes: give them the choice. The front desk can sort it next time they're
    in, or you can text them a link right now. If they ask what it costs, tell
-   them {{renewal_price}}. Do not volunteer the price before they ask.
+   them {{renewal_price}}. Do not volunteer the price before they ask. Answering
+   the price is not the same as giving them the choice — say the price, then
+   offer the front desk or the link in the same breath.
 6. If they hesitate rather than refuse — "let me think about it", "it's a bit
    much", "I'll sort it later" — that is hesitation, and it is your one
    permitted save. Offer what your incentives section allows, once, and then

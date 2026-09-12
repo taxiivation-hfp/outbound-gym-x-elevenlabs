@@ -227,10 +227,16 @@ function priorCallSentences(priorCall?: PriorCallContext | null): string[] {
   const reason = priorCall.reason_for_absence;
   if (reason && reason !== "none_given") {
     const detail = priorCall.reason_detail?.trim();
+    // "Is anything else stopping you?" is the same question with a hat on, and
+    // the first eval run caught it being asked that way. Naming it explicitly is
+    // cheaper than hoping the agent generalises.
+    const doNotReask =
+      "Do not ask why they stopped, and do not ask whether anything else is stopping them — " +
+      "that is the same question. Acknowledge what you already know and move on to the ask.";
     out.push(
       detail
-        ? `You already know why they stopped: ${reason}. They said "${detail}". Do not ask again — acknowledge it and move on.`
-        : `You already know why they stopped: ${reason}. Do not ask again — acknowledge it and move on.`
+        ? `You already know why they stopped: ${reason}. They said "${detail}". ${doNotReask}`
+        : `You already know why they stopped: ${reason}. ${doNotReask}`
     );
   }
   if (priorCall.committed_day?.trim()) {
@@ -251,6 +257,8 @@ function priorCallSentences(priorCall?: PriorCallContext | null): string[] {
  * missing variable must degrade to a sentence the agent can say, never fail the
  * call — which is why the defaults are phrases and not empty strings.
  */
+export const NOT_RECORDED = "not recorded — tell them you don't have that in front of me";
+
 export const VARIABLE_DEFAULTS: Record<string, string> = {
   member_name: "there",
   member_id: "unknown",
@@ -259,11 +267,11 @@ export const VARIABLE_DEFAULTS: Record<string, string> = {
   time_left: "soon",
   context: "",
   attempt_number: "1",
-  renewal_price: "I don't have that in front of me",
+  renewal_price: NOT_RECORDED,
   expiry_line: EXPIRY_LINE_FAR,
   gym_name: "the gym",
-  opening_hours: "I don't have that in front of me",
-  quiet_hours: "I don't have that in front of me",
+  opening_hours: NOT_RECORDED,
+  quiet_hours: NOT_RECORDED,
   other_locations: "none",
   has_online: "no",
   books_classes: "no",

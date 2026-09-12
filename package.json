@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "evals": "tsx evals/run.ts",
+    "evals:guards": "tsx evals/run.ts --guards-only",
+    "agents:sync": "node scripts/sync-agents.mjs",
+    "agents:diff": "node scripts/sync-agents.mjs --dry-run",
+    "data:build": "python pipeline/generate_gym_data.py && python pipeline/build_scores.py && node scripts/copy-pipeline-output.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
