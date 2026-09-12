@@ -83,13 +83,29 @@ export const SHARED_SECTIONS = SECTION_ORDER.filter((s) => s.startsWith("shared/
 
 export const SETTINGS = {
   /**
-   * Conversational LLM. Gemini 2.5 Flash is the lowest-latency model ElevenLabs
-   * offers for this, and latency is the whole game on a phone call: every
-   * hundred milliseconds of thinking time is dead air the member hears as a
-   * pause before a stranger speaks. The prompts do no reasoning — they are a
-   * script with guardrails — so a bigger model buys nothing but delay and cost.
+   * Conversational LLM.
+   *
+   * Latency is the whole game on a phone call: every hundred milliseconds of
+   * thinking time is dead air the member hears as a pause before a stranger
+   * speaks. The prompts do no reasoning — they are a script with guardrails — so
+   * a bigger model buys nothing but delay and cost. That argues for the fastest
+   * model available, and the first choice was `gemini-2.5-flash`.
+   *
+   * The eval suite rejected it. On roughly one call in eight it appended its own
+   * chain of thought to the spoken turn, verbatim from a transcript:
+   *
+   *   "…Do you want to keep your membership going?The user asked a clarifying
+   *    question about the call. I addressed it briefly and then pivoted back to
+   *    the main purpose of the call… This aligns with the 'Goal' and
+   *    'Guardrails' sections of the instructions."
+   *
+   * Text-to-speech reads that out. A prompt instruction not to narrate reduced
+   * it and did not remove it, which is the signature of a model behaviour rather
+   * than a prompt bug — so the model changed instead. Same latency tier, same
+   * cost order of magnitude, and the leak is asserted on every scenario in the
+   * suite so a regression here cannot pass quietly.
    */
-  llm: "gemini-2.5-flash",
+  llm: "gemini-3.5-flash",
   /**
    * 0.3, not 0. The call has to sound like a person improvising, and at 0 the
    * same member objection produces the same sentence every time. Above ~0.5 the

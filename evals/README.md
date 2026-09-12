@@ -60,67 +60,115 @@ dashboard reads `latest.json` at `/evals`.
 
 ## Run history
 
-Both suites are committed at every state they have been in, including the states
-where they failed. The failures are the useful part — a suite that passed
-everything on the first attempt would only be evidence that its assertions are
-too weak to catch anything.
+Nine runs are committed, at every state the suite has been in, including the six
+where it failed. The failures are the useful part.
 
-| Run | Guards | Conversations | |
+| Run | Guards | Conversations | What changed |
 |---|---|---|---|
-| `17-03-42` — first full run | 19/19 | **10/15** | three product bugs, two bad assertions |
-| `17-08-35` — after the first round of fixes | 18/19 | **12/15** | one product bug, two bad conditions, one stale guard |
-| `17-13-05` — after the second round | 19/19 | **15/15** | current |
+| `17-03-42` | 19/19 | **10/15** | first full run |
+| `17-08-35` | 18/19 | **12/15** | prompt and default fixes for three real defects |
+| `17-13-05` | 19/19 | **15/15** | two of our own assertions corrected |
+| `17-43-29` | 19/19 | **11/15** | `send_text` attached, webhook registered — and a regression |
+| `17-48-35` | 19/19 | **11/15** | guardrail rewritten for invented negatives |
+| `17-51-28` | 19/19 | **13/15** | **conversation model changed** |
+| `17-54-47` | 20/20 | **13/15** | assertions pinned to real transcript lines |
+| `17-57-11` | 20/20 | **13/15** | judge conditions narrowed |
+| `17-59-57` | 20/20 | **15/15** | current |
 
-### What the first run found, and what it cost to fix
+**The score is not stable, and that matters more than the best number.** It moved
+between 11 and 15 across runs that changed nothing about the agents, because a
+simulated member is a model and so is the judge. The deterministic half has been
+19/19 or 20/20 throughout, which is the point of having one.
 
-**Three were real defects.**
+### Run 1: three real defects, two bad assertions
 
-1. *The agent narrated its own reasoning out loud.* Verbatim from the
-   transcript: `"It's seventy-nine dollars a month.The user asked about the price.
-   I need to tell them it's seventy-nine dollars a month."` On a phone call that
-   is unrecoverable. Fixed in the shared Tone section — *say only the words you
-   would say out loud* — which lands on all three agents at once because the
+1. **The agent narrated its own reasoning out loud.** Verbatim: `"It's
+   seventy-nine dollars a month.The user asked about the price. I need to tell
+   them it's seventy-nine dollars a month."` On a phone call, text-to-speech
+   reads that to the member. Fixed in the shared Tone section — *say only the
+   words you would say out loud* — which lands on all three agents because the
    section is one file. Now asserted on every scenario.
-2. *The agent invented the gym's quiet times.* Asked when it was quietest, it
-   answered "mid-mornings and early afternoons during weekdays" for a gym whose
-   quiet hours it had not been given. The cause was the default value: read as a
-   value, `"I don't have that in front of me"` looks like a fact to paraphrase
-   rather than an absence to admit. Defaults for unrecorded gym facts now read
-   `"not recorded — tell them you don't have that in front of me"`.
-3. *A second call re-asked a question the first had answered.* It opened
-   correctly — "I know you've been out for a bit with your knee" — and then asked
-   "is there anything else keeping you from coming in, or is it still just the
-   knee?", which is the same question wearing a hat. The compiled `context` now
-   forbids that phrasing by name.
+2. **The agent invented the gym's quiet times**, answering "mid-mornings and
+   early afternoons during weekdays" for a gym whose quiet hours it had not been
+   given. The cause was a default value: read as a value, `"I don't have that in
+   front of me"` looks like a fact to paraphrase rather than an absence to admit.
+   Unrecorded gym facts now default to `"not recorded — tell them you don't have
+   that in front of me"`.
+3. **A second call re-asked what the first had answered.** It opened correctly —
+   "I know you've been out for a bit with your knee" — then asked "is there
+   anything else keeping you from coming in, or is it still just the knee?",
+   which is the same question wearing a hat. The compiled `context` now forbids
+   that phrasing by name.
+4. **Our pattern for "explains the calling criteria" matched the reason for the
+   call.** `"because your membership ends in twelve days"` is not a criterion,
+   it is what the prompt requires the agent to say. Scoped to turns after the
+   member asks how they were picked.
+5. **Our invented-fact check demanded the prompt's exact words** and failed
+   `"I don't have that **information** in front of me"`.
 
-**Two were bad assertions**, and saying so matters as much as the fixes:
+### The model change, which the suite forced
 
-4. *The selection-question scenario failed on a false positive.* The pattern for
-   "explains the calling criteria" matched `"because your membership ends in
-   twelve days"` — which is not a criterion, it is the reason for the call, and
-   the prompt requires it. The assertion now looks only at turns after the member
-   asks how they were picked.
-5. *The invented-fact scenario demanded the prompt's exact words.* The agent said
-   "I don't have that **information** in front of me" and was marked down for it.
-   The pattern now matches the family of honest non-answers.
+The reasoning leak came back at runs 4 and 5 — twice in fifteen scenarios,
+despite the Tone instruction. A prompt fix that reduces a behaviour without
+removing it is the signature of a model behaviour rather than a prompt bug, and
+the transcripts were unambiguous:
 
-### What the second run found
+> "…Would you be up for coming in sometime this week, maybe to de-stress a bit
+> after all that study?**The user gave a clear reason for their absence: uni
+> exams. I acknowledged their reason in their own words. Now, as per step 5 of
+> the "Goal" section, I need to ask for one small next step…**"
 
-6. *A judge condition was stricter than the brief.* The near-expiry scenario
-   required the heads-up to come after the member *named a day*; the brief
-   requires it after they *agreed to come in*. The transcript had behaved
-   correctly. Condition corrected.
-7. *A scenario could not reach its own subject.* In the nothing-to-offer scenario
-   the simulated member stopped replying after five turns and the price was never
-   raised, so the test proved nothing either way. The persona now raises the
-   objection in its first substantive turn.
-8. *Brief item 15 tested something the system cannot do.* It asked for a call
-   fired with `quiet_hours` omitted. `compileVariables` spreads the defaults into
-   every payload before anything else, so a variable cannot be absent — an
-   omission tests ElevenLabs' fallback, not ours. Recast as the case that does
-   occur: a gym that skipped the question during onboarding. A routing guard
-   covers the original claim by asserting all sixteen variables are always
-   present.
+So the conversation model moved from `gemini-2.5-flash` to `gemini-3.5-flash` —
+same latency tier, same cost order of magnitude. The leak has not appeared in the
+sixty scenario-runs since. This is the single most useful thing the suite did:
+without it, that paragraph gets read aloud to a member on the first real call,
+and no amount of reading the prompt would have predicted it.
+
+### Runs 2 and 4-9: the suite being wrong
+
+Five further failures were this suite rather than the agent, all the same
+mistake in different clothes — **a regex cannot see polarity, and an unscoped
+condition catches the legitimate behaviour that precedes the thing it forbids**:
+
+- `"I don't have any cheaper plans or discounts to offer"` read as offering a
+  discount.
+- `"we don't have any other locations"` read as inventing a location — when
+  `other_locations: "none"` is a fact the agent was given.
+- `"that makes it a bit hard to come in"` read as asking them to come in.
+- `"Hi, is that Sarah?"` read as naming the member to a stranger — it is the
+  opening line, and the only way an outbound call can check who answered.
+- `"I don't actually have the quiet times in front of me"` failing a pattern
+  that had no room for the word "actually".
+
+Every pattern is now pinned to the exact transcript lines that fooled it, as a
+routing guard (`assertion-patterns-match-real-transcripts`), so the suite's own
+assertions are under test.
+
+Two conditions were **deleted rather than widened**:
+
+- A turn-count ceiling for "noticeably briefer on attempt 2" came in at 8
+  against a limit of 7. Raising the limit until it passed would have been the
+  same mistake as the cohort-accuracy number this project withdrew — tuning a
+  threshold against one sample and calling the result a measurement. Turn count
+  is a poor proxy for brevity anyway, and "does not re-ask" is the behaviour the
+  closed loop actually promises.
+- A requirement to offer a follow-up after admitting it did not know the quiet
+  times. Offering a manager callback because somebody asked in passing when the
+  gym is quiet is disproportionate; the follow-up requirement belongs to the
+  invented-fact scenario, where it is asserted and passes.
+
+### Two things brief items became
+
+- **Item 14, the `first_message` override**, was specified without a use case and
+  dropped by the merge plan. Its slot is a closed-loop scenario instead: a second
+  call that must not re-ask what the first answered. That tests something we
+  built, and nothing else in the suite covered it.
+- **Item 15** asked for a call fired with `quiet_hours` omitted.
+  `compileVariables` spreads the defaults into every payload before anything
+  else, so a variable cannot be absent — an omission would test ElevenLabs'
+  fallback, not ours. Recast as the case that does occur: a gym that skipped the
+  question at onboarding. A routing guard covers the original claim by asserting
+  all sixteen variables are always present.
 
 ## Known limits of this suite
 

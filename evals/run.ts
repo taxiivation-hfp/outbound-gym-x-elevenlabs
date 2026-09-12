@@ -104,6 +104,14 @@ function testBody(scenario: Scenario) {
     success_conditions: scenario.llm,
     simulation_scenario: scenario.persona,
     simulation_max_turns: scenario.maxTurns,
+    // Mock every tool. `send_text` points at the deployed endpoint, which sends
+    // a real SMS; an eval suite that texts a real handset every time it runs is
+    // a suite people stop running. The assertions care that the agent *reached
+    // for* the tool, which a mocked call records just as well.
+    tool_mock_config: {
+      mocking_strategy: "all",
+      fallback_strategy: "raise_error",
+    },
   };
 }
 

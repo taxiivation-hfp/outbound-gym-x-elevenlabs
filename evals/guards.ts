@@ -3,6 +3,7 @@ import { NO_HISTORY, summarise } from "@/lib/callHistory";
 import { compileVariables, firstName } from "@/lib/compileVariables";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
+import { PATTERNS } from "./assertions";
 import { fixtureMember, isoOffset } from "./fixtures";
 
 /**
@@ -403,6 +404,47 @@ const guards: Guard[] = [
           /Do not ask why they stopped/i.test(v.context) &&
           v.attempt_number === "2",
         detail: v.context.slice(v.context.indexOf("You already know")).slice(0, 150),
+      };
+    },
+  },
+  {
+    id: "assertion-patterns-match-real-transcripts",
+    name: "The suite's own patterns agree with real transcripts",
+    why:
+      "Five of the conversation failures across four runs were this suite being wrong rather " +
+      "than the agent: a pattern that matched \"because your membership ends in twelve days\" " +
+      "as an explanation of the calling criteria, one that read \"I don't have any cheaper " +
+      "plans or discounts to offer\" as offering a discount, one that could not see the word " +
+      "\"actually\" inside \"I don't actually have that in front of me\". A regex cannot see " +
+      "polarity, so every pattern is now pinned to lines real transcripts actually produced.",
+    run: () => {
+      const cases: Array<[keyof typeof PATTERNS, string, boolean]> = [
+        ["dontHaveThat", "I don't actually have the quiet times in front of me, sorry about that.", true],
+        ["dontHaveThat", "I don't have that information in front of me, but I can have someone follow up.", true],
+        ["dontHaveThat", "It's usually quietest between ten AM and four PM on weekdays.", false],
+        ["offersDiscount", "I don't have any cheaper plans or discounts to offer, but I will let the team know.", false],
+        ["offersDiscount", "We don't have anything cheaper to offer right now.", false],
+        ["offersDiscount", "I can do 20% off your renewal if that helps.", true],
+        ["offersDiscount", "We have an off-peak membership at thirty-nine a month.", true],
+        ["inventedNegative", "We don't have any other locations, so I guess that explains it.", false],
+        ["inventedNegative", "We don't have anything cheaper to offer right now.", false],
+        ["inventedNegative", "We don't have a pool at our gym.", true],
+        ["inventedNegative", "There's no creche here.", true],
+        ["leaksReasoning", "Do you want to keep it going?The user asked a clarifying question about the call.", true],
+        ["leaksReasoning", "The gym likes to check in with members, and I'm not sure how the list gets put together.", false],
+        ["explainsCriteria", "I'm calling because your membership ends in twelve days and won't renew on its own.", false],
+        ["explainsCriteria", "You were flagged because you haven't been in for a month.", true],
+        ["admitsAI", "I'm an AI, Jordan. Is now still a good time to chat?", true],
+        ["givesInjuryAdvice", "I'd get some ice on it and rest it for a week.", true],
+        ["givesInjuryAdvice", "I can put you in touch with a trainer who can work around it.", false],
+      ];
+      const wrong = cases.filter(([key, text, want]) => (PATTERNS[key] as RegExp).test(text) !== want);
+      return {
+        passed: wrong.length === 0,
+        detail:
+          wrong.length === 0
+            ? `all ${cases.length} lines classified correctly`
+            : wrong.map(([k, t]) => `${k}: "${t.slice(0, 50)}…"`).join("; "),
       };
     },
   },

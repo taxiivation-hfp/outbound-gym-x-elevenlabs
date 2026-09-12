@@ -134,9 +134,25 @@ today's queue is 173 calls at $70"*.
 - **The three agents**, created from this repo, with eleven data-collection
   fields, three evaluation criteria, mu-law 8000 both directions, `end_call`
   enabled and the `send_text` tool attached. Re-runnable: `npm run agents:sync`.
-- **The eval suite.** 19/19 routing guards, 15/15 conversations. Three runs
-  committed, including the two that failed (10/15, then 12/15). Rendered at
-  `/evals`.
+- **The eval suite.** 20/20 routing guards and 15/15 conversations on the latest
+  run. Nine runs are committed, six of which failed. Rendered at `/evals`.
+
+  Two things to know before anyone quotes a number. First, **the conversation
+  score is not stable** — it moved between 11 and 15 across runs that changed
+  nothing about the agents, because the simulated member is a model and so is the
+  judge. The right claim is "15/15 on the latest run, and the deterministic half
+  has never dropped below 19". Second, **the suite forced a model change**, which
+  is the single most valuable thing it did.
+
+- **The conversation model is now `gemini-3.5-flash`, not `gemini-2.5-flash`.**
+  On about one call in eight, 2.5 Flash appended its own chain of thought to the
+  spoken turn — "…as per step 5 of the 'Goal' section, I need to ask for one
+  small next step…" — and text-to-speech reads that out. A prompt instruction not
+  to narrate reduced it but did not remove it, so the model changed. Same latency
+  tier, same cost order of magnitude, and it has not recurred in sixty
+  scenario-runs since. It is asserted on every scenario, so a regression fails
+  the suite. **If you hear the agent narrate itself on a live call, that is this
+  bug returning and the model is the lever, not the prompt.**
 - **The closed loop.** Attempt number counts conversations rather than dials;
   a prior call's reason is folded into the next call's `context`; do-not-contact
   is permanent across all three call types; the cooldown backs off three months
@@ -250,7 +266,7 @@ real evaluation is in `evals/`.
 
 ---
 
-## 5. One known wart
+## 5. Two known warts
 
 The `sleeping_dog` cohort still carries `contact: false` and
 `action: "do not contact"` from the framework's original model, where the
@@ -258,3 +274,8 @@ exclusion was keyed on dormancy. It is now keyed on contract type, so those two
 fields are wrong for a dormant fixed-term member the queue is calling. Nothing
 reads them — the dashboard renders the derived routing — and `MERGE_PLAN.md`
 said to leave the cohort fields alone, so I did. Worth a one-line fix later.
+
+And: `README.md` was UTF-16LE on disk when I started, inherited from whoever
+created it. Writing to it preserved that, which GitHub renders as binary. It is
+UTF-8 now. Worth a glance at the rendered page on GitHub to confirm it looks
+right, since that is the file the judges read first.
