@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Member } from "@/lib/types";
+import { sortMembersByPriority } from "@/lib/sortMembers";
 import Sidebar from "@/components/Sidebar";
 import StatCards, { type StatCardData } from "@/components/StatCards";
 import OpportunityRoutingMap from "@/components/OpportunityRoutingMap";
 import ActionQueueTable from "@/components/ActionQueueTable";
 import TranscriptPanel from "@/components/TranscriptPanel";
+
+const TOP_N = 5;
 
 export default function Dashboard({ members }: { members: Member[] }) {
   const [query, setQuery] = useState("");
@@ -16,6 +20,12 @@ export default function Dashboard({ members }: { members: Member[] }) {
     const q = query.trim().toLowerCase();
     return members.filter((m) => m.name.toLowerCase().includes(q));
   }, [members, query]);
+
+  const priorityMembers = useMemo(
+    () => sortMembersByPriority(filteredMembers),
+    [filteredMembers]
+  );
+  const topMembers = priorityMembers.slice(0, TOP_N);
 
   const winbackMembers = members.filter((m) => m.channel === "ai_call");
 
@@ -111,11 +121,19 @@ export default function Dashboard({ members }: { members: Member[] }) {
                 Operational Action Queue
               </h2>
               <span className="text-xs font-semibold text-[#D6FF3D]">
-                Showing {filteredMembers.length} Key Priorities
+                Showing Top {topMembers.length} of {priorityMembers.length} Key Priorities
               </span>
             </div>
             <div className="mt-4">
-              <ActionQueueTable members={filteredMembers} />
+              <ActionQueueTable members={topMembers} />
+            </div>
+            <div className="mt-4 flex justify-center">
+              <Link
+                href="/members"
+                className="rounded-lg border border-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-400 transition hover:border-[#D6FF3D]/50 hover:text-[#D6FF3D]"
+              >
+                View all members
+              </Link>
             </div>
           </section>
 
