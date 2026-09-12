@@ -2,31 +2,35 @@ import type { Member, Quadrant } from "@/lib/types";
 
 const quadrantMeta: Record<
   Quadrant,
-  { title: string; hint: string; style: string }
+  { title: string; hint: string; blockStyle: string; textOnBlock: string }
 > = {
   persuadable: {
     title: "Persuadables",
     hint: "Contact — this is where effort pays",
-    style: "border-emerald-800 bg-emerald-950/40",
+    blockStyle: "bg-[#C9A6FF]",
+    textOnBlock: "text-black",
   },
   sure_thing: {
     title: "Sure things",
     hint: "Leave them, they stay anyway",
-    style: "border-sky-800 bg-sky-950/40",
+    blockStyle: "bg-zinc-100",
+    textOnBlock: "text-zinc-700",
   },
   lost_cause: {
     title: "Lost causes",
     hint: "Low priority",
-    style: "border-slate-700 bg-slate-900/60",
+    blockStyle: "bg-zinc-50",
+    textOnBlock: "text-zinc-500",
   },
   sleeping_dog: {
     title: "Sleeping dogs",
     hint: "Do not contact — contacting them is the harm",
-    style: "border-red-800 bg-red-950/40",
+    blockStyle: "bg-red-100",
+    textOnBlock: "text-red-700",
   },
 };
 
-// fixed layout so it always reads as a 2x2, regardless of data order
+// Fixed order, always the same 4 quadrants regardless of data order.
 const layout: Quadrant[] = ["persuadable", "sure_thing", "sleeping_dog", "lost_cause"];
 
 export default function QuadrantView({ members }: { members: Member[] }) {
@@ -39,32 +43,48 @@ export default function QuadrantView({ members }: { members: Member[] }) {
   members.forEach((m) => grouped[m.quadrant].push(m));
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
       {layout.map((q) => {
         const meta = quadrantMeta[q];
         const list = grouped[q];
         return (
           <div
             key={q}
-            className={`rounded-lg border p-4 ${meta.style} ${
-              q === "sleeping_dog" ? "ring-1 ring-red-700" : ""
-            }`}
+            className="w-[75%] flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md md:w-auto"
           >
-            <div className="mb-1 flex items-baseline justify-between">
-              <h3 className="font-semibold text-slate-100">{meta.title}</h3>
-              <span className="text-xs text-slate-400">{list.length}</span>
+            {/* Color block — title now lives here instead of a big count number */}
+            <div
+              className={`relative flex h-32 flex-col items-center justify-center px-3 text-center sm:h-40 ${meta.blockStyle}`}
+            >
+              <span
+                className={`absolute right-3 top-3 rounded-full bg-black/10 px-2 py-0.5 text-[11px] font-semibold ${meta.textOnBlock}`}
+              >
+                {list.length}
+              </span>
+              <p className={`text-lg font-black uppercase tracking-tight ${meta.textOnBlock}`}>
+                {meta.title}
+              </p>
             </div>
-            <p className="mb-3 text-xs text-slate-400">{meta.hint}</p>
-            <ul className="space-y-1">
-              {list.map((m) => (
-                <li key={m.member_id} className="text-sm text-slate-300">
-                  {m.name}
-                </li>
-              ))}
-              {list.length === 0 && (
-                <li className="text-sm text-slate-600">No members</li>
-              )}
-            </ul>
+
+            <div className="p-4">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                {meta.hint}
+              </p>
+
+              <ul className="mt-3 space-y-1 border-t border-zinc-200 pt-3">
+                {list.slice(0, 3).map((m) => (
+                  <li key={m.member_id} className="truncate text-sm text-zinc-600">
+                    {m.name}
+                  </li>
+                ))}
+                {list.length === 0 && (
+                  <li className="text-sm text-zinc-400">No members</li>
+                )}
+                {list.length > 3 && (
+                  <li className="text-xs text-zinc-400">+{list.length - 3} more</li>
+                )}
+              </ul>
+            </div>
           </div>
         );
       })}
