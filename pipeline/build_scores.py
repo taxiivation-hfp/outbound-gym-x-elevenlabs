@@ -272,3 +272,19 @@ mismatches = comparison[comparison["true"] != comparison["predicted"]]
 if len(mismatches):
     print(f"\n{len(mismatches)} mismatches:")
     print(mismatches)
+
+    signal_cols = [
+        "status",
+        "tenure_days",
+        "days_since_last_visit",
+        "visits_last_4wk",
+        "visits_prior_4wk",
+        "old_rate",
+    ]
+    detail = df.loc[mismatches.index, signal_cols].join(mismatches)
+
+    print("\nSample mismatches with raw signals, grouped by (true -> predicted):")
+    for (true_c, pred_c), group in detail.groupby(["true", "predicted"]):
+        sample = group.head(5)
+        print(f"\n  {true_c} -> {pred_c}  ({len(group)} total, showing up to 5)")
+        print(sample[["true", "predicted"] + signal_cols].to_string())
