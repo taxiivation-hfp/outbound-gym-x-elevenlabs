@@ -24,6 +24,10 @@ on the live URL, not just locally.
 
 ## 1. Things only you can do
 
+> **The order of 1a and 1b matters.** The repository is currently private and has
+> to be public to be judged — and its git history contains a live Twilio auth
+> token. Rotate the token *before* you flip the repo to public, not after.
+
 ### 1a. Rotate the Twilio credentials. Do this first.
 
 `twilio_call.py` had a live Account SID and auth token in plaintext, committed,
@@ -34,7 +38,21 @@ Twilio console → Account → API keys & tokens → rotate the auth token, then
 the new one in `.env.local` and in Vercel. Ten minutes, and it is the only item
 here with a real-money downside.
 
-### 1b. Apply the `call_records` migration
+### 1b. Make the repository public
+
+`https://github.com/taxiivation-hfp/outbound-gym-x-elevenlabs` returns a 404 to
+anyone who is not logged in as you — it is private. The preliminary round is
+judged from *"the public repo, a live production URL and a demo video"*, so as
+things stand the judges can see two of those three, and the repo is where the
+code-quality and feasibility points live.
+
+Settings → General → Danger Zone → Change visibility → Public. **After 1a**, for
+the reason in the box above.
+
+While you are in there: the repo description and topics are empty, and the
+README is what a judge reads first. It is worth thirty seconds.
+
+### 1c. Apply the `call_records` migration
 
 Eight of the eleven fields every call extracts have nowhere to land until this
 runs. Without it: no `reason_for_absence`, so `/intelligence` stays empty; no
@@ -51,7 +69,7 @@ meantime — `lib/callRecords.ts` retries with the pre-migration column subset a
 logs loudly — but that fallback is scaffolding and should be deleted once the
 migration is applied everywhere.
 
-### 1c. Add six environment variables in Vercel
+### 1d. Add six environment variables in Vercel
 
 Settings → Environment Variables. `.env.local` has all the values; it is
 gitignored, so here they are:
@@ -81,7 +99,7 @@ forgetting the override cannot ring 173 real Australians — it will refuse and
 tell you why. `ALLOW_UNVERIFIED_NUMBERS=true` is the deliberate override, for
 real member data.
 
-### 1d. Nothing else
+### 1e. Nothing else
 
 The post-call webhook was already registered in the workspace (`Retention
 Router` → `https://retention-router.vercel.app/api/webhook`) and I have attached
@@ -92,7 +110,7 @@ the production URL. Both verified against the live agent config.
 
 ## 2. Before you record the video
 
-Three real calls, in this order, after steps 1b and 1c. Each takes about two
+Three real calls, in this order, after steps 1c and 1d. Each takes about two
 minutes and they are what make the demo land.
 
 1. **A renewal call.** Top of the Renewal column on the dashboard. Watch the
@@ -181,7 +199,7 @@ three are in the README's LIMITATIONS section with the reasoning.
 verified in isolation — routing in production, the agents against the live API,
 the variable compiler under test, the webhook signature logic, Twilio's account
 state — but the whole chain, dashboard button to phone ringing to transcript
-landing in Supabase, has not run once. It needs 1b and 1c first, which is why
+landing in Supabase, has not run once. It needs 1c and 1d first, which is why
 they are at the top.
 
 Second riskiest: the webhook's last delivery attempt failed with a 404, before
