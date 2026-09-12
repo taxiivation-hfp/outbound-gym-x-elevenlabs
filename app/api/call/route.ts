@@ -128,7 +128,11 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await elevenLabsResponse.json().catch(() => null);
-  if (!elevenLabsResponse.ok) {
+  // ElevenLabs answers with HTTP 200 even when the call never left the ground —
+  // a stale Twilio credential on the imported number, for instance, comes back
+  // as `{ success: false, message: "..." }` inside a 200. Checking only
+  // `.ok` would tell the dashboard "placed" for a call that was never dialled.
+  if (!elevenLabsResponse.ok || result?.success === false) {
     return NextResponse.json(
       { error: "ElevenLabs call failed", details: result },
       { status: 502 }
