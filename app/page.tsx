@@ -20,7 +20,7 @@ export default function Home() {
 
         <section>
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-400">
-            Quadrant view
+            Cohort view
           </h2>
           <QuadrantView members={members} />
         </section>

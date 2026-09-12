@@ -98,7 +98,6 @@ export default function MemberTable({ members }: { members: Member[] }) {
             <th className="px-4 py-3 font-medium">Member</th>
             <th className="px-4 py-3 font-medium">Cohort</th>
             <th className="px-4 py-3 font-medium">Last visit</th>
-            <th className="px-4 py-3 font-medium">Uplift</th>
             <th className="px-4 py-3 font-medium">Reason</th>
             <th className="px-4 py-3 font-medium">Action</th>
           </tr>
@@ -116,14 +115,6 @@ export default function MemberTable({ members }: { members: Member[] }) {
               </td>
               <td className="px-4 py-3 text-slate-400">
                 {m.signals.days_since_visit} days ago
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={m.uplift >= 0 ? "text-emerald-400" : "text-red-400"}
-                >
-                  {m.uplift >= 0 ? "+" : ""}
-                  {(m.uplift * 100).toFixed(0)}%
-                </span>
               </td>
               <td className="max-w-xs px-4 py-3 text-slate-400" title={m.reason}>
                 <span className="line-clamp-2">{m.reason}</span>
