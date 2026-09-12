@@ -32,17 +32,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* White band: quadrant view */}
+      {/* White band: cohort view */}
       <div className="bg-white px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-3 text-xl font-black uppercase tracking-tight text-zinc-900">
-            Quadrant view
+            Cohort view
           </h2>
           <QuadrantView members={members} />
         </div>
       </div>
 
-      {/* Purple band: everything after the quadrant view */}
+      {/* Purple band: everything after the cohort view */}
       <div className="bg-[#C9A6FF] px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-5xl space-y-8 sm:space-y-10">
           <section>

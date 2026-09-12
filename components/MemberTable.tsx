@@ -65,7 +65,6 @@ export default function MemberTable({ members }: { members: Member[] }) {
               <th className="px-4 py-3 font-medium">Member</th>
               <th className="px-4 py-3 font-medium">Cohort</th>
               <th className="px-4 py-3 font-medium">Last visit</th>
-              <th className="px-4 py-3 font-medium">Uplift</th>
               <th className="px-4 py-3 font-medium">Reason</th>
               <th className="px-4 py-3 font-medium">Action</th>
             </tr>
@@ -83,14 +82,6 @@ export default function MemberTable({ members }: { members: Member[] }) {
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {m.signals.days_since_visit} days ago
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={m.uplift >= 0 ? "text-violet-600" : "text-red-600"}
-                  >
-                    {m.uplift >= 0 ? "+" : ""}
-                    {(m.uplift * 100).toFixed(0)}%
-                  </span>
                 </td>
                 <td className="max-w-xs px-4 py-3 text-zinc-500" title={m.reason}>
                   <span className="line-clamp-2">{m.reason}</span>
@@ -123,19 +114,7 @@ export default function MemberTable({ members }: { members: Member[] }) {
             key={m.member_id}
             className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
           >
-            <div className="flex items-center justify-between">
-              <p className="font-bold text-zinc-900">{m.name}</p>
-              <span
-                className={
-                  m.uplift >= 0
-                    ? "text-xs font-bold text-violet-600"
-                    : "text-xs font-bold text-red-600"
-                }
-              >
-                {m.uplift >= 0 ? "+" : ""}
-                {(m.uplift * 100).toFixed(0)}%
-              </span>
-            </div>
+            <p className="font-bold text-zinc-900">{m.name}</p>
 
             <span
               className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${cohortColor[m.cohort]}`}

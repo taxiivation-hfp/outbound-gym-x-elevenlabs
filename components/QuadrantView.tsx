@@ -1,26 +1,28 @@
-import type { Member, Quadrant } from "@/lib/types";
+import type { Member, Cohort } from "@/lib/types";
 
-const quadrantMeta: Record<
-  Quadrant,
+// Purple family for everything except sleeping_dog, which stays red —
+// that one is a safety/danger signal ("do not contact"), not a style choice.
+const cohortMeta: Record<
+  Cohort,
   { title: string; hint: string; blockStyle: string; textOnBlock: string }
 > = {
-  persuadable: {
-    title: "Persuadables",
-    hint: "Contact — this is where effort pays",
+  winback: {
+    title: "Winback",
+    hint: "Contact — nothing left to lose by calling",
     blockStyle: "bg-[#C9A6FF]",
     textOnBlock: "text-black",
   },
-  sure_thing: {
-    title: "Sure things",
-    hint: "Leave them, they stay anyway",
-    blockStyle: "bg-zinc-100",
-    textOnBlock: "text-zinc-700",
+  sliding: {
+    title: "Sliding",
+    hint: "Real drop, not zero — catch it with a floor conversation",
+    blockStyle: "bg-fuchsia-100",
+    textOnBlock: "text-fuchsia-800",
   },
-  lost_cause: {
-    title: "Lost causes",
-    hint: "Low priority",
-    blockStyle: "bg-zinc-50",
-    textOnBlock: "text-zinc-500",
+  new_joiner: {
+    title: "New joiners",
+    hint: "Too early to read a trend — welcome them in person",
+    blockStyle: "bg-violet-100",
+    textOnBlock: "text-violet-800",
   },
   sleeping_dog: {
     title: "Sleeping dogs",
@@ -28,28 +30,35 @@ const quadrantMeta: Record<
     blockStyle: "bg-red-100",
     textOnBlock: "text-red-700",
   },
+  steady: {
+    title: "Steady",
+    hint: "No red flags — no action needed",
+    blockStyle: "bg-zinc-100",
+    textOnBlock: "text-zinc-700",
+  },
 };
 
-// Fixed order, always the same 4 quadrants regardless of data order.
-const layout: Quadrant[] = ["persuadable", "sure_thing", "sleeping_dog", "lost_cause"];
+// Fixed order, always the same 5 cohorts regardless of data order.
+const layout: Cohort[] = ["winback", "sliding", "new_joiner", "sleeping_dog", "steady"];
 
 export default function QuadrantView({ members }: { members: Member[] }) {
-  const grouped: Record<Quadrant, Member[]> = {
-    persuadable: [],
-    sure_thing: [],
-    lost_cause: [],
+  const grouped: Record<Cohort, Member[]> = {
+    winback: [],
+    sliding: [],
+    new_joiner: [],
     sleeping_dog: [],
+    steady: [],
   };
-  members.forEach((m) => grouped[m.quadrant].push(m));
+  members.forEach((m) => grouped[m.cohort].push(m));
 
   return (
-    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
-      {layout.map((q) => {
-        const meta = quadrantMeta[q];
-        const list = grouped[q];
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0 lg:grid-cols-5">
+      {layout.map((c) => {
+        const meta = cohortMeta[c];
+        const list = grouped[c];
         return (
           <div
-            key={q}
+            key={c}
             className="w-[75%] flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md md:w-auto"
           >
             {/* Color block — title now lives here instead of a big count number */}
