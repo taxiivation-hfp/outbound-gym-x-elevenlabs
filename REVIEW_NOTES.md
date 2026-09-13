@@ -59,20 +59,21 @@ payload is byte-identical.
 
 ---
 
-## 0a. Pass one — on the `pass-one` branch, not pushed
+## 0a. Pass one — merged to `main` from the `pass-one` branch
 
 Business-side features from `PASS_ONE.md`; the report is
-[`PASS_ONE_REPORT.md`](PASS_ONE_REPORT.md). Five commits, one per item. Nothing
-is pushed or deployed. To make it live, in order:
+[`PASS_ONE_REPORT.md`](PASS_ONE_REPORT.md). Five commits, one per item, merged
+by pull request, so `main`'s production deploy carries them. Status:
 
-1. **Apply four migrations** to the Supabase project, in order. Each is
-   idempotent and `npm run db:verify` runs them twice against PGlite:
+1. **Done on 13 September 2026:** the four migrations were applied to the
+   Supabase project through the Management API, in order:
    `20260915000000_gym_health.sql`, `20260915010000_offer_schedule.sql`,
    `20260915020000_other_offers.sql`, `20260915030000_cancellation_requests.sql`.
-   The code tolerates each one missing — the pages say which migration a
-   section is waiting for, and a gym that doesn't use a new setting still
-   saves — but offer cooldowns only know which offer a call carried once
-   `call_records.offers_available` exists.
+   The new columns, constraints, functions and grants were read back. A
+   check block then saved an "other" offer with a schedule, confirmed a stray
+   label and a bad period were refused, imported a cancellation request and
+   counted a check-in by hour — and rolled back, leaving no rows. For another
+   project, apply them in order; each is idempotent (`npm run db:verify`).
 2. **`ONBOARDING_WRITES=enabled` on Vercel, Production and Preview.** Not done:
    there is no Vercel CLI or token in this environment. The unauthenticated-
    write risk is accepted for the demo and written up in the README's

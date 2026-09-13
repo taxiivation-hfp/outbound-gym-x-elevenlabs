@@ -4,7 +4,7 @@ The report on `PASS_ONE.md`: the business-side features, data and logic only.
 
 ## The short version
 
-- **All five items are built** on the `pass-one` branch, one commit per item. Nothing is pushed or deployed.
+- **All five items are built** on the `pass-one` branch, one commit per item, and merged to `main` by pull request.
 - **Guards: 73/73.** The 53 that existed before are unchanged in what they assert. This pass adds 20 new ones.
 - **All 15 conversation scenarios send byte-identical payloads.** I compared them against `8177d23`, the commit that wrote the committed 15/15 `evals/results/latest.json`, and against `main` before this pass. I re-checked after every item. No prompt was touched, and `agents:sync` was not run.
 - **Every other check passes:**
@@ -14,11 +14,8 @@ The report on `PASS_ONE.md`: the business-side features, data and logic only.
   - `gyms:seed-check`;
   - `next build`: 24 routes.
   - Lint's only findings are the two errors in `components/TranscriptPanel.tsx`, which predate this pass.
-- **Not done, because it can't be done from here:**
-  - `ONBOARDING_WRITES=enabled` is not on Vercel. There is no Vercel CLI or token in this environment.
-  - The four new migrations are not applied to the real Supabase project.
-
-  Both are listed in `REVIEW_NOTES.md` §0a, in order. The code tolerates each migration being missing.
+- **The four new migrations are applied to the real Supabase project** (13 September 2026), and a rolled-back check against it passed. See "Environment and handover".
+- **Not done, because it can't be done from here:** `ONBOARDING_WRITES=enabled` is not on Vercel. There is no Vercel CLI or token in this environment. It is listed in `REVIEW_NOTES.md` §0a.
 - **No metric turned out to need an input the data doesn't have.** Several are shaped more by the synthetic generator than by any gym; see "Metrics and what the data can say".
 
 ## Commits
@@ -307,13 +304,27 @@ Every metric in item 1 is computed from data already in the pipeline. None neede
 ## Environment and handover
 
 - **`ONBOARDING_WRITES=enabled` on Vercel (Production and Preview) is not set.** There is no Vercel CLI, project link or token here. The accepted risk of unauthenticated writes is written into the README's LIMITATIONS, now including PATCH.
-- **Four migrations to apply, in order:**
+- **Four migrations, applied to the real project on 13 September 2026** through the Supabase Management API, in order:
   - `20260915000000_gym_health.sql`
   - `20260915010000_offer_schedule.sql`
   - `20260915020000_other_offers.sql`
   - `20260915030000_cancellation_requests.sql`
 
-  `db:verify` applies each twice against PGlite and checks their constraints and functions: the schedule shape, `other` consistency, the label's characters, activity functions matching TypeScript, cancellation import and clearing, and denial to the `anon` role.
+  Before applying, the project's constraint names were checked against the ones `other_offers` drops; they matched. Afterwards:
+  - all eight new columns exist;
+  - the widened checks are stored with the exact accented character ranges;
+  - `checkin_weekly`, `checkin_hourly` and `import_members` are executable by `service_role` and not by `anon`;
+  - both seed gyms are unchanged.
+
+  A PL/pgSQL block against the real project then ran inside one transaction and raised at the end, so everything rolled back. It:
+  - saved a gym with an "other" offer and a schedule;
+  - had a label without "other" refused, and a "fortnightly" period refused;
+  - stored a cancellation request through `import_members`;
+  - counted a check-in in `checkin_hourly`.
+
+  Afterwards there were 0 test gyms and 0 test members.
+
+  Locally, `db:verify` applies each migration twice against PGlite and checks the same constraints and functions.
 - **`ANTHROPIC_API_KEY` and `CRON_SECRET`** are needed on the deployment for the nightly summary. Without the key the run records "unavailable".
 - **Placeholder UI.** Every new component carries a PLACEHOLDER comment for pass three:
   - `components/intelligence/GymHealth.tsx`
