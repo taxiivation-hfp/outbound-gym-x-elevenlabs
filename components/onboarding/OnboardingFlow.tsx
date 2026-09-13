@@ -259,7 +259,9 @@ export default function OnboardingFlow({
       current="setup"
       title={editing ? editing.gym_name : "Retention Router"}
       eyebrow="Configuration"
-      firstRunStep={firstRunStep ?? undefined}
+      // A gym being set up has no navigation until Save gym, first run or not:
+      // the new-gym form is met alone, and "← Your gyms" is its way back.
+      firstRunStep={firstRunStep ?? (editing ? undefined : "gym")}
       headerActions={
         <SaveControls
           saveAvailable={saveAvailable}
