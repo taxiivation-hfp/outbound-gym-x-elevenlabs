@@ -38,7 +38,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
 
   if (!lookup.ok) {
     return (
-      <AppShell current="setup" title="Retention Router" eyebrow="Voice agent setup">
+      <AppShell current="setup" title="Retention Router" eyebrow="Configuration">
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="max-w-xl">
             <Notice tone="fault" title="This gym can't be edited right now">

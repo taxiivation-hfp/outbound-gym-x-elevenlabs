@@ -57,7 +57,7 @@ const PRIMARY: Array<{ key: NavKey; href: string; label: string }> = [
   { key: "overview", href: "/intelligence", label: "Overview" },
   { key: "queue", href: "/", label: "Call queue" },
   { key: "members", href: "/members", label: "Members" },
-  { key: "setup", href: "/onboarding", label: "Voice agent" },
+  { key: "setup", href: "/onboarding", label: "Configuration" },
 ];
 
 const SECONDARY: Array<{ key: NavKey; href: string; label: string }> = [

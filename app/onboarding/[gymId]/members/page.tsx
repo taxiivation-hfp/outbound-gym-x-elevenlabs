@@ -100,7 +100,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
           <div className="flex min-w-0 flex-col gap-4">
             <p className="text-[12.5px] text-muted">
               <Link href="/onboarding" className={`rounded-sm font-semibold text-accent-ink hover:text-ink ${focusRing}`}>
-                <span aria-hidden="true">←</span> Voice agent setup
+                <span aria-hidden="true">←</span> Configuration
               </Link>
               {gym.ok && (
                 <>

@@ -135,7 +135,7 @@ about who is due a call.
 
 **Screens (`app/`, `components/`).** Five screens built from the approved
 mockups in `docs/design/mockups/`: the call queue (`/`, `components/calls/`),
-the overview (`/intelligence`, `components/intelligence/`), voice agent setup
+the overview (`/intelligence`, `components/intelligence/`), configuration
 (`/onboarding`, `components/onboarding/`), evals (`/evals`, `components/evals/`)
 and about (`/about`, `components/about/`), plus `/members`. Every screen sits in
 `components/shell/AppShell.tsx` and uses the theme tokens in `app/globals.css`

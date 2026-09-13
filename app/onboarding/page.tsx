@@ -6,7 +6,7 @@ import { listGyms } from "@/lib/gymStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
 export const metadata: Metadata = {
-  title: "Voice agent setup — Retention Router",
+  title: "Configuration — Retention Router",
 };
 
 /**

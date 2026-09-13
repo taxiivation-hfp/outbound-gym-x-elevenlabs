@@ -25,7 +25,7 @@ import PromptPreview, { PREVIEW_TITLE_ID } from "./PromptPreview";
 import { AdminDetail, Button, Card, CardHeader, Literal, Pill, buttonClass, focusRing } from "./ui";
 
 /**
- * The voice agent setup screen, start to saved.
+ * The configuration screen, start to saved.
  *
  *   ┌ Start from a document ┐  upload → read → extract → check → "Fill the form from it"
  *   │ The gym's details     │  typed by hand, or prefilled and shown with provenance
@@ -190,7 +190,7 @@ export default function OnboardingFlow({
 
   if (saved) {
     return (
-      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Voice agent setup">
+      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Configuration">
         <div className="min-h-0 flex-1 overflow-auto">
           <Saved gym={saved.gym} incentives={saved.incentives} headingRef={savedHeading} edited={Boolean(editing)} defaultGym={defaultGym} />
         </div>
@@ -220,7 +220,7 @@ export default function OnboardingFlow({
     <AppShell
       current="setup"
       title={editing ? editing.gym_name : "Retention Router"}
-      eyebrow="Voice agent setup"
+      eyebrow="Configuration"
       headerActions={
         <SaveControls
           saveAvailable={saveAvailable}
