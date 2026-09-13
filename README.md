@@ -10,19 +10,26 @@
 
 ---
 
-Every retention product on the market predicts who is about to leave. This one also predicts who you'd **lose by contacting**, and leaves them alone. That second half isn't a feature bolted on afterward — it's the reason the product exists.
+Retention Router is the system that reads the member list, decides who and not to reach out to, and automatially calls them with a live-interactive ElevenLabs voice agent. 
 
+We only call member on a fixed-term membership, as auto-renewing gym subscriptions don't benefit from outbound calls, and can even be detrimental (auto-renewing member who has forgotten they're paying has something to cancel).
+
+We target:
+1. Active members whose memberships are about to expire, and remind them / make it easy for them to renew.
+2. Inactive members, to get them back to the gym. Gym activity is highly correlated with renewing memberships.
+3. Past members, to get them to buy a membership again.
+
+
+## Architecture Diagram
 ![Architecture](docs/architecture.svg)
 
-## For judges: where each score comes from
-
-This README doubles as our evidence file. If you're scoring a specific line, this is where to look.
+## Design based on preliminary judging criteria
 
 | Scoring... | Look here |
 |---|---|
 | Problem Significance (8) | [The customer](#the-customer) |
-| Originality of Idea (10) | [Who else does this, and why we're different](#who-else-does-this-and-why-were-different) |
-| Differentiation (7) | [Who else does this, and why we're different](#who-else-does-this-and-why-were-different) |
+| Originality of Idea (10) | [Unique Value Proposition](#unique-value-proposition) |
+| Differentiation (7) | [Unique Value Proposition](#unique-value-proposition) |
 | Creativity in Solution Design (8) | [What it does](#what-it-does) · [Decisions, and why](#decisions-and-why) |
 | Impact & Value Proposition (9) | [Cost and value](#cost-and-value) |
 | Feasibility & Viability (8) | [What a real deployment actually needs](#what-a-real-deployment-actually-needs) |
@@ -33,25 +40,21 @@ This README doubles as our evidence file. If you're scoring a specific line, thi
 
 ## The customer
 
-**An owner-operator with two sites and about 1,200 members.** Southbank and one other suburb. The front desk is one person on a shift. There's no retention team, no marketing hire, and no CRM beyond whatever the gym-management platform ships with. They know roughly who's stopped coming — they can see it — and they do nothing about it. Not from apathy: ringing 60 people is a day nobody has, and nobody at the desk wants to be the one who rings a member who says "actually, cancel me."
+Retention Router is built for medium-franchise gyms. More specifically, gyms that are big enough to have churn in their systems, but too small to have anyone do anything about it. They have no retention team, no marketing hire, and no CRM beyond a default management platform.
 
-That fear is well founded, and it's what this product is built around.
+They can see who's stopped coming, who's membership is about to expire, but don't act on it since ringing tens to hundres of people a day is not anyone at the front desk have any time for nor want to do.
 
 ### The two halves of the problem
 
-**Half one: the calls worth making.** A fixed-term membership doesn't renew itself. The member who's still training, whose term lapses in twelve days, will simply stop having a gym and won't notice for a month. Nobody tells them. That's the cheapest retention call in the business, and almost nobody makes it.
+**1. The calls worth making:** A fixed-term membership that doesn't renew; the member who's still active, whose term lapses in fourteen days-- the cheapest retention call to make; and the inactive member who we check-in on and give nudges to improve retention.
 
-**Half two: the calls that cost money.** A member on a rolling month-to-month contract who hasn't been in for six months is the most profitable member the gym has — full price, zero cost to serve. A churn model flags them hardest of anyone. Calling them is how they remember to cancel. Uplift research calls these *sleeping dogs*: the correct action is nothing at all.
+**2. The calls we shouldn't make:** Members on a month-to-month rolling contract are the ones we don't need to call. An inactive member who hasn't been on for 6 months is most profitable member the gym has; they pay full price while taking up no capacity. Calling them risks reminding them they have a membership and they remember to cancel. Uplift research calls these *sleeping dogs*.
 
-So the router's first rule isn't about churn risk. It's:
+> **`auto_renew == true` → is never called at any point in their term.**
 
-> **`auto_renew == true` → never called. At any point in their term, however absent they are.**
+## Unique Value Proposition
 
-In this dataset that's 148 of 500 members, and **72 of them have a renewal date inside the next fortnight** — a date-triggered dialer would ring all 72, and some would cancel on the call. Refusing those 72 calls is the product.
-
-## Who else does this, and why we're different
-
-Two kinds of product already exist in this space, and neither does what the exclusion rule does.
+Two kinds of product already exist in this space, but neither does what the exclusion rule does.
 
 **Predictors** — Keepme Score, PredictStay, and Glofox's built-in "At Risk" report — score every member's churn probability from attendance and payment data. They tell a gym who's likely to leave. None of them ask whether contacting that member is the right move, because the question they're built to answer is "who's at risk," not "who's worth ringing."
 
