@@ -6,7 +6,7 @@
 
 **Track 1 — Improve an Existing Business Capability**, entered alongside the **ElevenLabs Special Track**
 
-🔴 **Live app:** `[add production URL]` · 🎥 **Demo video:** `[add link]` · 📊 [Eval results](/evals) · 📈 [Churn intelligence](/intelligence)
+🔴 **Live app:** [retention-router.vercel.app](https://retention-router.vercel.app) · 🎥 **Demo video:** `[add link]` · 📊 [Eval results](/evals) · 📈 [Churn intelligence](/intelligence)
 
 ---
 
