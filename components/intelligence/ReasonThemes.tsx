@@ -1,54 +1,80 @@
 /**
- * PLACEHOLDER UI — pass one. Correct data, plain layout, no design investment.
- * Pass three replaces this component wholesale; don't polish it.
+ * "In members' own words": the themed summary the nightly recompute stored
+ * (`queue_runs.reason_themes`, read by lib/reasonThemes.ts). This only reads
+ * it — no model is called to render the page — and the summary is text for a
+ * person, never anything a call is built from.
  *
- * Shows the themed summary the nightly recompute stored. This component only
- * reads it — no model is called to render the page — and the summary is text
- * for a person, never anything a call is built from.
+ * Every state is its own sentence: not enough statements yet, enough but no
+ * run yet, summarised, a run that found too few, and a run that failed. Counts
+ * are the statements the check in lib assigned to each theme; there are no
+ * per-theme quotes or trends, because nothing stores them.
  */
+import { Card, Empty, Notice } from "@/components/intelligence/Card";
+import { dayMonth, plural } from "@/components/intelligence/format";
 import type { Intelligence } from "@/lib/intelligence";
 
-export default function ReasonThemes({ themes }: { themes: Intelligence["why_they_leave"]["themes"] }) {
+type Themes = Intelligence["why_they_leave"]["themes"];
+
+export default function ReasonThemes({ themes, className = "" }: { themes: Themes; className?: string }) {
+  const stored = themes.stored;
+  const sub =
+    stored?.status === "summarised"
+      ? `themes from ${plural(stored.statements, "statement")} · nightly run of ${themes.ran_at ? dayMonth(themes.ran_at) : "—"}`
+      : "themes grouped nightly from what members said";
+
   return (
-    <section className="mt-6 rounded-lg border border-zinc-800 p-4">
-      <h3 className="text-sm font-semibold text-zinc-200">What they said, grouped</h3>
+    <Card lead title="In members’ own words" sub={sub} className={className}>
       {!themes.enough ? (
-        <p className="mt-1 text-sm text-zinc-500">
-          {themes.statements} completed call{themes.statements === 1 ? "" : "s"} recorded the member&apos;s own words. The themed
-          summary needs at least {themes.minimum}, so for now the breakdown above is the whole picture.
-        </p>
-      ) : !themes.stored ? (
-        <p className="mt-1 text-sm text-zinc-500">
-          {themes.statements} statements are ready to summarise. The summary is written by the nightly recompute, not on page
-          load. {themes.notice}
-        </p>
-      ) : themes.stored.status === "summarised" ? (
-        <>
-          <p className="mt-1 text-xs text-zinc-500">
-            Grouped from {themes.stored.statements} statements by {themes.stored.model} in the nightly run of{" "}
-            {themes.ran_at?.slice(0, 10)}. Counts are the statements in each theme; {themes.stored.unthemed} didn&apos;t share a
-            reason with anyone else.
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[13px] leading-normal text-ink-2 text-pretty">
+            {plural(themes.statements, "completed call")} recorded the member&apos;s own words. The themed summary needs at least{" "}
+            {themes.minimum}, so the reason breakdown is the whole picture for now.
           </p>
-          {themes.stored.themes.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-500">No reason was shared by more than one member.</p>
+          <div className="flex items-center gap-2.5" title={`${themes.statements} of the ${themes.minimum} statements needed`}>
+            <div className="h-[7px] flex-1 overflow-hidden rounded-[4px] bg-row-line">
+              <div className="h-full rounded-[4px] bg-bar" style={{ width: `${Math.min(1, themes.statements / themes.minimum) * 100}%` }} />
+            </div>
+            <span className="text-[11.5px] tabular-nums text-dim">
+              {themes.statements} / {themes.minimum}
+            </span>
+          </div>
+        </div>
+      ) : !stored ? (
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[13px] leading-normal text-ink-2 text-pretty">
+            {plural(themes.statements, "statement")} are ready to summarise. The nightly recompute writes the summary; the page never
+            does.
+          </p>
+          {themes.notice && <Notice>{themes.notice}</Notice>}
+        </div>
+      ) : stored.status === "summarised" ? (
+        <>
+          {stored.themes.length === 0 ? (
+            <Empty>No reason was shared by more than one member.</Empty>
           ) : (
-            <ul className="mt-2 space-y-1 text-sm text-zinc-300">
-              {themes.stored.themes.map((t) => (
-                <li key={t.theme}>
-                  <span className="tabular-nums font-semibold text-white">{t.count}</span> — {t.theme}
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-x-[18px] gap-y-0.5 p-0">
+              {stored.themes.map((t) => (
+                <li key={t.theme} className="grid grid-cols-[40px_minmax(0,1fr)] items-baseline gap-3 border-b border-row-line py-2.5">
+                  <span className="text-right font-display text-[22px] font-bold leading-none tracking-[-0.03em] tabular-nums text-ink">
+                    {t.count}
+                  </span>
+                  <span className="text-[13px] font-bold text-ink text-pretty">{t.theme}</span>
                 </li>
               ))}
             </ul>
           )}
+          <p className="mt-auto pt-3 text-[11.5px] leading-snug text-dim text-pretty">
+            Grouped by {stored.model}. Counts are statements per theme; {stored.unthemed} didn&apos;t share a reason with anyone else.
+          </p>
         </>
-      ) : themes.stored.status === "insufficient" ? (
-        <p className="mt-1 text-sm text-zinc-500">
-          The last nightly run had {themes.stored.statements} statements, under the {themes.minimum} it needs. The next run will
+      ) : stored.status === "insufficient" ? (
+        <p className="text-[13px] leading-normal text-ink-2 text-pretty">
+          The last nightly run had {plural(stored.statements, "statement")}, under the {themes.minimum} it needs. The next run will
           summarise.
         </p>
       ) : (
-        <p className="mt-1 text-sm text-amber-300">The last nightly summary didn&apos;t run: {themes.stored.reason}</p>
+        <Notice>The last nightly summary didn&apos;t run: {stored.reason}</Notice>
       )}
-    </section>
+    </Card>
   );
 }

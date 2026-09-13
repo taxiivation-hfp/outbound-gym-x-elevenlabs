@@ -224,7 +224,7 @@ export const healthGuards: Guard[] = [
       } catch (err) {
         problems.push(`five reasons threw: ${err instanceof Error ? err.message : String(err)}`);
       }
-      if (empty && !(/Health of the gym/.test(empty) && /Active members/.test(empty) && /Nothing here yet/.test(empty))) problems.push("zero-call page is missing the health or the empty state");
+      if (empty && !(/Gym health/.test(empty) && /Active members/.test(empty) && /Nothing here yet/.test(empty))) problems.push("zero-call page is missing the health or the empty state");
       if (few && !/needs at least 10/.test(few)) problems.push("five-reason page doesn't say the summary needs more calls");
       if (few && /zebra crossing/.test(few)) problems.push("a stored summary was shown with only five statements");
       if (data.why_they_leave.themes.stored !== null) problems.push("composeIntelligence passed the summary through below the minimum");
