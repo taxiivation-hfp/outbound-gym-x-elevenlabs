@@ -79,6 +79,8 @@ function focusField(key: GymFieldKey | "offer_schedule") {
 }
 
 const FLAG_LINK = `rounded-sm font-semibold text-flag-ink underline decoration-flag underline-offset-2 hover:text-ink ${focusRing}`;
+/** A field the document left to check isn't an error, so its link isn't in the error colour. */
+const CHECK_LINK = `rounded-sm font-semibold text-accent-ink underline decoration-accent-line underline-offset-2 hover:text-ink ${focusRing}`;
 
 export default function GymForm({
   draft,
@@ -212,7 +214,7 @@ export default function GymForm({
   return (
     <form id={GYM_FORM_ID} onSubmit={submit} noValidate className="flex min-w-0 flex-col gap-4">
       {review && fileName && (
-        <Notice tone={flagged.length > 0 ? "caution" : "info"} title={`Prefilled from ${fileName}`}>
+        <Notice tone="info" title={`Prefilled from ${fileName}`}>
           <p>
             {review.summary.filled} filled from the document, {review.summary.blank} not in it.
             {flagged.length > 0 && (
@@ -222,7 +224,7 @@ export default function GymForm({
                 {flagged.map((s, i) => (
                   <span key={s.key}>
                     {i > 0 ? ", " : ""}
-                    <button type="button" onClick={() => focusField(s.key)} className={FLAG_LINK}>
+                    <button type="button" onClick={() => focusField(s.key)} className={CHECK_LINK}>
                       {s.shortLabel}
                     </button>
                   </span>

@@ -153,7 +153,7 @@ call breaks the suite in the same commit.
 
 `results/latest.json` and `results/latest.md` are the current run;
 `results/<timestamp>.json` are every previous run, transcripts included. The
-dashboard reads `latest.json` at `/evals`.
+dashboard reads `latest.json` at `/our-journey`.
 
 ## Run history
 

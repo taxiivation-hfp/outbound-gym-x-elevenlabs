@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import AppShell from "@/components/shell/AppShell";
+import GymGone from "@/components/onboarding/GymGone";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { Notice } from "@/components/onboarding/ui";
 import { MAX_UPLOAD_BYTES } from "@/lib/extraction/documentText";
@@ -30,7 +30,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
     firstRunState(),
     memberDataCounts(gymId).catch(() => null),
   ]);
-  if (!lookup.ok && lookup.status === 404) notFound();
+  if (!lookup.ok && lookup.status === 404) return <GymGone gymId={gymId} firstRunStep={firstRun.gated ? firstRun.step : undefined} />;
 
   const writesEnabled = onboardingWritesEnabled();
   const saveAvailable = lookup.ok && lookup.source === "supabase" && writesEnabled;

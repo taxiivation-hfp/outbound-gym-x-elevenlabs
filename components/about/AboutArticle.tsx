@@ -72,7 +72,7 @@ function percent(fraction: number): string {
 
 function SeeTheRun() {
   return (
-    <Link href="/evals" className="font-semibold text-accent-ink hover:text-ink hover:underline">
+    <Link href="/our-journey" className="font-semibold text-accent-ink hover:text-ink hover:underline">
       See the run
     </Link>
   );
@@ -344,10 +344,10 @@ export default function AboutArticle({ facts }: { facts: AboutFacts }) {
 
       <div className="mt-9 flex flex-wrap gap-3 border-t border-line pt-6">
         <Link
-          href="/evals"
+          href="/our-journey"
           className="flex h-9 items-center rounded-[10px] border border-line bg-control px-[15px] text-[13px] font-bold text-ink no-underline transition-colors hover:border-accent-line"
         >
-          Every eval run, including the bad ones
+          Our Journey: every run, including the bad ones
         </Link>
         <Link
           href="/"

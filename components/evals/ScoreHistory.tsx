@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { HistoryRun } from "@/components/evals/data";
-import { Section, Source } from "@/components/evals/ui";
+import { Section } from "@/components/evals/ui";
 
 const BAR_MAX = 132;
 
@@ -32,14 +32,13 @@ export default function ScoreHistory({ runs, error }: { runs: HistoryRun[]; erro
     else spans.push({ total: run.total, count: 1 });
   }
 
-  const guardTotals = runs.map((r) => r.guardsTotal).filter((t, i, all) => i === 0 || t !== all[i - 1]);
   const shortRuns = runs.filter((r) => r.guardsPassed < r.guardsTotal);
   const grid = { display: "grid", gridTemplateColumns: `repeat(${runs.length}, minmax(0, 1fr))`, columnGap: 9 } as const;
 
   return (
     <Section
       title="The score moves"
-      sub={`${runs.length} committed runs. Some changed a prompt, an assertion, the model or the agents; each label says what.`}
+      sub={`${runs.length} committed runs.`}
       lead
       aside={
         <button
@@ -126,11 +125,8 @@ export default function ScoreHistory({ runs, error }: { runs: HistoryRun[]; erro
           : `passed in full on every run but ${shortRuns
               .map((r) => `${r.when} (${r.guardsPassed}/${r.guardsTotal}${r.label ? `, ${r.label}` : ""})`)
               .join(" and ")}`}
-        ; their count went {guardTotals.join(" → ")} as checks were added. The conversation score drifts because the simulated member and the judge are both models. The logic checks involve neither.
+        . The conversation score drifts: the member and the judge are both models.
       </p>
-      <Source>
-        run labels and scores from each <code className="font-mono">evals/results/&lt;timestamp&gt;.json</code>; what changed between runs, evals/README.md “Run history”.
-      </Source>
     </Section>
   );
 }

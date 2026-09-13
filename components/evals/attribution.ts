@@ -40,6 +40,20 @@ export const ATTRIBUTION: Record<string, { owner: Owner; reading: string }> = {
 export const ATTRIBUTION_SOURCE = "docs/build-log/PASS_TWO_REPORT.md, addendum §4";
 
 /**
+ * A leak the reasoning check doesn't catch. In the latest committed run the
+ * winback agent's turns to Aisha (Kensington, brief item 8) are its own Goal
+ * section as XML markup, and the scenario passed every assertion. Listed so the
+ * reasoning-leak panel's passing check isn't read as a fix. Not investigated.
+ */
+export const UNCAUGHT_LEAK = {
+  id: "winback-moved-away-lets-go",
+  title: "Winback, moved away — the agent read its Goal section aloud as markup",
+  reading:
+    "Aisha, Kensington, brief item 8: three of Charlie’s turns are the prompt’s step list as XML. The call passed every assertion, so the leak check doesn’t catch this.",
+  source: "the latest run file, winback-moved-away-lets-go",
+};
+
+/**
  * The risk the report names as the riskiest thing left. No scenario tests it,
  * so it has no row in the run file; it is listed from the report as untested.
  */

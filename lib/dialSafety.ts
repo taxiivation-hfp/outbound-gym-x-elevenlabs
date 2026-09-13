@@ -43,6 +43,33 @@ export interface DialTarget {
   reason: string | null;
 }
 
+/**
+ * The test number typed into the sidebar: an Australian mobile after a fixed
+ * +61. It stands in for CALL_OVERRIDE_NUMBER on the call it's sent with, and
+ * only as a whole override: it goes through `resolveDialTarget` exactly as the
+ * env var would, so nothing about the synthetic-number refusal changes.
+ *
+ * Absent or blank is "no test number", and the env var stands. Anything else
+ * must be a mobile (9 digits starting with 4, or 10 with the leading 0) or the
+ * call is refused — a mistyped test number never falls through to another one.
+ */
+export function parseTestNumber(raw: unknown): { ok: true; number: string | null } | { ok: false; reason: string } {
+  if (raw === undefined || raw === null) return { ok: true, number: null };
+  if (typeof raw !== "string") return { ok: false, reason: "test_number must be a string." };
+  const digits = raw.replace(/[\s-]/g, "");
+  if (digits === "") return { ok: true, number: null };
+  const local = /^0\d{9}$/.test(digits) ? digits.slice(1) : digits;
+  if (!/^4\d{8}$/.test(local)) {
+    return { ok: false, reason: "The test number isn't an Australian mobile. Type the 9 digits after +61, like 470517310." };
+  }
+  return { ok: true, number: `+61${local}` };
+}
+
+/** The environment a call is dialled under: the sidebar's test number, when given, in place of CALL_OVERRIDE_NUMBER. */
+export function withTestNumber(testNumber: string | null, env: Record<string, string | undefined> = process.env) {
+  return testNumber ? { ...env, CALL_OVERRIDE_NUMBER: testNumber } : env;
+}
+
 export function resolveDialTarget(
   memberPhone: string,
   source: MemberSource,

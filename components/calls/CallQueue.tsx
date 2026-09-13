@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppShell, { HeaderPill } from "@/components/shell/AppShell";
 import { isTypingTarget } from "@/components/shell/theme";
+import { readTestNumber } from "@/components/shell/testNumber";
 import QueueRow, { ROW_GRID, type CallState } from "@/components/calls/QueueRow";
 import {
   BLOCKED_NOTE,
@@ -140,13 +141,15 @@ export default function CallQueue({ view, gymName }: { view: QueueView; gymName:
   async function placeCall(entry: QueueEntry) {
     const id = entry.member_id;
     setCallState((s) => ({ ...s, [id]: { status: "calling" } }));
+    const testNumber = readTestNumber();
     try {
       const res = await fetch("/api/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // The member and the gym, nothing else: the route reads the member and
-        // decides eligibility itself.
-        body: JSON.stringify({ member_id: id, gym_id: view.default_gym_id }),
+        // The member, the gym and the sidebar's test number, nothing else: the
+        // route reads the member and decides eligibility itself. A blank test
+        // number is left out, so CALL_OVERRIDE_NUMBER stands.
+        body: JSON.stringify({ member_id: id, gym_id: view.default_gym_id, ...(testNumber ? { test_number: testNumber } : {}) }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {

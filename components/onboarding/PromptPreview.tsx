@@ -142,7 +142,7 @@ export default function PromptPreview({
         <span className="ml-auto text-[11.5px] text-dim">rewritten as you type</span>
       </div>
 
-      {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete || preview.freezeIncomplete) && (
+      {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete || preview.freezeIncomplete || preview.otherIncomplete.length > 0) && (
         <ul className="m-0 flex list-none flex-col gap-1 rounded-[11px] border border-flag bg-flag-wash px-3 py-2.5 text-[11.5px] leading-[1.45] text-ink-2">
           {preview.excluded.length > 0 && (
             <li>
@@ -162,6 +162,13 @@ export default function PromptPreview({
               (0 if it&apos;s free) before Charlie can offer it.
             </li>
           )}
+          {preview.otherIncomplete.map((slot) => (
+            <li key={slot}>
+              <strong className="text-flag-ink">Check this:</strong> &ldquo;Something else&rdquo; for{" "}
+              {slot === "reengagement" ? "a member who's stopped coming" : "a lapsed member"} needs its name and how it&apos;s
+              delivered before Charlie can offer it.
+            </li>
+          ))}
         </ul>
       )}
 

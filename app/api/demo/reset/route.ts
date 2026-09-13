@@ -10,7 +10,7 @@ import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboarding
  * POST only, and only with `{ "confirm": "reset" }` in the body, so nothing but
  * the button on the configuration screen sends it: no page load, refresh or
  * prefetch can. It deletes database rows and nothing else; the committed eval
- * run files under evals/ are read by the build journey page and are never
+ * run files under evals/ are read by the Our Journey page and are never
  * touched from here.
  *
  * There is no login in front of this, the same as the onboarding writes it
