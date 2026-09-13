@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { reconcileStaleCalls } from "@/lib/reconcileStaleCalls";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 // Reads through the service-role key server-side — the browser never gets
@@ -14,6 +15,11 @@ export async function GET(req: NextRequest) {
   if (memberIds.length === 0) {
     return NextResponse.json({});
   }
+
+  // Every read is also the one chance to notice a call stuck at "initiated"
+  // with no webhook ever coming for it, and ask ElevenLabs directly rather
+  // than show "In progress" forever.
+  await reconcileStaleCalls(memberIds);
 
   const { data, error } = await supabaseAdmin
     .from("call_records")

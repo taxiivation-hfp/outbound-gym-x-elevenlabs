@@ -72,3 +72,25 @@ export async function updateCallRecordByConversation(conversationId: string, pat
     .eq("conversation_id", conversationId);
   return { error: retry.error, degraded: true as const };
 }
+
+/**
+ * For a row that never got a `conversation_id` at all — ElevenLabs refused the
+ * dial before a conversation existed to key on. `updateCallRecordByConversation`
+ * can't reach it (`.eq("conversation_id", null)` never matches in Postgres), so
+ * this updates by the row's own id instead.
+ */
+export async function updateCallRecordById(id: string, patch: Row) {
+  const { error } = await supabaseAdmin.from("call_records").update(patch).eq("id", id);
+  if (!error || !isUnknownColumn(error)) return { error };
+
+  console.warn(
+    "call_records is missing the analysis columns — apply " +
+      "supabase/migrations/20260913120000_call_records_analysis.sql. " +
+      "Saving the transcript and outcome only; the rest of this call's analysis is lost."
+  );
+  const retry = await supabaseAdmin
+    .from("call_records")
+    .update(stripToLegacy(patch))
+    .eq("id", id);
+  return { error: retry.error, degraded: true as const };
+}
