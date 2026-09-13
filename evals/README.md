@@ -3,7 +3,7 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # all 80 guards + all thirty-one conversations
+npm run evals            # all 81 guards + all thirty-one conversations
 npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
 npm run evals:extraction # the adversarial document through the real extraction model
@@ -136,9 +136,26 @@ Both halves are reported separately, because when a scenario fails it matters
 which half failed. A local failure is a fact about the transcript. A judge
 failure is an opinion about it, and sometimes the opinion is wrong.
 
-Two assertions are applied to **every** scenario, because both were found by a
-real failure and neither is acceptable anywhere: the agent must never narrate its
-own reasoning aloud, and must never read an unexpanded `{{variable}}`.
+Eight assertions are applied to **every** scenario, on all four agents, because
+each was found by a real failure and none is acceptable anywhere. Two are about
+facts: never deny a fact it was never given, never read an unexpanded
+`{{variable}}`. Six are about what the member hears. The agent must never narrate
+its own reasoning, speak markup or platform scaffolding, describe the call in the
+third person ("the user"), name its own prompt's sections or steps, run a second
+generation straight onto a turn ("…call?Okay, I'll arrange…"), or speak a line of
+its own prompt word for word (`promptEcho.ts`, per agent, from the prompt the sync
+pushes).
+
+Five of those six were added after a transcript passed every assertion while
+three of its turns were procedure markup. Reading all 774 unique agent turns in
+the committed runs then found 32 leaking turns in 25 scenario runs, and 21 of
+those scenarios had passed. The reasoning check alone had missed 8 of the 22
+reasoning leaks. Each new assertion is pinned by the guard
+`leak-assertions-fail-the-turns-that-revealed-them` to the committed turn that
+revealed it (`leaked-turns.json`), alongside correct turns it must let through.
+
+`npm run evals -- --rescore <run>` applies today's assertions to a committed
+run's transcripts and judge verdicts without making a call.
 
 ## Variables come from the real compiler
 
@@ -157,8 +174,8 @@ dashboard reads `latest.json` at `/our-journey`.
 
 ## Run history
 
-Nine runs are committed, at every state the suite has been in, including the six
-where it failed. The failures are the useful part.
+Thirteen run files are committed, at every state the suite has been in, including
+every one where it failed, and one re-score. The failures are the useful part.
 
 | Run | Guards | Conversations | What changed |
 |---|---|---|---|
@@ -173,6 +190,8 @@ where it failed. The failures are the useful part.
 | `17-59-57` | 20/20 | **15/15** | the last run of the three-agent suite |
 | `2026-09-13T11-47-36` | 80/80 | **23/31** | pass two: the cancellation agent's first run. 13/15 on the unchanged agents (judge variance, a platform timeout); 10/16 on the new one, three of the six being a second offer after a refusal — see `PASS_TWO_REPORT.md` |
 | `2026-09-13T12-21-51` | 80/80 | **28/31** (1 inconclusive) | the ladder inverted — offers stop by default after any decline — and three suite errors corrected. 13/15 on the unchanged agents; 15/16 on the cancellation agent, the ladder 4/4, the miss a callback phrasing the pattern doesn't cover |
+| `2026-09-13T19-18-38` | 81/81 | **27/31** (1 inconclusive) | **a re-score, no calls**: run 11's transcripts under the five leak assertions. `winback-moved-away-lets-go` passed while three turns were `<current-active-structured-procedure>` markup, from a procedure attached to the winback agent in the dashboard |
+| `2026-09-13T19-19-24` | 81/81 | **30/31** | the procedure removed and the sync made to clear it. No leak of any shape; the miss is the callback phrasing again |
 
 **The score is not stable, and that matters more than the best number.** It moved
 between 11 and 15 across runs that changed nothing about the agents, because a
@@ -289,3 +308,11 @@ Two conditions were **deleted rather than widened**:
   interruptions, accents, hold music, or a member who talks over the agent.
 - **Both halves are graded by the same vendor's models** as the agent under test.
   An independent judge would be better evidence.
+
+### Re-scored under the leak assertions
+
+The table above is each run as it was scored at the time. Under today's
+assertions, run 1 is 7/15 (10), run 2 is 10/15 (12), run 3 is **9/15 (15)**, run 4
+is 5/15 (11), run 5 is 8/15 (11), and run 11 is 27/31 (28). Runs 6 to 10 are
+unchanged. Every leak before run 6 was the old conversation model; the one after
+it was the procedure.

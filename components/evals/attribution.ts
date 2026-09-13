@@ -40,17 +40,20 @@ export const ATTRIBUTION: Record<string, { owner: Owner; reading: string }> = {
 export const ATTRIBUTION_SOURCE = "docs/build-log/PASS_TWO_REPORT.md, addendum §4";
 
 /**
- * A leak the reasoning check doesn't catch. In the latest committed run the
- * winback agent's turns to Aisha (Kensington, brief item 8) are its own Goal
- * section as XML markup, and the scenario passed every assertion. Listed so the
- * reasoning-leak panel's passing check isn't read as a fix. Not investigated.
+ * A call that passed every check while leaking. Not a row of the latest run,
+ * whose Aisha call is clean, so it names the run files instead of opening a
+ * transcript. The counts are from reading every committed agent turn and from
+ * the re-score, both recorded in the commit that added the five leak checks.
  */
-export const UNCAUGHT_LEAK = {
-  id: "winback-moved-away-lets-go",
-  title: "Winback, moved away — the agent read its Goal section aloud as markup",
+export const PASSED_WHILE_LEAKING = {
+  title: "Winback, moved away: it passed every check while reading its steps aloud",
   reading:
-    "Aisha, Kensington, brief item 8: three of Charlie’s turns are the prompt’s step list as XML. The call passed every assertion, so the leak check doesn’t catch this.",
-  source: "the latest run file, winback-moved-away-lets-go",
+    "In the second pass-two run, three of Charlie’s turns to Aisha were the winback steps wrapped in markup. Text-to-speech would have read them to her, and the call passed. " +
+    "A procedure had been attached to the winback agent in the ElevenLabs dashboard. Our sync never set that field, so it kept it, and our config check called the agent unchanged. " +
+    "We removed it, and the sync now clears it. Then we read every committed turn. 32 turns leaked, in 25 calls, and 21 of those calls had passed. " +
+    "The run that scored 15/15 is 9/15 under the five checks we added. The pass-two run re-scored is 27/31. The first run after the fix is 30/31, with no leaks.",
+  source:
+    "evals/results/2026-09-13T12-21-51-649Z.json (winback-moved-away-lets-go), the re-score in evals/results/2026-09-13T19-18-38-503Z.json, and the pinned turns in evals/leaked-turns.json",
 };
 
 /**

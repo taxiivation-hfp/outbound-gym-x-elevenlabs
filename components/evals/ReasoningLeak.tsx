@@ -6,8 +6,8 @@ import { Badge, Code, Section } from "@/components/evals/ui";
  * frequency and the fix are README.md's words; which run and which scenario, and
  * how the check does in the latest run, are read from the run files.
  *
- * The badge reports the check, not a cure: a transcript on this same page
- * (UNCAUGHT_LEAK, listed under Still broken) leaks scaffolding and passed it.
+ * The badge reports the check, not a cure: a call that passed every check while
+ * leaking (PASSED_WHILE_LEAKING, listed under Still broken) is why.
  */
 export default function ReasoningLeak({ leak }: { leak: EvalsData["leak"] }) {
   const everyCall = leak.check && leak.check.asserted === leak.check.total;
