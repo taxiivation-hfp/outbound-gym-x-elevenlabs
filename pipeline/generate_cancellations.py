@@ -128,13 +128,17 @@ chosen = {}
 counts = {}
 for shape, count in SHAPES:
     candidates = [f for f in everyone if f["member_id"] not in chosen and may_request(f) and shape_of(f, shape)]
-    # Near expiry: prefer members still coming in (the renewal queue), who would
-    # otherwise be rung about a renewal they have already decided against.
-    if shape == "fixed_term_near_expiry":
-        attending = [f for f in candidates if f["days_since_visit"] <= 28]
-        candidates = attending if len(attending) >= count else candidates
     candidates.sort(key=lambda f: f["member_id"])
-    picked = rng.sample(candidates, min(count, len(candidates)))
+    # Near expiry: prefer members still coming in (the renewal queue), who would
+    # otherwise be rung about a renewal they have already decided against. When
+    # there are too few of them, all of them, topped up from the rest.
+    attending = [f for f in candidates if shape == "fixed_term_near_expiry" and f["days_since_visit"] <= 28]
+    if attending and len(attending) < count:
+        rest = [f for f in candidates if f not in attending]
+        picked = attending + rng.sample(rest, min(count - len(attending), len(rest)))
+    else:
+        pool = attending or candidates
+        picked = rng.sample(pool, min(count, len(pool)))
     for f in picked:
         chosen[f["member_id"]] = request_time(f).strftime("%Y-%m-%dT%H:%M:%S")
     counts[shape] = (len(picked), len(candidates))

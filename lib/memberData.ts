@@ -107,17 +107,21 @@ function floorDays(ms: number): number {
 }
 
 /**
- * Python's `round(x, n)`: exact halves go to the even neighbour. Differs from
- * `Math.round` only on exact binary halves, but the port is checked against the
- * pipeline's output byte for byte, so it matches exactly.
+ * Python's `round(x, n)`: rounds the double's exact decimal value, and exact
+ * halves go to the even neighbour. `Math.round(x * 10 ** n)` is not the same:
+ * the multiplication itself rounds, so 1.7149999999999999 × 100 becomes exactly
+ * 171.5 and rounds up where Python rounds down. The port is checked against the
+ * pipeline's output byte for byte, so this works on the exact expansion, which
+ * `toFixed` gives (to 100 places — every double this is used on fits).
  */
 export function pyRound(x: number, digits = 0): number {
-  const factor = 10 ** digits;
-  const scaled = x * factor;
-  const floor = Math.floor(scaled);
-  const diff = scaled - floor;
-  if (diff === 0.5) return (floor % 2 === 0 ? floor : floor + 1) / factor;
-  return Math.round(scaled) / factor;
+  if (!Number.isFinite(x)) return x;
+  const [whole, fraction] = Math.abs(x).toFixed(100).split(".");
+  let kept = Number(whole + fraction.slice(0, digits));
+  const next = fraction[digits];
+  const beyond = /[1-9]/.test(fraction.slice(digits + 1));
+  if (next > "5" || (next === "5" && (beyond || kept % 2 === 1))) kept += 1;
+  return (x < 0 ? -kept : kept) / 10 ** digits;
 }
 
 // --- Check-ins ---------------------------------------------------------------------

@@ -66,11 +66,11 @@ N_MEMBERS = 500
 
 # Guaranteed cohort proportions (sum to N_MEMBERS)
 COHORT_COUNTS = {
-    "steady": 245,
+    "steady": 215,
     "new_joiner": 50,
     "sliding": 55,
     "sleeping_dog": 60,
-    "winback": 90,
+    "winback": 120,
 }
 assert sum(COHORT_COUNTS.values()) == N_MEMBERS
 
@@ -94,9 +94,19 @@ NEAR_EXPIRY_STEADY = 40
 # Dormant members whose fixed term also lapses within a fortnight — the
 # reengagement call's near-expiry variant (expiry_line changes, prompt doesn't).
 NEAR_EXPIRY_SLEEPING = 25
-# Days since expiry for the three winback windows: ~1 month, ~3 months,
-# ~6 months. Winback members are assigned round-robin across them.
-WINBACK_WINDOWS = [(20, 45), (75, 105), (165, 195)]
+# Lapsed members. Their expiry dates are spread continuously rather than parked
+# in the router's three winback windows (20-45, 75-105 and 165-195 days after
+# expiry), so the monthly churn trend is a trend and not a comb. The windows
+# still fill, because they sit inside the evenly spread span:
+#   RECENT_LAPSED members lapse evenly across the last LAPSE_RECENT_DAYS
+#   (~15 a month against ~390 members, ~4% monthly churn, ~13-16 per window);
+#   the rest lapse LAPSE_RECENT_DAYS+1 .. LAPSE_OLDEST_DAYS ago.
+RECENT_LAPSED = 95
+LAPSE_RECENT_DAYS = 195
+LAPSE_OLDEST_DAYS = 420
+# Share of lapsed members who left before their 120-day mark (first paid month
+# plus 90 days). Tuned so 90-day retention lands in a healthy gym's 75-90%.
+EARLY_CHURN_SHARE = 0.5
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data")
 
@@ -140,6 +150,45 @@ def rollover_expiry() -> datetime:
     return TODAY + timedelta(days=random.randint(1, 30))
 
 
+# --- When people actually train ---------------------------------------------
+# A visit's weekday and hour are drawn from a gym-shaped profile rather than
+# uniformly, so the busy-hours grid has something to say. Relative weights,
+# index = hour of the day, doors open 05:00-22:00.
+#
+# Weekdays: a before-work peak at 6-7am, a small lunchtime bump inside a midday
+# lull, and the day's biggest peak 5-7pm after work.
+# Weekends: no commute to beat, so a later, broader morning peak (8-11am), a
+# quiet afternoon, and little in the evening.
+WEEKDAY_HOUR_WEIGHTS = [
+    0, 0, 0, 0, 0,        # 00-04 closed
+    3, 9, 11, 7, 4,       # 05-09 before-work peak
+    3, 2.5, 4, 3.5, 2,    # 10-14 midday lull, lunchtime bump
+    2.5, 5, 11, 13, 10,   # 15-19 after-work peak
+    5, 2, 0, 0,           # 20-23 taper, closed 22:00
+]
+WEEKEND_HOUR_WEIGHTS = [
+    0, 0, 0, 0, 0,        # 00-04 closed
+    0.5, 2, 5, 8, 9,      # 05-09 later start
+    8.5, 7, 5, 4, 3.5,    # 10-14 morning peak fades
+    3.5, 3.5, 3, 2.5, 2,  # 15-19 quiet afternoon
+    1, 0.5, 0, 0,         # 20-23
+]
+# Monday = 0. Early week is busiest; Friday and Sunday are the quiet days.
+WEEKDAY_WEIGHTS = [1.2, 1.15, 1.1, 1.0, 0.8, 0.85, 0.65]
+
+
+def draw_visit_day(week_start: datetime) -> datetime:
+    """A day within the seven starting at week_start, weighted by weekday."""
+    offsets = list(range(7))
+    weights = [WEEKDAY_WEIGHTS[(week_start.weekday() + o) % 7] for o in offsets]
+    return week_start + timedelta(days=random.choices(offsets, weights)[0])
+
+
+def draw_visit_hour(day: datetime) -> int:
+    weights = WEEKEND_HOUR_WEIGHTS if day.weekday() >= 5 else WEEKDAY_HOUR_WEIGHTS
+    return random.choices(range(24), weights)[0]
+
+
 def generate_checkins(member_id, start_date, end_date, weekly_rate, dropoff_date=None, dropoff_factor=0.0):
     """
     Generate check-in timestamps between start_date and end_date at ~weekly_rate/week.
@@ -155,8 +204,8 @@ def generate_checkins(member_id, start_date, end_date, weekly_rate, dropoff_date
         # expected visits this week ~ Poisson(rate)
         n_visits_this_week = np.random.poisson(max(rate, 0.01))
         for _ in range(n_visits_this_week):
-            day_offset = random.randint(0, 6)
-            ts = current + timedelta(days=day_offset, hours=random.randint(6, 20), minutes=random.randint(0, 59))
+            day = draw_visit_day(current)
+            ts = day + timedelta(hours=draw_visit_hour(day), minutes=random.randint(0, 59))
             if ts < end_date:
                 rows.append((member_id, ts))
         current += timedelta(days=7)
@@ -255,21 +304,47 @@ def make_sleeping_dog(i: int):
     return mid, join_date, near_gym, contract_type, "active", expiry, checkins, rate
 
 
+def lapse_days_ago(i: int) -> int:
+    """
+    Days since this lapsed member's last paid day.
+
+    The first RECENT_LAPSED members are spread evenly (one jittered slot each)
+    across the last LAPSE_RECENT_DAYS, so members are lost every week of every
+    month the health screen charts and each winback window holds its share. The
+    rest lapsed longer ago, past the last winback window: they are the history
+    the 90-day retention figure reaches back over.
+    """
+    if i < RECENT_LAPSED:
+        slot = LAPSE_RECENT_DAYS / RECENT_LAPSED
+        return 1 + int((i + random.random()) * slot)
+    return random.randint(LAPSE_RECENT_DAYS + 1, LAPSE_OLDEST_DAYS)
+
+
+def tenure_at_lapse() -> int:
+    """
+    How long they had been a member when it ended. Gyms lose people early: a
+    share leave inside the first paid month plus 90 days (the 90-day retention
+    mark), the rest after a longer run.
+    """
+    if random.random() < EARLY_CHURN_SHARE:
+        return random.randint(30, 119)
+    return random.randint(120, 600)
+
+
 def make_winback(i: int):
     mid = new_member_id()
-    # Round-robin across the ~1-month / ~3-month / ~6-month windows so all
-    # three winback call moments have an audience.
-    low, high = WINBACK_WINDOWS[i % len(WINBACK_WINDOWS)]
-    days_expired = random.randint(low, high)
+    days_expired = lapse_days_ago(i)
     expiry = TODAY - timedelta(days=days_expired)
     # An expired contract is always fixed-term: auto-renewing memberships do
-    # not lapse, they keep billing until cancelled.
+    # not lapse, they keep billing until cancelled. One that ended inside its
+    # first 120 days is a fixed term terminated early.
     contract_type = draw_contract_type(force_fixed_term=True)
-    tenure_days = days_expired + random.randint(120, 500)
+    member_for = tenure_at_lapse()
+    tenure_days = days_expired + member_for
     join_date = TODAY - timedelta(days=tenure_days)
     rate = max(0.5, np.random.normal(loc=1.8, scale=0.6))
     # They drifted off at or before the expiry rather than on the day of it.
-    dropoff_date = expiry - timedelta(days=random.randint(0, 45))
+    dropoff_date = expiry - timedelta(days=random.randint(0, min(45, member_for // 2)))
     dropoff_factor = 0.0
     near_gym = random.random() < 0.5
     checkins = generate_checkins(mid, join_date, TODAY, rate, dropoff_date, dropoff_factor)
