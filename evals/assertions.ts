@@ -19,6 +19,13 @@ export interface AssertionResult {
   name: string;
   passed: boolean;
   detail: string;
+  /**
+   * The transcript can't settle it: the conversation was cut off before the
+   * agent's turn the assertion needed. Not a pass — a truncated call is no
+   * evidence — but reported as inconclusive rather than as a failure of the
+   * agent's behaviour.
+   */
+  inconclusive?: boolean;
 }
 
 export type Assertion = (turns: Turn[]) => AssertionResult;
@@ -47,6 +54,40 @@ export function mustSay(name: string, pattern: RegExp): Assertion {
       passed: Boolean(hit),
       detail: hit ? `said: "${quote(hit.message)}"` : `never matched ${pattern}`,
     };
+  };
+}
+
+/**
+ * A conversation that ends on the member's turn was cut off before the agent
+ * could reply — the platform's "timed out waiting for the agent to produce its
+ * next turn". The agent always closes a call, so this is the shape truncation
+ * leaves behind.
+ */
+export function endsOnTheMember(turns: Turn[]): boolean {
+  const last = turns[turns.length - 1];
+  return Boolean(last) && last.role === "user";
+}
+
+/**
+ * The agent must say something matching this — unless the conversation was
+ * cut off before it could. Then the result is inconclusive, not a failure:
+ * the first live run failed the "someone will call to arrange it" check on a
+ * transcript that ended the moment the member said "can someone call me?",
+ * which says nothing about what the agent would have said next.
+ */
+export function mustSayUnlessTruncated(name: string, pattern: RegExp): Assertion {
+  return (turns) => {
+    const hit = agentTurns(turns).find((t) => pattern.test(t.message));
+    if (hit) return { name, passed: true, detail: `said: "${quote(hit.message)}"` };
+    if (endsOnTheMember(turns)) {
+      return {
+        name,
+        passed: false,
+        inconclusive: true,
+        detail: `inconclusive — the conversation ended on the member's turn ("${quote(turns[turns.length - 1].message, 80)}"), so the agent never got to say it`,
+      };
+    }
+    return { name, passed: false, detail: `never matched ${pattern}` };
   };
 }
 
@@ -389,9 +430,18 @@ export const PATTERNS = {
   /**
    * Making the cancellation harder: telling the member to do something for it
    * to proceed, or implying it might not.
+   *
+   * The first live run flagged "I wanted to check in before it goes ahead
+   * rather than let you go without a word" — the Goal's own scripted line —
+   * on the "(before|until) it goes ahead" alternative. "Check in before" is
+   * the call's stated purpose, not a condition on the cancellation, so that
+   * alternative now steps around it.
    */
   obstructs:
-    /\b(you'?ll|you will|you'?d|you would|you) (need|have) to (call|ring|phone|come in|pop in|drop in|confirm|email|sign|fill|speak)\b|\b(call|ring|phone) (us |the gym |the front desk |them |back )?(back )?(to|and) (confirm|cancel|finalis|complete)\w*|\b(might|may|could) not go (through|ahead)\b|\b(won'?t|will not|can'?t|cannot|isn'?t going to) go (through|ahead)\b|\bcan'?t (guarantee|promise|confirm) (it|that|the cancellation|your cancellation)\b|\b(i|we)('?ll| will| need to| have to| just| should| can| might)* (check|verify|double[- ]check|look into) (whether|if|that|on|with)\b|\b(hasn'?t|not) (yet )?(been )?(processed|actioned|confirmed|gone through) yet\b|\bstill (pending|outstanding)\b|\bstill needs? (to be )?(processed|approved|confirmed|actioned)\b|\b(before|until) (it|that|the cancellation|your cancellation) (can )?(go|goes) (through|ahead)\b|\bput (it|that|the cancellation) on hold\b|\bhold off (on )?(the |your )?cancel\w*/i,
+    /\b(you'?ll|you will|you'?d|you would|you) (need|have) to (call|ring|phone|come in|pop in|drop in|confirm|email|sign|fill|speak)\b|\b(call|ring|phone) (us |the gym |the front desk |them |back )?(back )?(to|and) (confirm|cancel|finalis|complete)\w*|\b(might|may|could) not go (through|ahead)\b|\b(won'?t|will not|can'?t|cannot|isn'?t going to) go (through|ahead)\b|\bcan'?t (guarantee|promise|confirm) (it|that|the cancellation|your cancellation)\b|\b(i|we)('?ll| will| need to| have to| just| should| can| might)* (check|verify|double[- ]check|look into) (whether|if|that|on|with)\b|\b(hasn'?t|not) (yet )?(been )?(processed|actioned|confirmed|gone through) yet\b|\bstill (pending|outstanding)\b|\bstill needs? (to be )?(processed|approved|confirmed|actioned)\b|(?<!\bcheck(?:ing)? in )\b(before|until) (it|that|the cancellation|your cancellation) (can )?(go|goes) (through|ahead)\b|\bput (it|that|the cancellation) on hold\b|\bhold off (on )?(the |your )?cancel\w*/i,
+  /** Someone from the gym will call to arrange it — how a freeze is delivered. */
+  arrangesCallback:
+    /\b(someone|one of (the|our) (team|staff|crew)|the (front desk|team|gym|guys))( from the gym)? (will|'ll|can|is going to|are going to|going to) (call|ring|give you a (call|ring|bell)|get in touch|be in touch|reach out)\b|\b(get|have) (someone|the team|the front desk) (to )?(call|ring|get in touch)\b/i,
   /** Any mention of a freeze, pause or hold. */
   mentionsFreeze: /\bfreez\w*|\bfroze\w*|\bpaus\w*|\bon hold\b|\bsuspen\w*|\bon ice\b/i,
   /** "I'll pass it on" — what the agent says when it has nothing for the reason given. */

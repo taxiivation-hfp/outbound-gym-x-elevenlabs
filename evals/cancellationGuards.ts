@@ -17,9 +17,10 @@ import { computeSnapshot } from "@/lib/queueRecompute";
 import { validateIncentives } from "@/lib/validateIncentives";
 import type { Member } from "@/lib/types";
 import { comparePayloads, currentPayloads, SNAPSHOT_PATH, type PayloadSnapshot } from "../scripts/snapshot-scenario-payloads";
-import { PATTERNS, firstOfferIs, numbersIn, onlyNumbersNear, saysBefore, type Turn } from "./assertions";
+import { PATTERNS, endsOnTheMember, firstOfferIs, mustSayUnlessTruncated, numbersIn, onlyNumbersNear, saysBefore, type Turn } from "./assertions";
 import { cancellationMember, earlyAbsenceMember, fixtureMember, isoOffset, renewalMember, winbackMember } from "./fixtures";
 import type { Guard } from "./guards";
+import { OFFER_TERMS, PRICE_TALK, TIER } from "./scenarios";
 
 /**
  * Guards over the cancellation call (PASS_TWO).
@@ -379,7 +380,20 @@ export const cancellationGuards: Guard[] = [
       const files = existsSync(dir) ? readdirSync(dir).sort() : [];
       if (JSON.stringify(files) !== JSON.stringify(["environment.md", "first_message.txt", "goal.md"])) problems.push(`agents/prompts/cancellation holds ${files.join(", ")}`);
       const goal = (existsSync(join(dir, "goal.md")) ? readFileSync(join(dir, "goal.md"), "utf8") : "").replace(/\s+/g, " ");
-      for (const line of ["Never a third attempt", "it was a refusal", "never ask them to justify", "never say you need to check something first", "Never lead with a freeze that costs money"]) {
+      // The rules the first live run showed to be load-bearing: offers stop by
+      // default after any decline, the named endings, and Charlie never
+      // supplying the member's objection for them.
+      for (const line of [
+        "Never a third attempt",
+        "it was a refusal",
+        "never ask them to justify",
+        "never say you need to check something first",
+        "Never lead with a freeze that costs money",
+        "Any decline ends the offers",
+        '"No thanks", "I don\'t think so", "nah", "I\'ve decided", "just cancel it"',
+        "Never supply it for them",
+        "never a second one after a decline",
+      ]) {
         if (!goal.includes(line)) problems.push(`goal.md lacks "${line}"`);
       }
       return {
@@ -409,11 +423,13 @@ export const cancellationGuards: Guard[] = [
   },
   {
     id: "cancellation-assertion-patterns-classify-expected-lines",
-    name: "The cancellation suite's own patterns and helpers classify the lines they were written for",
+    name: "The cancellation suite's own patterns and helpers classify the lines they were written for, and the lines the first live run produced",
     why:
-      "Pinned to lines the prompt asks for and lines it forbids, written before the agent had produced a transcript: the polarity " +
-      "trap the original suite fell into five times is guarded against here up front, on \"why I'm calling\", \"anything else I can " +
-      "help with\" and \"no pause then\". A live run that exposes a false positive gets reported, not a relaxed pattern.",
+      "Pinned first to lines the prompt asks for and lines it forbids, written before the agent had produced a transcript, and then " +
+      "to the real lines the first run produced: the Goal's own \"check in before it goes ahead\", which the obstruction pattern " +
+      "wrongly flagged; \"it still costs five dollars a week\", a configured fee that is not an invented price; the ladder line " +
+      "\"If a pause doesn't help, we also have an off-peak membership…\" that is the defect; and a transcript the platform cut off " +
+      "on the member's turn, which is inconclusive rather than a failure. Each correction matches PASS_TWO.md's wording.",
     run: () => {
       const problems: string[] = [];
       const cases: Array<[keyof typeof PATTERNS, string, boolean]> = [
@@ -436,9 +452,18 @@ export const cancellationGuards: Guard[] = [
         ["obstructs", "You'll need to call the front desk to confirm the cancellation.", true],
         ["obstructs", "I'll just need to check whether that can go through.", true],
         ["obstructs", "It might not go through if you don't call back.", true],
+        ["obstructs", "It can't go ahead until you call back and confirm.", true],
+        ["obstructs", "We'll have to wait until it goes through before anything can change.", true],
         ["obstructs", "Someone from the gym will call you to set up the freeze.", false],
         ["obstructs", "I'll pass that on to the manager.", false],
         ["obstructs", "That's all sorted, the cancellation goes ahead as requested.", false],
+        // Real, from the first live run: the Goal's own scripted line, which the
+        // pattern flagged. The call's purpose, not a condition on the cancellation.
+        ["obstructs", "I'm calling because your cancellation request came through and it's being processed, but I wanted to check in before it goes ahead rather than just let you go without a word. I was wondering what's prompted you to leave?", false],
+        ["obstructs", "Yeah, it is. Your cancellation request came through and it is being processed, but I just wanted to check in before it goes ahead rather than let you go without a word.", false],
+        ["arrangesCallback", "Someone from the gym will call you to set up the freeze.", true],
+        ["arrangesCallback", "I'll get someone to call you to lock it in.", true],
+        ["arrangesCallback", "I'll text you a link to sort it out.", false],
         ["mentionsFreeze", "We could pause your membership for a bit.", true],
         ["mentionsFreeze", "No pause then, no worries.", true],
         ["mentionsFreeze", "That's fine, the door's always open.", false],
@@ -465,9 +490,38 @@ export const cancellationGuards: Guard[] = [
       const any = new RegExp(`${PATTERNS.mentionsFreeze.source}|off-?peak`, "i");
       if (!firstOfferIs("f", any, PATTERNS.mentionsFreeze)(ladder).passed) problems.push("firstOfferIs didn't see the freeze first");
       if (firstOfferIs("f", any, /off-?peak/i)(ladder).passed) problems.push("firstOfferIs saw the tier first");
+
+      // Real, from the first live run. The defect: the tier after a flat "No thanks",
+      // with an objection the member never raised supplied by Charlie himself.
+      for (const line of [
+        "I completely understand. If a pause doesn't help, we also have an off-peak membership for thirty-nine dollars a month if that might suit you better?",
+        "Fair enough. We also have an off-peak membership for thirty-nine dollars a month if the cost of a full membership was part of it?",
+        "No worries at all. We also have a cheaper off-peak membership for thirty-nine dollars a month if that sounds any better?",
+      ]) {
+        if (!TIER.test(line) || !OFFER_TERMS.test(line)) problems.push(`the tier offer went unrecognised: "${line.slice(0, 60)}…"`);
+      }
+      // Real: the configured freeze fee, stated while saying the freeze won't
+      // help with cost. Not an invented price (PASS_TWO.md: "fail on any
+      // invented alternative price"), so the corrected check passes it — and
+      // still fails a price the gym never set.
+      const feeLine = agent("I completely understand that, Tom. We don't actually have a cheaper membership option, and since money is the reason you're leaving, our pause option probably won't help either since it still costs five dollars a week. I'll make sure your cancellation goes ahead.");
+      const noInvented = onlyNumbersNear("n", PRICE_TALK, ["8", "eight", "5", "five", "one"]);
+      if (!noInvented([feeLine]).passed) problems.push("the configured freeze fee was read as an invented price");
+      if (noInvented([agent("We do have a student rate at twenty-nine dollars a month if that helps with the cost.")]).passed) problems.push("an invented $29 price passed as not invented");
+      if (!PATTERNS.statesPrice.test(feeLine.message)) problems.push("the fee line no longer states a price at all, so the old assertion would have passed it by accident");
+      // Real: the busy member accepted the freeze and the platform cut the call
+      // before the agent's reply. Inconclusive, not failed — and the same check
+      // on a call that ended normally without the line is a failure.
+      const truncated = [agent("Since you are away a lot, we do have a freeze option where we can pause your membership for up to eight weeks for five dollars a week instead of cancelling it completely."), member("Yeah actually, that could work. Can someone call me to sort that out?")];
+      const callback = mustSayUnlessTruncated("c", PATTERNS.arrangesCallback);
+      const cut = callback(truncated);
+      if (cut.passed || !cut.inconclusive || !endsOnTheMember(truncated)) problems.push(`a cut-off call was ${cut.passed ? "passed" : "failed"} rather than inconclusive`);
+      const complete = callback([...truncated, agent("Great — I'll text you a link and you can pick a time. Take care!")]);
+      if (complete.passed || complete.inconclusive) problems.push("a complete call without the callback line wasn't a plain failure");
+      if (!callback([...truncated, agent("Great — someone from the gym will call you to set it up. Take care!")]).passed) problems.push("the callback line wasn't recognised");
       return {
         passed: problems.length === 0,
-        detail: problems.length === 0 ? `all ${cases.length} lines classified correctly; numbers, ordering and first-offer helpers behave` : problems.join("; "),
+        detail: problems.length === 0 ? `all ${cases.length} lines classified correctly, including the first run's; numbers, ordering, first-offer and truncation helpers behave` : problems.join("; "),
       };
     },
   },

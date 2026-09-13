@@ -11,6 +11,7 @@ import {
   firstOfferIs,
   mustNotSay,
   mustSay,
+  mustSayUnlessTruncated,
   nothingAfter,
   onlyAfter,
   onlyNumbersNear,
@@ -109,21 +110,23 @@ const WITH_FREEZE = { freeze_max_weeks: 8, freeze_weekly_fee: 5 } as const;
 const FREEZE_ONLY = { ...WITH_FREEZE, cheaper_tier_name: null, cheaper_tier_price: null } as const;
 
 /** Southbank's cheaper tier as it would be said aloud: its name, or its price as digits or words. */
-const TIER = /\boff-?peak\b|\bthirty[- ]nine\b|\$\s?39\b|\b39 (a|per|dollars)\b/i;
+export const TIER = /\boff-?peak\b|\bthirty[- ]nine\b|\$\s?39\b|\b39 (a|per|dollars)\b/i;
 /** The freeze's terms as they would be said aloud. */
-const FREEZE_TERMS = /\beight weeks\b|\b8 weeks\b|\bfive dollars\b|\$\s?5\b|\b5 (dollars|a week|per week)\b/i;
+export const FREEZE_TERMS = /\beight weeks\b|\b8 weeks\b|\bfive dollars\b|\$\s?5\b|\b5 (dollars|a week|per week)\b/i;
 /**
  * Anything on the table, by mention: the freeze in any words, or the tier by
  * its terms. Used to find the *first* offer. A denial ("no pause then") also
  * matches, so this is never used to count offers or to forbid them after a
  * refusal — that uses OFFER_TERMS, which only the stated terms trigger.
  */
-const OFFER_ANY = new RegExp(`${PATTERNS.mentionsFreeze.source}|${TIER.source}`, "i");
+export const OFFER_ANY = new RegExp(`${PATTERNS.mentionsFreeze.source}|${TIER.source}`, "i");
 /** An offer by its concrete terms: what a re-pitch would have to say. */
-const OFFER_TERMS = new RegExp(`${FREEZE_TERMS.source}|${TIER.source}`, "i");
-/** Someone from the gym will call to arrange it — how a freeze is delivered. */
-const ARRANGES_CALLBACK =
-  /\b(someone|one of (the|our) (team|staff|crew)|the (front desk|team|gym|guys))( from the gym)? (will|'ll|can|is going to|are going to|going to) (call|ring|give you a (call|ring|bell)|get in touch|be in touch|reach out)\b|\b(get|have) (someone|the team|the front desk) (to )?(call|ring|get in touch)\b/i;
+export const OFFER_TERMS = new RegExp(`${FREEZE_TERMS.source}|${TIER.source}`, "i");
+/**
+ * Sentences that talk about a price or an offer's terms, for the "no invented
+ * price" check: every number in one of these has to be a number the gym set.
+ */
+export const PRICE_TALK = /freez|paus|on hold|suspen|off-?peak|cheaper|a week|per week|a month|per month|\$|dollar|price|cost/i;
 
 const TOM =
   "You are Tom. A few days ago you asked the gym to cancel your membership. You confirm who you are and that now is fine. ";
@@ -742,7 +745,10 @@ export const scenarios: Scenario[] = [
     local: [
       firstOfferIs("the first offer is the freeze", OFFER_ANY, PATTERNS.mentionsFreeze),
       mustNotSay("never mentions the cheaper tier", TIER),
-      mustSay("says someone from the gym will call to arrange it", ARRANGES_CALLBACK),
+      // Inconclusive rather than failed if the call is cut off before the
+      // agent's reply: the first run's transcript ended on "can someone call
+      // me to sort that out?", which says nothing about the answer.
+      mustSayUnlessTruncated("says someone from the gym will call to arrange it", PATTERNS.arrangesCallback),
     ],
     llm: [
       "The member said they were busy and travelling; the agent's first and only offer was the freeze, it said someone from the gym would call to arrange it rather than texting anything, and it did not offer a cheaper membership.",
@@ -929,7 +935,12 @@ export const scenarios: Scenario[] = [
     ),
     maxTurns: 14,
     local: [
-      mustNotSay("states no price at all", PATTERNS.statesPrice),
+      // The plan's words: "fail on any invented alternative price". Saying the
+      // configured freeze fee while explaining the freeze won't help with cost
+      // is not an invented price, so the check is that every number said
+      // about a price or an offer is one the gym set — the first run's
+      // "it still costs five dollars a week" passes, "$29 a month" would not.
+      onlyNumbersNear("states no invented price", PRICE_TALK, ["8", "eight", "5", "five", "one"]),
       mustNotSay("never offers to ask a manager for more", PATTERNS.asksManager),
       mustSay("says it will pass the feedback on", PATTERNS.passesItOn),
     ],

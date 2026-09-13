@@ -93,12 +93,17 @@ A member who has asked to cancel is now called once, on `charlie-cancellation`,
 with a freeze or a cheaper tier to offer, and the cancellation goes ahead
 regardless. Status:
 
-1. **Apply `supabase/migrations/20260915040000_freeze_and_cancellation_call.sql`
-   to the Supabase project.** It adds the two freeze columns to `gyms` and lets
-   `queue_run_entries` record a `cancellation` call. Idempotent; `npm run
-   db:verify` applies it twice locally. Until it is applied, a gym saved with a
-   freeze is refused with the migration's name, and the nightly recompute's
-   entries fail on a cancellation row.
+1. **Done on 13 September 2026:**
+   `supabase/migrations/20260915040000_freeze_and_cancellation_call.sql` was
+   applied to the Supabase project through the Management API, twice (it is
+   idempotent). Read back afterwards: `gyms.freeze_max_weeks` (integer) and
+   `gyms.freeze_weekly_fee` (numeric(5,2)) exist, `gyms_freeze_complete` is
+   stored with the exact bounds, and `queue_run_entries_call_type_check` now
+   lists `cancellation`. A rolled-back block then stored a paid and a free
+   freeze, had 27 weeks, weeks-without-a-fee and $51 refused, stored a
+   cancellation entry and had `upsell` refused. Nothing was left behind, and
+   both seed gyms are unchanged. For another project, apply it in order after
+   the pass-one migrations (`npm run db:verify`).
 2. **Synced on 13 September 2026.** `charlie-cancellation` is
    `agent_1601m2d9fhg1fx2vft4skxneahkm`, in `.env.local` as
    `ELEVENLABS_AGENT_ID_CANCELLATION`. **Do not put it on Vercel yet.** The
