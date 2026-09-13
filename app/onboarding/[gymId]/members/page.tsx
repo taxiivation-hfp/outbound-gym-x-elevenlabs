@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import AppShell from "@/components/shell/AppShell";
 import Connectors from "@/components/onboarding/Connectors";
 import MemberImport, { type ColumnHelp } from "@/components/onboarding/MemberImport";
+import { SampleCsvs } from "@/components/onboarding/SampleFiles";
 import { AdminDetail, Card, CardHeader, Notice, focusRing } from "@/components/onboarding/ui";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { routeMember } from "@/lib/callType";
@@ -120,6 +121,9 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
                 exports — the same files you&apos;d send an accountant. Each file is checked before anything is written, and
                 imported whole or not at all.
               </p>
+              <div className="mb-4">
+                <SampleCsvs />
+              </div>
 
               <div className="mb-4 flex flex-col gap-2.5 empty:hidden">
                 {!gym.ok && (

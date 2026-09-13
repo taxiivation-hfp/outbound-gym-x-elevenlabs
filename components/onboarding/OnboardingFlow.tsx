@@ -23,6 +23,7 @@ import DemoReset from "./DemoReset";
 import DocumentReader, { type ReadResult } from "./DocumentReader";
 import GymForm, { SaveControls, SaveNotices, type SaveState } from "./GymForm";
 import PromptPreview, { PREVIEW_TITLE_ID } from "./PromptPreview";
+import { SampleCsvs, SamplePriceList } from "./SampleFiles";
 import { AdminDetail, Button, Card, CardHeader, Literal, Pill, buttonClass, focusRing } from "./ui";
 
 /**
@@ -273,6 +274,7 @@ export default function OnboardingFlow({
                   of it, each with the sentence it came from, and put in the form to check. A membership agreement is usually
                   the most reliable: prices and terms have to be in it.
                 </p>
+                <SamplePriceList />
 
                 {doc.kind === "reading" ? (
                   <DocumentReader
@@ -461,6 +463,7 @@ function MemberDataCard({
             Member data is uploaded against a saved gym, so save this one first; the confirmation links to its member data.
             For a gym that is already set up, open its member data below.
           </p>
+          <SampleCsvs />
           {existingGyms.length > 0 && (
             <div role="group" aria-labelledby="existing-title">
               <h3 id="existing-title" className="m-0 mb-2 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">
