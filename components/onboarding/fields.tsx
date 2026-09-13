@@ -1,15 +1,19 @@
 "use client";
 
 import { useId, useRef, useState, type ReactNode } from "react";
-import { focusRing } from "./ui";
+import { Pill, focusRing } from "./ui";
 
 /**
- * The questionnaire's controls. Every one has a visible label, an optional
- * "if you leave this blank" line, room for provenance from a document, and an
- * error slot tied to the input with aria-describedby. Blank is a first-class
- * answer: the tri-state and choice controls have an explicit "Not stated"
- * option rather than an unticked box that could mean "no".
+ * The questionnaire's controls. Every one has a visible label, a state chip
+ * (from the document, set, blank), an "if you leave this blank" line, room for
+ * provenance from a document, and an error slot tied to the input with
+ * aria-describedby. Blank is a first-class answer: the tri-state and choice
+ * controls have an explicit "Not stated" option rather than an unticked box that
+ * could mean "no".
  */
+
+/** Where a field's current value stands. Computed by the form from the draft and the extraction review. */
+export type FieldStatus = "document" | "set" | "nothing" | "blank";
 
 export interface FieldChrome {
   label: string;
@@ -24,19 +28,27 @@ export interface FieldChrome {
   /** Provenance or a flagged suggestion, rendered under the control. */
   provenance?: ReactNode;
   hint?: string;
+  status?: FieldStatus;
+  /** Inside a group whose legend already carries the state: no tag beside the label. */
+  untagged?: boolean;
 }
 
-// Form controls take a 4.3:1 boundary rather than the 1.4:1 panel hairline, so
-// an empty field is findable on a black page (WCAG 1.4.11).
-//
-// Controls don't transition. Focus arrives by Tab dozens of times a form, and a
-// colour transition there fades the ring in from white; a selected option has to
-// read as selected the instant it is chosen.
 const INPUT =
-  "w-full rounded-lg border bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+  "h-[38px] w-full rounded-[10px] border bg-canvas px-3 text-[13px] text-ink placeholder:text-faint outline-none focus:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-line";
 
 function inputBorder(error?: string) {
-  return error ? "border-red-600 focus:border-red-400" : "border-zinc-500 hover:border-zinc-400 focus:border-signal";
+  return error ? "border-flag focus:border-flag" : "border-line-strong hover:border-accent-line focus:border-accent-line";
+}
+
+const STATUS_PILL: Record<FieldStatus, { label: string; tone: "accent" | "plain" | "ghost" }> = {
+  document: { label: "from document", tone: "accent" },
+  set: { label: "set", tone: "plain" },
+  nothing: { label: "nothing", tone: "plain" },
+  blank: { label: "blank", tone: "ghost" },
+};
+
+export function StatusPill({ status }: { status: FieldStatus }) {
+  return <Pill tone={STATUS_PILL[status].tone}>{STATUS_PILL[status].label}</Pill>;
 }
 
 function Captions({
@@ -49,25 +61,21 @@ function Captions({
   return (
     <>
       {chrome.hint && (
-        <p id={ids.hint} className="mt-1.5 text-xs leading-relaxed text-zinc-400">
+        <p id={ids.hint} className="text-[11.5px] leading-[1.45] text-dim text-pretty">
           {chrome.hint}
         </p>
       )}
       {chrome.error && (
-        <p id={ids.error} className="mt-1.5 text-xs font-medium leading-relaxed text-red-300">
+        <p id={ids.error} className="text-[11.5px] font-semibold leading-[1.45] text-flag-ink">
           {chrome.error}
         </p>
       )}
       {!chrome.error && chrome.blank && chrome.blankNote && (
-        <p id={ids.blank} className="mt-1.5 text-xs leading-relaxed text-zinc-400">
-          <span className="font-semibold text-zinc-300">{chrome.blankLabel ?? "Not stated:"}</span> {chrome.blankNote}
+        <p id={ids.blank} className="text-[11.5px] leading-[1.45] text-dim text-pretty">
+          <span className="font-semibold text-muted">{chrome.blankLabel ?? "Not stated:"}</span> {chrome.blankNote}
         </p>
       )}
-      {chrome.provenance && (
-        <div id={ids.provenance} className="mt-2">
-          {chrome.provenance}
-        </div>
-      )}
+      {chrome.provenance && <div id={ids.provenance}>{chrome.provenance}</div>}
     </>
   );
 }
@@ -92,12 +100,27 @@ function describedBy(ids: ReturnType<typeof useFieldIds>, chrome: FieldChrome): 
   return parts.length ? parts.join(" ") : undefined;
 }
 
-function LabelText({ chrome }: { chrome: FieldChrome }) {
-  return (
+/** The label row: the label, then "required" or the field's state. */
+function LabelRow({ chrome, htmlFor, as = "label" }: { chrome: FieldChrome; htmlFor?: string; as?: "label" | "legend" }) {
+  const inner = (
     <>
-      {chrome.label}
-      <span className="ml-1.5 text-xs font-normal text-zinc-400">{chrome.required ? "required" : "optional"}</span>
+      <span className="text-[12.5px] font-bold text-ink">{chrome.label}</span>
+      {chrome.untagged ? null : chrome.required ? (
+        <Pill tone="ghost">required</Pill>
+      ) : chrome.status ? (
+        <StatusPill status={chrome.status} />
+      ) : (
+        <span className="text-[11px] text-dim">optional</span>
+      )}
     </>
+  );
+  if (as === "legend") {
+    return <legend className="mb-2 flex flex-wrap items-baseline gap-x-[9px] gap-y-1 p-0">{inner}</legend>;
+  }
+  return (
+    <label htmlFor={htmlFor} className="flex flex-wrap items-baseline gap-x-[9px] gap-y-1">
+      {inner}
+    </label>
   );
 }
 
@@ -118,10 +141,8 @@ export function TextField({
 }) {
   const ids = useFieldIds();
   return (
-    <div data-field={name}>
-      <label htmlFor={ids.control} className="block text-sm font-semibold text-white">
-        <LabelText chrome={chrome} />
-      </label>
+    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+      <LabelRow chrome={chrome} htmlFor={ids.control} />
       <input
         id={ids.control}
         name={name}
@@ -135,7 +156,7 @@ export function TextField({
         aria-invalid={chrome.error ? true : undefined}
         aria-required={chrome.required || undefined}
         aria-describedby={describedBy(ids, chrome)}
-        className={`mt-1.5 ${INPUT} ${inputBorder(chrome.error)}`}
+        className={`${INPUT} ${inputBorder(chrome.error)}`}
       />
       <Captions ids={ids} chrome={chrome} />
     </div>
@@ -168,24 +189,22 @@ export function AffixField({
 }) {
   const ids = useFieldIds();
   return (
-    <div data-field={name}>
-      <label htmlFor={ids.control} className="block whitespace-nowrap text-sm font-semibold text-white">
-        {labelOverride ? (
-          <>
-            {labelOverride}
-            <span className="sr-only"> ({chrome.label})</span>
-          </>
-        ) : (
-          <LabelText chrome={chrome} />
-        )}
-      </label>
+    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+      {labelOverride ? (
+        <label htmlFor={ids.control} className="whitespace-nowrap text-[11.5px] font-semibold text-muted">
+          {labelOverride}
+          <span className="sr-only"> ({chrome.label})</span>
+        </label>
+      ) : (
+        <LabelRow chrome={chrome} htmlFor={ids.control} />
+      )}
       <div
-        className={`mt-1.5 flex w-full max-w-[14rem] items-center rounded-lg border bg-zinc-950 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-signal ${
-          chrome.error ? "border-red-600 focus-within:border-red-400" : "border-zinc-500 hover:border-zinc-400 focus-within:border-signal"
+        className={`flex h-[38px] w-full max-w-[12rem] items-center gap-2 rounded-[10px] border bg-canvas px-3 focus-within:bg-surface has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-line ${
+          chrome.error ? "border-flag" : "border-line-strong hover:border-accent-line focus-within:border-accent-line"
         }`}
       >
         {prefix && (
-          <span className="pl-3 text-sm text-zinc-400" aria-hidden="true">
+          <span className="text-[13px] text-dim" aria-hidden="true">
             {prefix}
           </span>
         )}
@@ -201,10 +220,10 @@ export function AffixField({
           onBlur={onBlur}
           aria-invalid={chrome.error ? true : undefined}
           aria-describedby={describedBy(ids, chrome)}
-          className="w-full min-w-0 bg-transparent px-2 py-2 text-sm tabular-nums text-white placeholder:text-zinc-400 focus:outline-none"
+          className="h-full w-full min-w-0 bg-transparent text-[13px] tabular-nums text-ink placeholder:text-faint outline-none"
         />
         {suffix && (
-          <span className="whitespace-nowrap pr-3 text-sm text-zinc-400" aria-hidden="true">
+          <span className="whitespace-nowrap text-[12px] font-semibold text-dim" aria-hidden="true">
             {suffix}
           </span>
         )}
@@ -220,28 +239,20 @@ export function ChoiceField<T extends string | boolean>({
   onChange,
   options,
   name,
-  layout = "row",
 }: {
   chrome: FieldChrome;
   value: T | null;
   onChange: (value: T | null) => void;
   options: Array<{ value: T; label: string; note?: string }>;
   name: string;
-  layout?: "row" | "column";
 }) {
   const ids = useFieldIds();
   const all: Array<{ value: T | null; label: string; note?: string }> = [...options, { value: null, label: "Not stated" }];
   const description = describedBy(ids, chrome);
   return (
-    <fieldset data-field={name}>
-      <legend className="text-sm font-semibold text-white">
-        <LabelText chrome={chrome} />
-      </legend>
-      <div
-        className={`mt-1.5 inline-flex max-w-full gap-0.5 rounded-lg border border-zinc-600 p-0.5 ${
-          layout === "column" ? "flex-col sm:flex-row sm:flex-wrap" : "flex-wrap"
-        }`}
-      >
+    <fieldset data-field={name} className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
+      <LabelRow chrome={chrome} as="legend" />
+      <div className="flex flex-wrap gap-1.5">
         {all.map((option) => {
           const checked = option.value === value;
           const optionId = `${ids.control}-${String(option.value)}`;
@@ -249,10 +260,10 @@ export function ChoiceField<T extends string | boolean>({
             <label
               key={String(option.value)}
               htmlFor={optionId}
-              className={`relative flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-signal ${
+              className={`relative flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-3.5 text-[12.5px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-line ${
                 checked
-                  ? "bg-zinc-800 font-semibold text-white ring-1 ring-inset ring-zinc-300"
-                  : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                  ? "border-accent-line bg-accent-wash font-bold text-accent-ink"
+                  : "border-control-line bg-canvas font-semibold text-muted hover:border-line-strong hover:text-ink"
               }`}
             >
               <input
@@ -264,13 +275,10 @@ export function ChoiceField<T extends string | boolean>({
                 onChange={() => onChange(option.value)}
                 aria-describedby={description}
               />
-              {/* The selected option carries a mark, not just a lighter fill. */}
-              <span
-                aria-hidden="true"
-                className={`h-1.5 w-1.5 shrink-0 rounded-full ${checked ? "bg-white" : "bg-zinc-700"}`}
-              />
+              {/* The selected option carries a mark, not just a tint. */}
+              <span aria-hidden="true" className={`h-1.5 w-1.5 flex-none rounded-full ${checked ? "bg-bar" : "bg-line-strong"}`} />
               <span className={option.value === null ? "italic" : undefined}>{option.label}</span>
-              {option.note && <span className="text-xs font-normal text-zinc-400">{option.note}</span>}
+              {option.note && <span className="text-[11px] font-normal text-dim">{option.note}</span>}
             </label>
           );
         })}
@@ -336,23 +344,21 @@ export function ListField({
   };
 
   return (
-    <div data-field={name}>
-      <label htmlFor={ids.control} className="block text-sm font-semibold text-white">
-        <LabelText chrome={chrome} />
-      </label>
+    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+      <LabelRow chrome={chrome} htmlFor={ids.control} />
       {values.length > 0 && (
-        <ul ref={listRef} className="mt-1.5 flex flex-wrap gap-2" aria-label={`${chrome.label} added`}>
+        <ul ref={listRef} className="m-0 flex list-none flex-wrap gap-[7px] p-0" aria-label={`${chrome.label} added`}>
           {values.map((v, index) => (
             <li
               key={v}
-              className="flex max-w-full items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 py-1 pl-2.5 pr-1 text-sm text-zinc-200"
+              className="flex h-8 max-w-full items-center gap-2 rounded-[9px] border border-line bg-control pl-3 pr-1.5 text-[12.5px] font-semibold text-ink"
             >
               <span className="wrap-anywhere">{v}</span>
               <button
                 type="button"
                 onClick={() => remove(index)}
                 aria-label={`Remove ${v}`}
-                className={`grid h-6 w-6 shrink-0 place-items-center rounded text-zinc-400 transition-[background-color,color] duration-150 ease-out hover:bg-zinc-800 hover:text-white motion-reduce:transition-none ${focusRing}`}
+                className={`grid h-5 w-5 flex-none place-items-center rounded-md text-dim transition-colors hover:bg-flag-wash hover:text-flag-ink motion-reduce:transition-none ${focusRing}`}
               >
                 <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
                   <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -362,7 +368,7 @@ export function ListField({
           ))}
         </ul>
       )}
-      <div className="mt-1.5 flex max-w-md gap-2">
+      <div className="flex gap-2.5">
         <input
           ref={inputRef}
           id={ids.control}
@@ -379,13 +385,13 @@ export function ListField({
           }}
           aria-invalid={chrome.error ? true : undefined}
           aria-describedby={describedBy(ids, chrome)}
-          className={`${INPUT} ${inputBorder(chrome.error)}`}
+          className={`${INPUT} ${inputBorder(chrome.error)} flex-1`}
         />
         <button
           type="button"
           onClick={add}
           disabled={!pending.trim()}
-          className={`shrink-0 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-200 transition-[border-color,color] duration-150 ease-out hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${focusRing}`}
+          className={`h-[38px] flex-none rounded-[10px] border border-control-line bg-control px-[15px] text-[12.5px] font-bold text-ink transition-colors hover:border-accent-line disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none ${focusRing}`}
         >
           Add {itemNoun}
         </button>

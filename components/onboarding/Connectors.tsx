@@ -1,59 +1,54 @@
 import { CONNECTORS } from "@/lib/connectors";
+import { Pill } from "./ui";
 
 /**
  * Platform connectors, labelled as what they are: not built. No buttons, no
  * spinners, nothing that could read as "connected". Each platform shows the three
  * tables it would supply, the auto-renew field that decides who may be called,
  * and what an integration would need — which is the honest reason the CSV
- * upload above exists.
+ * upload exists. Every word on a card is from lib/connectors.ts.
  */
 export default function Connectors() {
   return (
-    <section aria-labelledby="connectors-title">
-      <h2 id="connectors-title" className="text-lg font-black uppercase tracking-tight text-white">
-        Platform connections
-      </h2>
-      <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-zinc-400">
-        None of these is built. The CSV upload above works with every platform today, because every platform exports
-        these three tables. A direct connection would replace the upload, not the checks.
+    <div aria-labelledby="connectors-title" role="group">
+      <h3 id="connectors-title" className="m-0 mb-1 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">
+        Direct connections
+      </h3>
+      <p className="mb-3.5 max-w-[64ch] text-[12.5px] leading-[1.5] text-muted text-pretty">
+        None of these is built. The CSV upload works with every platform today, because every platform exports these three
+        tables. A direct connection would replace the upload, not the checks.
       </p>
-
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-zinc-800">
-        <table className="min-w-[56rem] w-full divide-y divide-zinc-900 text-left text-sm">
-          <caption className="sr-only">Gym platforms, their status, and the fields each would supply</caption>
-          <thead className="bg-zinc-950/60 text-xs text-zinc-400">
-            <tr>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Platform</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Members</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Contracts</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Check-ins</th>
-              <th scope="col" className="px-4 py-2.5 font-semibold">Does it say if a contract auto-renews?</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-900 align-top">
-            {CONNECTORS.map((c) => (
-              <tr key={c.id}>
-                <th scope="row" className="px-4 py-3 font-semibold text-white">
-                  {c.name}
-                  <span className="mt-1 block w-fit rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] font-semibold text-zinc-300">
-                    Not built
-                  </span>
-                  <span className="mt-2 block text-xs font-normal leading-relaxed text-zinc-400">Needs: {c.needs}</span>
-                </th>
-                <td className="px-4 py-3 text-zinc-300">{c.members}</td>
-                <td className="px-4 py-3 text-zinc-300">{c.contracts}</td>
-                <td className="px-4 py-3 text-zinc-300">{c.checkins}</td>
-                <td className="px-4 py-3">
-                  <p className={`text-sm font-semibold ${c.autoRenew.exposed ? "text-zinc-200" : "text-amber-300"}`}>
-                    {c.autoRenew.exposed ? "Yes" : "No — inferred"}
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">{c.autoRenew.detail}</p>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3 p-0">
+        {CONNECTORS.map((c) => (
+          <li key={c.id} className="flex min-w-0 flex-col gap-2.5 rounded-xl border border-dashed border-line-strong bg-canvas p-[15px]">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13.5px] font-bold text-ink">{c.name}</span>
+              <Pill tone="plain">not built</Pill>
+            </div>
+            <dl className="m-0 flex flex-col gap-1.5 text-[11.5px] leading-[1.45]">
+              {(
+                [
+                  ["Members", c.members],
+                  ["Contracts", c.contracts],
+                  ["Check-ins", c.checkins],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-2">
+                  <dt className="text-dim">{label}</dt>
+                  <dd className="m-0 text-ink-2 wrap-anywhere">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-[11.5px] leading-[1.45] text-muted text-pretty">
+              <strong className={c.autoRenew.exposed ? "text-ink-2" : "text-flag-ink"}>
+                Auto-renew: {c.autoRenew.exposed ? "exposed" : "inferred"}.
+              </strong>{" "}
+              {c.autoRenew.detail}
+            </p>
+            <p className="mt-auto border-t border-line pt-2 text-[11.5px] leading-[1.45] text-dim text-pretty">Needs: {c.needs}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
