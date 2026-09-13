@@ -39,6 +39,7 @@ export function fixtureMember(overrides: Partial<Member> = {}): Member {
     expiry_date: isoOffset(12),
     monthly_fee: 79,
     renewal_fee: 79,
+    cancellation_requested: null,
     signals: {
       days_since_visit: 3,
       old_rate: 2.4,

@@ -4,6 +4,7 @@ import { compileVariables, firstName } from "@/lib/compileVariables";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
 import { PATTERNS } from "./assertions";
+import { cancellationGuards } from "./cancellationGuards";
 import { configGuards } from "./configGuards";
 import { gymEditGuards } from "./gymEditGuards";
 import { healthGuards } from "./healthGuards";
@@ -470,7 +471,7 @@ const guards: Guard[] = [
 ];
 
 export async function runGuards(): Promise<GuardResult[]> {
-  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards, ...otherOfferGuards, ...gymEditGuards];
+  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards, ...otherOfferGuards, ...gymEditGuards, ...cancellationGuards];
   const results: GuardResult[] = [];
   for (const g of all) results.push(await runOne(g));
   return results;

@@ -28,6 +28,8 @@ export interface QueueEntry {
   expiry_date: string;
   monthly_fee: number;
   renewal_fee: number | null;
+  /** When they asked to cancel, or null. Shown; not yet acted on. */
+  cancellation_requested: string | null;
   days_since_visit: number;
   old_rate: number;
   tenure_days: number;
@@ -91,6 +93,7 @@ function toEntry(member: Member, history: CallHistory): QueueEntry {
     expiry_date: member.expiry_date,
     monthly_fee: member.monthly_fee,
     renewal_fee: member.renewal_fee,
+    cancellation_requested: member.cancellation_requested,
     days_since_visit: member.signals.days_since_visit,
     old_rate: member.signals.old_rate,
     tenure_days: member.signals.tenure_days,

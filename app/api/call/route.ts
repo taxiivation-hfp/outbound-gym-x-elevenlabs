@@ -1,10 +1,11 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
+import { getCallHistory, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
 import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
+import { callRefusal } from "@/lib/callGate";
 import { evaluateEligibility, evaluateOffers, scheduleKey, withholdOffers } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
 import { compileIncentives, grantedOffers } from "@/lib/incentives";
@@ -79,15 +80,9 @@ export async function POST(req: NextRequest) {
   }
 
   const eligibility = evaluateEligibility(member, history);
-  if (!eligibility.allowed || !eligibility.routing.call_type) {
-    return NextResponse.json(
-      {
-        error: "Member is not eligible for an outbound call",
-        blocked_by: eligibility.blockedBy,
-        reason: eligibility.blockedReason,
-      },
-      { status: 403 }
-    );
+  const refusal = callRefusal(eligibility);
+  if (refusal || !eligibility.routing.call_type) {
+    return NextResponse.json(refusal?.body ?? { error: "Member is not eligible for an outbound call" }, { status: 403 });
   }
 
   const callType = eligibility.routing.call_type;

@@ -15,6 +15,7 @@ import {
   outcomeText,
 } from "@/lib/labels";
 import Avatar from "@/components/Avatar";
+import CancellationRequests from "@/components/CancellationRequests";
 import EconomicsPanel from "@/components/EconomicsPanel";
 
 const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];
@@ -208,6 +209,8 @@ export default function Dashboard({ view }: { view: QueueView }) {
           ))}
         </div>
       </section>
+
+      <CancellationRequests entries={view.entries} />
 
       <section className="mt-10">
         <EconomicsPanel economics={view.economics} counts={view.counts} />

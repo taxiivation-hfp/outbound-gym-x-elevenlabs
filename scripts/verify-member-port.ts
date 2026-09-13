@@ -71,6 +71,7 @@ for (const row of members) {
     name: row.name,
     mobile: row.phone || null,
     join_date: row.joindate,
+    cancellation_requested: row.cancellationrequested || null,
   };
   const built = buildMember(
     record,

@@ -14,7 +14,7 @@
     "gyms:seed-check": "node scripts/gym-seed-sql.mjs --check",
     "agents:sync": "node scripts/sync-agents.mjs",
     "agents:diff": "node scripts/sync-agents.mjs --dry-run",
-    "data:build": "python pipeline/generate_gym_data.py && python pipeline/build_scores.py && node scripts/copy-pipeline-output.mjs && tsx scripts/build-checkin-activity.ts",
+    "data:build": "python pipeline/generate_gym_data.py && python pipeline/generate_cancellations.py && python pipeline/build_scores.py && node scripts/copy-pipeline-output.mjs && tsx scripts/build-checkin-activity.ts",
     "data:verify-port": "tsx scripts/verify-member-port.ts",
     "db:verify": "tsx scripts/verify-migrations.ts"
   },

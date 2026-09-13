@@ -50,6 +50,13 @@ export interface Member {
    * the renewal price, rather than being handed the monthly fee as a guess.
    */
   renewal_fee: number | null;
+  /**
+   * When the member asked to cancel, as local gym time (`YYYY-MM-DDTHH:MM:SS`),
+   * or null for no request. Visibility only for now: nothing routes on it, and
+   * an auto-renewing member who has asked is still never called — a guard pins
+   * that until the path for them is built.
+   */
+  cancellation_requested: string | null;
   signals: Signals;
 }
 

@@ -36,6 +36,13 @@ export const IMPORT_COLUMNS: Record<ImportKind, ColumnSpec[]> = {
     { key: "name", label: "Name", required: true, aliases: ["name", "fullname", "membername", "clientname"], example: "Sarah Whitlock" },
     { key: "mobile", label: "Mobile", required: false, aliases: ["mobile", "phone", "mobilephone", "phonenumber", "mobilenumber", "cell", "cellphone"], example: "+61400000000" },
     { key: "join_date", label: "Join date", required: true, aliases: ["joindate", "joined", "datejoined", "creationdate", "signupdate", "membersince"], example: "2025-02-09" },
+    {
+      key: "cancellation_requested",
+      label: "Cancellation requested",
+      required: false,
+      aliases: ["cancellationrequested", "cancellationrequestedat", "cancellationrequestdate", "cancelrequested", "cancelrequestedat", "cancellationdate"],
+      example: "2026-09-05T15:30:00",
+    },
   ],
   // In a contracts or check-ins export a bare "id" is usually the row's own id,
   // not the member's, so only the members file recognises it.
@@ -275,8 +282,25 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
         memberIdLines.set(memberId, line);
       }
 
+      // Optional. A blank cell, or no column at all, is no request — null,
+      // never "false". A date is read as the start of that day, and a time
+      // zone is refused like a check-in's.
+      const cancelRaw = cell(cells, "cancellation_requested");
+      let cancellation: string | null = null;
+      if (cancelRaw) {
+        const asDate = parseIsoDate(cancelRaw);
+        if (hasTimeZone(cancelRaw)) {
+          fail("Cancellation requested", `"${cancelRaw}" has a time zone. Use the gym's local time, like 2026-09-05T15:30:00, or leave it blank.`);
+        } else if (asDate) {
+          cancellation = `${asDate}T00:00:00`;
+        } else {
+          cancellation = parseTimestamp(cancelRaw);
+          if (!cancellation) fail("Cancellation requested", `"${cancelRaw}" isn't a date or a date and time like 2026-09-05T15:30:00. Leave it blank if there's no request.`);
+        }
+      }
+
       if (rowOk) {
-        rows.push({ member_id: memberId, name, mobile: mobileRaw || null, join_date: joinDate as string } as ImportRow<K>);
+        rows.push({ member_id: memberId, name, mobile: mobileRaw || null, join_date: joinDate as string, cancellation_requested: cancellation } as ImportRow<K>);
       }
       continue;
     }

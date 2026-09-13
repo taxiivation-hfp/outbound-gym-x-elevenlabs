@@ -19,8 +19,9 @@ import type { Member } from "@/lib/types";
  *   is one whose current term has ended; an export that only lists recent
  *   members makes older months look healthier than they were.
  * - **An auto-renewing member's end date is the next rollover, not an expiry.**
- *   They are active until they cancel, and cancellation is not an event in the
- *   data, so they are never counted as "expiring".
+ *   They are active until their membership actually ends. A cancellation
+ *   request is recorded (`cancellation_requested`) but isn't an end, so they
+ *   are never counted as "expiring".
  */
 
 const DAY_MS = 86_400_000;

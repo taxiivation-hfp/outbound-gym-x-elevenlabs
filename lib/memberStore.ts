@@ -130,7 +130,7 @@ async function importFile(
 export function importMembers(gymId: string, rows: MemberRecord[], hasMobileColumn: boolean): Promise<ImportOutcome> {
   return importFile("members", "import_members", "updated", {
     p_gym_id: gymId,
-    p_rows: rows.map((r) => [r.member_id, r.name, r.mobile, r.join_date]),
+    p_rows: rows.map((r) => [r.member_id, r.name, r.mobile, r.join_date, r.cancellation_requested]),
     p_has_mobile: hasMobileColumn,
   });
 }
@@ -240,6 +240,31 @@ async function visitCounts(gymId: string, asOf: Date, memberId?: string): Promis
   return new Map(rows.map((row) => [row.member_id, toCounts(row)]));
 }
 
+/**
+ * A members row. Read with every column so the cancellation column, added by a
+ * later migration, reads as "no request" on a database without it rather than
+ * failing every member read.
+ */
+interface RawMember {
+  member_id: string;
+  name: string;
+  mobile: string | null;
+  join_date: string;
+  cancellation_requested?: string | null;
+}
+
+function toMemberRecord(row: RawMember): MemberRecord {
+  const requested = row.cancellation_requested;
+  return {
+    member_id: row.member_id,
+    name: row.name,
+    mobile: row.mobile,
+    join_date: row.join_date,
+    // PostgREST returns a timestamp without time zone as "2026-09-05T15:29:00".
+    cancellation_requested: typeof requested === "string" && requested ? requested.slice(0, 19) : null,
+  };
+}
+
 export interface LoadedMembers {
   members: Member[];
   /** Members that could not be routed, and why — a member with no contract, for instance. */
@@ -249,10 +274,10 @@ export interface LoadedMembers {
 export async function loadGymMembers(gymId: string, asOf: Date): Promise<LoadedMembers> {
   requireSupabase();
   const [records, contracts, visits] = await Promise.all([
-    readAll<MemberRecord>("read members", (from, to) =>
+    readAll<RawMember>("read members", (from, to) =>
       supabaseAdmin
         .from("members")
-        .select("member_id, name, mobile, join_date")
+        .select("*")
         .eq("gym_id", gymId)
         .order("member_id")
         .range(from, to)
@@ -279,7 +304,8 @@ export async function loadGymMembers(gymId: string, asOf: Date): Promise<LoadedM
 
   const members: Member[] = [];
   const unrouted: LoadedMembers["unrouted"] = [];
-  for (const record of records) {
+  for (const raw of records) {
+    const record = toMemberRecord(raw);
     const built = buildMember(record, contractsByMember.get(record.member_id) ?? [], visits.get(record.member_id) ?? NO_VISITS, asOf);
     if (built.ok) members.push(built.member);
     else unrouted.push({ member_id: built.member_id, reason: built.reason });
@@ -302,7 +328,7 @@ export async function loadGymMember(
   const [recordRes, contractRes, visits] = await Promise.all([
     supabaseAdmin
       .from("members")
-      .select("member_id, name, mobile, join_date")
+      .select("*")
       .eq("gym_id", gymId)
       .eq("member_id", memberId)
       .abortSignal(AbortSignal.timeout(TIMEOUT_MS))
@@ -320,7 +346,7 @@ export async function loadGymMember(
   if (!recordRes.data) return { member: null, unroutedReason: null };
 
   const built = buildMember(
-    recordRes.data as MemberRecord,
+    toMemberRecord(recordRes.data as RawMember),
     ((contractRes.data ?? []) as RawContract[]).map(toContract),
     visits.get(memberId) ?? NO_VISITS,
     asOf

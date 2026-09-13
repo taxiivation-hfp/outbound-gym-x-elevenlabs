@@ -34,6 +34,7 @@ const MIGRATIONS = [
   "20260915000000_gym_health.sql",
   "20260915010000_offer_schedule.sql",
   "20260915020000_other_offers.sql",
+  "20260915030000_cancellation_requests.sql",
 ];
 
 let failures = 0;
@@ -159,7 +160,7 @@ async function main() {
     const [first, second] = Object.values(row).map(Number);
     return { first, second };
   };
-  const memberRows = members.map((m) => [m.memberid, m.name, m.phone || null, m.joindate]);
+  const memberRows = members.map((m) => [m.memberid, m.name, m.phone || null, m.joindate, m.cancellationrequested || null]);
   const contractRow = (c: Record<string, string>, autoRenew = c.autorenew === "True") => [
     c.memberid,
     c.contracttype,
@@ -185,6 +186,15 @@ async function main() {
   await db.exec("set role service_role");
   const membersIn = await importRows("import_members", memberRows, ", true");
   check("import_members writes every member", membersIn.first === members.length, `${membersIn.first} inserted`);
+  const requested = members.filter((m) => m.cancellationrequested);
+  const storedRequests = (
+    await db.query("select member_id, to_char(cancellation_requested, 'YYYY-MM-DD\"T\"HH24:MI:SS') as at from members where gym_id = 'southbank' and cancellation_requested is not null")
+  ).rows as Array<{ member_id: string; at: string }>;
+  check(
+    "import_members stores each cancellation request as its local time",
+    requested.length > 0 && storedRequests.length === requested.length && requested.every((m) => storedRequests.some((r) => r.member_id === m.memberid && r.at === m.cancellationrequested)),
+    `${storedRequests.length} of ${requested.length} requests`
+  );
   const contractsIn = await importRows("import_contracts", contracts.map((c) => contractRow(c)));
   check("import_contracts writes every term", contractsIn.first === contracts.length, `${contractsIn.first} inserted`);
   const checkinsIn = await importRows("import_checkins", checkins.map((v) => [v.memberid, v.timestamp]));
@@ -221,6 +231,10 @@ async function main() {
   await importRows("import_members", [[withNumber.memberid, withNumber.name, null, withNumber.joindate]], ", false");
   const kept = (await db.query("select mobile from members where gym_id = 'southbank' and member_id = $1", [withNumber.memberid])).rows[0] as { mobile: string | null };
   check("a members file with no mobile column leaves stored numbers alone", kept.mobile === withNumber.phone);
+  const flagged = requested[0];
+  await importRows("import_members", [[flagged.memberid, flagged.name, flagged.phone || null, flagged.joindate]], ", true");
+  const cleared = (await db.query("select cancellation_requested from members where gym_id = 'southbank' and member_id = $1", [flagged.memberid])).rows[0] as { cancellation_requested: unknown };
+  check("a members file without the cancellation column means no request, not the old one", cleared.cancellation_requested === null);
 
   const dupVisit = await importRows("import_checkins", [[checkins[0].memberid, checkins[0].timestamp]]);
   check("a check-in already stored is ignored", dupVisit.first === 0 && dupVisit.second === 1);

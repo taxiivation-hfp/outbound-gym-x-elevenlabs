@@ -3,7 +3,7 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # all 53 guards + all fifteen conversations
+npm run evals            # all 73 guards + all fifteen conversations
 npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
 npm run evals:extraction # the adversarial document through the real extraction model
@@ -54,6 +54,25 @@ safety model for gym setup:
 - uploaded members are refused on the frozen clock by every reader;
 - a synthetic number is never dialled, while an uploaded one needs the opt-in;
 - the nightly recompute refuses real members on the frozen clock.
+
+**Pass-one guards** — 20, added with `PASS_ONE.md` (details in `PASS_ONE_REPORT.md`):
+- `healthGuards.tsx` (6): the gym-health numbers against a hand count, segments
+  cut at the router's thresholds, the check-in summary against the raw CSV, the
+  intelligence page rendered with no calls and with too few reasons, theme
+  counts re-derived rather than trusted, and the themed summary never reaching
+  anything on the call path;
+- `offerGuards.ts` (5): a spent offer compiles to the "nothing" block and
+  validates, cooldowns are per offer type, the habit gate holds regardless of
+  cooldown, schedules name only configured offers, and history spends
+  conservatively;
+- `otherOfferGuards.ts` (4): "Something else" labels refused or compiled naming
+  only themselves, the validator's label checks, the config space with "other",
+  and scheduling, texting and extraction for it;
+- `gymEditGuards.ts` (2): PATCH updates and re-validates; POST still refuses to
+  overwrite;
+- `cancellationGuards.ts` (3): the cancellation flag doesn't yet change who is
+  called, generated flags obey both exclusion rules, and the CSV column is
+  optional.
 
 **Extraction eval** (`extraction.ts`) — sends the adversarial price list to the
 real extraction model and runs its answer through the sanitiser. It needs
