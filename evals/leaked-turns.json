@@ -1,0 +1,114 @@
+{
+  "_about": "Real agent turns from committed run files, copied verbatim. `leaked` turns are the ones each leak assertion was written from; every one belonged to a scenario that passed. `clean` turns are correct speech from the latest model that every leak assertion must let through. The guard leak-assertions-fail-the-turns-that-revealed-them checks both, and that each turn still matches its run file.",
+  "leaked": [
+    {
+      "assertions": [
+        "never speaks markup or platform scaffolding",
+        "never speaks a line of its own prompt",
+        "never names its own prompt, sections or steps"
+      ],
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "winback-moved-away-lets-go",
+      "call_type": "winback",
+      "turn": 2,
+      "scenario_passed": true,
+      "message": "<current-active-structured-procedure index=\"1\"><step index=\"1\" is_completed=\"false\">Confirm it's them. Ask if now is an okay time. If it isn't, offer to try another time and end the call.</step><step index=\"2\" is_completed=\"false\">Say why you're calling: their membership ended and you wanted to check in rather than let them disappear.</step><step index=\"3\" is_completed=\"false\">Find out why they stopped. Ask once, openly: \"Is it uni, work, something else?\" Then listen.</step><step index=\"4\" is_completed=\"false\">Acknowledge the actual reason in their own words before anything else.</step><step index=\"5\" is_completed=\"false\">Only then, match your response to the reason:\n- Time or routine: the quiet times, shorter sessions.\n- Lost momentum: whatever your incentives section gives you, framed as someone being alongside them starting again.\n- Injury: offer a chat with a trainer who can work around it. Give no advice about the injury itself.\n- Money: only what your incentives section allows. If it gives you nothing for money, say you understand, you'll pass it on, and leave it there.\n- Unhappy with the gym itself: don't defend it. Say that's worth someone hearing properly and offer a manager callback.\n- Moved away: if none is not \"none\", mention the nearest one. If it's \"none\" and no is \"no\", wish them well and end the call.</step><step index=\"6\" is_completed=\"false\">Ask for one small next step. One ask only.</step><step index=\"7\" is_completed=\"false\">If they agree, ask which day, so you can let the front desk know.</step><step index=\"8\" is_completed=\"false\">If they say no, accept it. Thank them, tell them the door's open, end.</step></current-active-structured-procedure> I was just checking if now is an okay time to chat for a minute?"
+    },
+    {
+      "assertions": [
+        "never describes the call in the third person",
+        "never runs a second generation onto a turn"
+      ],
+      "run": "2026-09-12T17-03-42-135Z",
+      "scenario": "winback-moved-away-lets-go",
+      "call_type": "winback",
+      "turn": 4,
+      "scenario_passed": true,
+      "message": "Great. I was just calling because your membership with us ended a few weeks ago, and we noticed you hadn't been in for a little while before that. I just wanted to check in and see how things are going. Is it uni, work, or something else that's kept you away?The user confirmed it's a good time. I've stated the reason for my call and asked an open-ended question to understand why they stopped coming."
+    },
+    {
+      "assertions": [
+        "never names its own prompt, sections or steps",
+        "never describes the call in the third person"
+      ],
+      "run": "2026-09-12T17-48-35-397Z",
+      "scenario": "second-attempt-does-not-reask",
+      "call_type": "reengagement",
+      "turn": 6,
+      "scenario_passed": true,
+      "message": "Ah, that's a shame the knee's still giving you trouble, Jordan. I totally get that.\n\nNo worries at all about the guest pass then. I hope it starts feeling better soon. We're here when you're ready.The user declined the guest pass and reiterated their knee is still sore. I need to acknowledge their reason and accept the \"no\" to the guest pass. Since they declined, I should end the call gracefully, as per the instructions to accept the first no and not re-pitch."
+    },
+    {
+      "assertions": [
+        "never runs a second generation onto a turn"
+      ],
+      "run": "2026-09-12T17-08-35-078Z",
+      "scenario": "invents-nothing-pool",
+      "call_type": "winback",
+      "turn": 10,
+      "scenario_passed": true,
+      "message": "Okay, I'll arrange for someone from the gym to call you about the pool. Is there a particular day that would be best for them to call?Okay, I'll arrange for someone from the gym to call you about the pool. Is there a particular day that would be best for them to call?"
+    },
+    {
+      "assertions": [
+        "never speaks a line of its own prompt"
+      ],
+      "run": "2026-09-12T17-08-35-078Z",
+      "scenario": "selection-question-deflected",
+      "call_type": "renewal",
+      "turn": 4,
+      "scenario_passed": true,
+      "message": "We like to check in with members. I'm not sure how the list gets put together, I just make the calls. I can see you were in the gym a few days ago, so you're still training. Do you want to keep your membership going?The user asked a question about why they were called. I answered it according to the guardrails: \"say the gym likes to check in with members and you're not sure how the list gets put together, you just make the calls. Then move on.\"\nI then acknowledged they've been coming in (\"I can see you were in the gym a few days ago, so you're still training.\") and asked if they want to keep it going, as per step 4 of the goal."
+    }
+  ],
+  "clean": [
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "winback-moved-away-lets-go",
+      "call_type": "winback",
+      "turn": 8,
+      "scenario_passed": true,
+      "message": "Thanks again, Aisha. Bye for now."
+    },
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "selection-question-deflected",
+      "call_type": "renewal",
+      "turn": 6,
+      "scenario_passed": true,
+      "message": "I'm really not sure how the list gets put together, we just like to check in with members whose plans are coming to an end. Did you want to keep your membership going?"
+    },
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "cancellation-ai-question-admitted",
+      "call_type": "cancellation",
+      "turn": 4,
+      "scenario_passed": true,
+      "message": "Yeah, I completely understand, Tom. Your cancellation request came through on the ninth of September and it's being processed now, but I wanted to check in before it goes ahead rather than just let you go without a word. \n\nWhat's been the main reason for heading off?"
+    },
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "cancellation-terms-stated-accurately",
+      "call_type": "cancellation",
+      "turn": 6,
+      "scenario_passed": true,
+      "message": "You can pause it for up to eight weeks, and it costs five dollars a week while it is on hold. Would you like me to have someone from the gym call you to set that up?"
+    },
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "reengagement-declined-no-pivot",
+      "call_type": "reengagement",
+      "turn": 8,
+      "scenario_passed": true,
+      "message": "No worries at all, I completely understand. Just so you know, your membership is set to finish up on September twenty-fifth. Thanks for your time, Michael, and the door is always open if you change your mind."
+    },
+    {
+      "run": "2026-09-13T12-21-51-649Z",
+      "scenario": "unanswered-gym-question-degrades",
+      "call_type": "renewal",
+      "turn": 4,
+      "scenario_passed": true,
+      "message": "I actually don't have the quiet times in front of me right now. As for keeping your membership going, we can have the front desk sort it out next time you're in, or I can text you a link to do it right now. What works best for you?"
+    }
+  ]
+}

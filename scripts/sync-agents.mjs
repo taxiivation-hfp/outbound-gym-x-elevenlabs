@@ -127,7 +127,8 @@ function firstDifference(a, b) {
 /**
  * Every leaf the payload sets, compared with the same path in what the API
  * returned. Extra keys on the API's side are ignored: a sync PATCHes what the
- * payload holds, so those are not something a sync would change.
+ * payload holds, so those are not something a sync would change. The exception
+ * is an empty object in the payload, which must be empty on ElevenLabs too.
  */
 function diffSubset(expected, actual, path, out) {
   if (Array.isArray(expected)) {
@@ -149,6 +150,13 @@ function diffSubset(expected, actual, path, out) {
     }
     if (actual === null || typeof actual !== "object" || Array.isArray(actual)) {
       out.differs.push(`${path}: an object here, ${JSON.stringify(shorten(actual))} on ElevenLabs`);
+      return;
+    }
+    // An empty object in the payload means "nothing here", not "nothing to
+    // compare". Without this, `procedures: {}` could never report the
+    // procedure that was attached in the dashboard.
+    if (Object.keys(expected).length === 0 && Object.keys(actual).length > 0) {
+      out.differs.push(`${path}: empty here, ${Object.keys(actual).length} entr${Object.keys(actual).length === 1 ? "y" : "ies"} on ElevenLabs (${Object.keys(actual).join(", ")})`);
       return;
     }
     for (const [key, value] of Object.entries(expected)) diffSubset(value, actual[key], `${path}.${key}`, out);

@@ -6,6 +6,8 @@
  *   npm run evals -- --guards-only
  *   npm run evals -- --only renewal-one-save-only,ai-question-admitted
  *   npm run evals -- --label "before the guardrail fix"
+ *   npm run evals -- --rescore 2026-09-13T12-21-51-649Z   # no calls: re-apply today's
+ *                                                         # assertions to a committed run's transcripts
  *
  * How it works:
  *
@@ -31,7 +33,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runGuards, type GuardResult } from "./guards";
-import { GLOBAL_ASSERTIONS, scenarios, scenarioVariables, type Scenario } from "./scenarios";
+import { assertionsFor, scenarios, scenarioVariables, type Scenario } from "./scenarios";
 import type { AssertionResult, Turn } from "./assertions";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +74,13 @@ function argValue(flag: string): string | null {
 }
 const ONLY = argValue("--only")?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
 const LABEL = argValue("--label");
+/**
+ * Re-score a committed run: its transcripts and its judge verdicts, held to
+ * the assertions as they are now. No call is made. Written when an assertion
+ * is added, so the committed score says what the transcripts we already had
+ * look like under it, rather than waiting for a live run to happen to show it.
+ */
+const RESCORE = argValue("--rescore");
 
 // --- http -------------------------------------------------------------------
 
@@ -225,6 +234,8 @@ interface ScenarioResult {
 interface RunFile {
   run_at: string;
   label: string | null;
+  /** Set on a re-score: the committed run whose transcripts and verdicts were re-scored. */
+  rescored_from?: string;
   guards: { passed: number; total: number; results: GuardResult[] };
   conversations: {
     passed: number;
@@ -269,9 +280,18 @@ function summariseScenario(scenario: Scenario, run: TestRun | undefined): Scenar
   }
 
   const turns = toTurns(run);
-  const local = [...scenario.local, ...GLOBAL_ASSERTIONS].map((assert) => assert(turns));
   const judgeResult = run.condition_result?.result ?? (run.status === "passed" ? "success" : "failure");
-  const rationale = normaliseRationale(run.condition_result?.rationale);
+  return scoreTranscript(base, scenario, turns, judgeResult, normaliseRationale(run.condition_result?.rationale));
+}
+
+function scoreTranscript(
+  base: Pick<ScenarioResult, "id" | "brief_item" | "name" | "call_type" | "gym_id" | "why">,
+  scenario: Scenario,
+  turns: Turn[],
+  judgeResult: string,
+  rationale: string | null
+): ScenarioResult {
+  const local = assertionsFor(scenario).map((assert) => assert(turns));
   const llmPassed = judgeResult === "success";
   const passed = local.every((l) => l.passed) && llmPassed;
   // The platform's own words for a conversation it cut off, or a local check
@@ -361,7 +381,23 @@ async function main() {
   const selected = scenarios.filter((s) => !ONLY || ONLY.includes(s.id));
   const results: ScenarioResult[] = [];
 
-  if (!GUARDS_ONLY) {
+  if (RESCORE) {
+    const source = JSON.parse(readFileSync(join(RESULTS_DIR, `${RESCORE.replace(/.json$/, "")}.json`), "utf8")) as RunFile;
+    console.log(`Re-scoring ${RESCORE} (${source.label ?? "no label"}) — no calls.`);
+    for (const old of source.conversations.results) {
+      const scenario = scenarios.find((s) => s.id === old.id);
+      if (!scenario) throw new Error(`${old.id} is in ${RESCORE} but is no longer a scenario`);
+      const base = { id: old.id, brief_item: old.brief_item, name: old.name, call_type: old.call_type, gym_id: old.gym_id, why: old.why };
+      const result = old.error
+        ? old
+        : scoreTranscript(base, scenario, old.turns, old.llm.result ?? "failure", old.llm.rationale);
+      results.push(result);
+      if (old.passed !== result.passed) {
+        console.log(`    ${old.passed ? "pass" : "FAIL"} -> ${result.passed ? "pass" : "FAIL"}  ${result.name}`);
+        for (const l of result.local.filter((x) => !x.passed)) console.log(`          local: ${l.name} — ${l.detail}`);
+      }
+    }
+  } else if (!GUARDS_ONLY) {
     if (!API_KEY) throw new Error("ELEVENLABS_API_KEY is not set");
     for (const [callType, id] of Object.entries(AGENT_IDS)) {
       if (!id && selected.some((s) => s.callType === callType)) {
@@ -416,6 +452,7 @@ async function main() {
   const file: RunFile = {
     run_at: runAt,
     label: LABEL,
+    ...(RESCORE ? { rescored_from: RESCORE.replace(/.json$/, "") } : {}),
     guards: { passed: guardsPassed, total: guards.length, results: guards },
     conversations: {
       passed: results.filter((r) => r.passed).length,

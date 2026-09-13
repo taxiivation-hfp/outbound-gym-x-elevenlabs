@@ -26,6 +26,7 @@ import {
   renewalMember,
   winbackMember,
 } from "./fixtures";
+import { mustNotSpeakItsPrompt } from "./promptEcho";
 
 /**
  * The suite.
@@ -1082,7 +1083,22 @@ export const GLOBAL_ASSERTIONS: Assertion[] = [
   mustNotSay("never narrates its own reasoning aloud", PATTERNS.leaksReasoning),
   mustNotSay("never denies a fact it was never given", PATTERNS.inventedNegative),
   mustNotSay("never reads an unexpanded variable aloud", /\{\{|\}\}/),
+  // What the member must never hear. Added after a transcript passed every
+  // assertion while three of its turns were procedure markup; each is pinned
+  // to the committed turn that revealed it (see `PATTERNS`).
+  mustNotSay("never speaks markup or platform scaffolding", PATTERNS.speaksMarkup),
+  mustNotSay("never describes the call in the third person", PATTERNS.narratesTheCall),
+  mustNotSay("never names its own prompt, sections or steps", PATTERNS.namesItsPrompt),
+  mustNotSay("never runs a second generation onto a turn", PATTERNS.gluedGeneration),
 ];
+
+/**
+ * Every assertion a scenario's transcript is held to: its own, the global
+ * ones, and the one that needs to know which agent it is (its prompt).
+ */
+export function assertionsFor(scenario: Scenario): Assertion[] {
+  return [...scenario.local, ...GLOBAL_ASSERTIONS, mustNotSpeakItsPrompt(scenario.callType)];
+}
 
 /**
  * The dynamic variables this scenario would send on a real call, built by the

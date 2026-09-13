@@ -137,6 +137,7 @@ export const GUARD_GROUPS: GuardGroupDef[] = [
       "assertion-patterns-match-real-transcripts",
       "scenario-payloads-are-pinned",
       "cancellation-assertion-patterns-classify-expected-lines",
+      "leak-assertions-fail-the-turns-that-revealed-them",
     ],
   },
 ];

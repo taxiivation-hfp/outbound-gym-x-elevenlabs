@@ -8,6 +8,7 @@ import { cancellationGuards } from "./cancellationGuards";
 import { configGuards } from "./configGuards";
 import { gymEditGuards } from "./gymEditGuards";
 import { healthGuards } from "./healthGuards";
+import { leakGuards } from "./leakGuards";
 import { memberGuards } from "./memberGuards";
 import { offerGuards } from "./offerGuards";
 import { otherOfferGuards } from "./otherOfferGuards";
@@ -471,7 +472,7 @@ const guards: Guard[] = [
 ];
 
 export async function runGuards(): Promise<GuardResult[]> {
-  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards, ...otherOfferGuards, ...gymEditGuards, ...cancellationGuards];
+  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards, ...otherOfferGuards, ...gymEditGuards, ...cancellationGuards, ...leakGuards];
   const results: GuardResult[] = [];
   for (const g of all) results.push(await runOne(g));
   return results;

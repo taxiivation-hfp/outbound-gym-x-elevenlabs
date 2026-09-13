@@ -414,6 +414,19 @@ export function buildAgentPayload(callType, { toolIds = [], webhookId = null } =
       },
       guardrails: { version: "1", focus: { is_enabled: SETTINGS.focus_guardrail } },
     },
+    /**
+     * No procedures, stated rather than left out. A procedure attached in the
+     * ElevenLabs dashboard is not part of the prompt, so a sync that never
+     * mentions the field PATCHes around it and keeps it. One was: the winback
+     * agent carried a copy of its own Goal steps as a deterministic procedure,
+     * and the platform injected it into the conversation model's context as
+     * `<current-active-structured-procedure>` markup, which the model then
+     * spoke. Three of Aisha's turns in the 2026-09-13T12-21-51 run are that
+     * markup, read out by text-to-speech. The build brief leaves procedures and
+     * workflows at default; an empty map here is what makes a sync enforce it
+     * and `--dry-run` report it.
+     */
+    procedures: {},
   };
 
   if (webhookId) {

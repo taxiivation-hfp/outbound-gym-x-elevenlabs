@@ -384,6 +384,54 @@ export const PATTERNS = {
   leaksReasoning:
     /\bI need to (tell|ask|say|offer|mention)\b|\bthe (user|member) (asked|said|wants|is)\b|\bI should (tell|ask|now)\b|\bmy instructions?\b|\bper the prompt\b|\baccording to (my|the) (prompt|instructions)\b/i,
 
+  // --- what the member must never hear -------------------------------------
+  // `leaksReasoning` was written from one transcript and caught fourteen of the
+  // twenty-two reasoning leaks in the committed runs; it passed the other eight,
+  // and seven turns with a second generation glued on, and three turns of
+  // procedure markup. Each pattern below is one shape a reading of every
+  // committed agent turn found, pinned by the guard
+  // `leak-assertions-fail-the-turns-that-revealed-them` to the turn in
+  // `evals/fixtures/leaked-turns.json` it was found in.
+
+  /**
+   * Markup of any kind, or the platform's scaffolding names without their
+   * brackets. Found in winback-moved-away-lets-go, 2026-09-13T12-21-51: three
+   * turns opened with `<current-active-structured-procedure index="1"><step
+   * index="1" is_completed="false">Confirm it's them…`, and the scenario passed.
+   * Nothing a person says on a phone contains an angle-bracket tag.
+   */
+  speaksMarkup: /<\/?[a-z][\w:-]*(\s[^<>]*)?\/?>|\bstructured[-_ ]procedure\b|\bis_completed\b|\bstep index\b/i,
+
+  /**
+   * The call described in the third person. Found in winback-moved-away-lets-go,
+   * 2026-09-12T17-03-42: "…something else that's kept you away?The user
+   * confirmed it's a good time. I've stated the reason for my call…". The
+   * scenario passed; `leaksReasoning` wants a verb after "the user" and "confirmed"
+   * is not one of its four. Every reasoning leak in the committed runs says "the
+   * user", and Charlie never has a reason to.
+   */
+  narratesTheCall: /\bthe user\b/i,
+
+  /**
+   * The prompt's own structure named aloud: its sections, its numbered steps,
+   * its instructions. Found in second-attempt-does-not-reask, 2026-09-12T17-48-35:
+   * "…as per the instructions to accept the first no and not re-pitch." The
+   * scenario passed. Also in the procedure markup ("whatever your incentives
+   * section gives you").
+   */
+  namesItsPrompt:
+    /\b(goal|guardrails?|incentives?|tone|personality|environment|tools?) section\b|["'“‘](goal|guardrails|incentives|tone|personality|environment|tools)["'”’]|\bsections? of (the|my) (instructions|prompt)\b|\b(as per|according to) (the |my )?(instructions|guardrails|goal|prompt|step)\b|\bstep (\d|one|two|three|four|five|six|seven|eight) of\b|\bthe instructions\b|\bmy goal is\b/i,
+
+  /**
+   * A second generation run straight on after the first, with no space after
+   * the full stop. It is how every reasoning leak in the committed runs began
+   * ("month.The user asked…"), and on its own it is the agent saying a turn
+   * twice. Found in invents-nothing-pool, 2026-09-12T17-08-35: "…best for them
+   * to call?Okay, I'll arrange for someone from the gym to call you about the
+   * pool…", the whole turn again. The scenario passed.
+   */
+  gluedGeneration: /[a-z][.?!][A-Z]/,
+
   /**
    * Answering "no" about something the gym was never described as having.
    *
