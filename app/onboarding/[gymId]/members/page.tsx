@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import AppShell from "@/components/shell/AppShell";
+import GymGone from "@/components/onboarding/GymGone";
 import MemberImport, { type ColumnHelp } from "@/components/onboarding/MemberImport";
 import SetupSteps, { SamplesHint } from "@/components/onboarding/SetupSteps";
 import { AdminDetail, Card, CardHeader, Notice } from "@/components/onboarding/ui";
@@ -46,7 +46,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
     currentMemberSource().catch(() => null),
   ]);
   const queueUsesThisGym = queueSource?.kind === "supabase" && queueSource.gymId === gymId;
-  if (!gym.ok && gym.status === 404) notFound();
+  if (!gym.ok && gym.status === 404) return <GymGone gymId={gymId} firstRunStep={firstRun.gated ? firstRun.step : undefined} />;
 
   const asOf = today();
   const uploadsAvailable = gym.ok && gym.source === "supabase";

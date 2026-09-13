@@ -221,6 +221,8 @@ export interface Preview {
   tierIncomplete: boolean;
   /** A freeze with only its length or only its fee, which compiles as no freeze. */
   freezeIncomplete: boolean;
+  /** "Something else" chosen without its name or how it's delivered yet, which compiles as not stated. */
+  otherIncomplete: Array<"reengagement" | "winback">;
   blocks: PreviewBlock[];
   facts: ReturnType<typeof compileGymFacts>;
   /** Whether the name is set; the facts use a stand-in until it is. */
@@ -249,10 +251,23 @@ export function previewDraft(draft: Draft): Preview {
   const gym = { ...(fields as unknown as GymFields), gym_name: named ? (fields.gym_name as string) : "this gym" };
   const tierIncomplete = (gym.cheaper_tier_name === null) !== (gym.cheaper_tier_price === null);
   const freezeIncomplete = (gym.freeze_max_weeks === null) !== (gym.freeze_weekly_fee === null);
+  // "Something else" is picked before its name is typed. Until both the name and
+  // the delivery are in, it compiles as not stated: the compiler refuses a
+  // sentence with an empty slot, and that refusal must not take the page down.
+  const reengagementOtherIncomplete =
+    gym.reengagement_perk === "other" && (gym.reengagement_other_label === null || gym.reengagement_other_delivery === null);
+  const winbackOtherIncomplete =
+    gym.winback_offer === "other" && (gym.winback_other_label === null || gym.winback_other_delivery === null);
+  const otherIncomplete = [
+    ...(reengagementOtherIncomplete ? (["reengagement"] as const) : []),
+    ...(winbackOtherIncomplete ? (["winback"] as const) : []),
+  ];
   const compileAs: GymFields = {
     ...gym,
     ...(hasCheaperTier(gym) ? {} : { cheaper_tier_name: null, cheaper_tier_price: null }),
     ...(hasFreeze(gym) ? {} : { freeze_max_weeks: null, freeze_weekly_fee: null }),
+    ...(reengagementOtherIncomplete ? { reengagement_perk: null, reengagement_other_label: null, reengagement_other_delivery: null } : {}),
+    ...(winbackOtherIncomplete ? { winback_offer: null, winback_other_label: null, winback_other_delivery: null } : {}),
   };
 
   const blocks = CALL_TYPES.map((callType) => {
@@ -265,7 +280,7 @@ export function previewDraft(draft: Draft): Preview {
     return { callType, text: compiled.text, sentences, offers, ok: result.ok, violations: result.violations };
   });
 
-  return { excluded, tierIncomplete, freezeIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
+  return { excluded, tierIncomplete, freezeIncomplete, otherIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
 }
 
 export const OFFER_LABEL: Record<OfferKind, string> = {
