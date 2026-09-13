@@ -34,9 +34,10 @@ are done by hand:
 1. **Put access protection in front of the deployment first.** Onboarding's
    routes have no login, like the rest of the app. Vercel → Settings →
    Deployment Protection, or real auth, before step 3.
-2. **Apply three migrations, in order**, in the Supabase SQL editor. Each is
-   idempotent, and each has been run twice against in-process Postgres with
-   Supabase's roles (`npm run db:verify`, 30 checks):
+2. **Done on 13 September 2026:** the three migrations were applied through the
+   Supabase Management API, and `db:verify`'s 30 checks passed against the real
+   project inside a rolled-back transaction. For another project, apply them in
+   order. Each is idempotent (`npm run db:verify`, 30 checks):
    `supabase/migrations/20260914000000_create_gyms.sql`,
    `20260914010000_member_data.sql`, `20260914020000_queue_runs.sql`.
 3. **Environment variables.**

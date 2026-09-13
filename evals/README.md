@@ -3,7 +3,7 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # all 52 guards + all fifteen conversations
+npm run evals            # all 53 guards + all fifteen conversations
 npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
 npm run evals:extraction # the adversarial document through the real extraction model
@@ -18,8 +18,11 @@ winback windows fire where they should and stay quiet between, does a no-answer
 increment the attempt count, does do-not-contact hold across call types, does
 switching gym change what the agent may offer.
 
-**Config guards** (`configGuards.ts`) — 20, added with onboarding. They pin the
+**Config guards** (`configGuards.ts`) — 21, added with onboarding. They pin the
 safety model for gym setup:
+- three real PDFs (`documents/pdf/`: the text unpdf produced and the model's raw
+  output) keep their facts, the injected block in one reaches nothing, and a
+  discount on the first month is not filled as a renewal discount;
 - the extraction output schema stays within the API's limit on union-typed
   parameters (the first live run found it over the limit);
 - the seed gyms compile to their signed-off text byte for byte;

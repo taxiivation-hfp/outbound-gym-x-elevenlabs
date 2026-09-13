@@ -21,7 +21,7 @@ npm run dev              # http://localhost:3000
 npm run build / start    # production build / serve
 npm run lint
 
-npm run evals             # 52 guards + 15 simulated ElevenLabs calls
+npm run evals             # 53 guards + 15 simulated ElevenLabs calls
 npm run evals:guards      # guards only — no network, no model, instant
 npm run evals -- --only <scenario-name>   # single scenario/guard by name
 npm run evals:extraction  # adversarial price list through the real extraction model (needs ANTHROPIC_API_KEY)
@@ -145,7 +145,7 @@ Two suites in one runner (`evals/run.ts`), full rationale in `evals/README.md`:
 - **Guards** — deterministic assertions directly over the `lib/` functions
   above. No network, no model. `guards.ts` holds the original 20 (19 routing, plus one that pins
   the transcript assertion patterns) and
-  `runGuards`, which also runs `configGuards.ts` (20: gym config, the validator,
+  `runGuards`, which also runs `configGuards.ts` (21: gym config, the validator,
   extraction sanitising, the adversarial document in `evals/documents/`) and
   `memberGuards.ts` (12: contracts-per-term, CSV import, dial-time recheck, the
   nightly recompute). Run these after any router/eligibility/config change.

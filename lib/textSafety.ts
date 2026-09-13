@@ -221,21 +221,42 @@ export function instructionPhrase(text: string, kind: TextKind = "hours"): strin
   return null;
 }
 
-/** Does this text talk to a model — "AI", "assistant", "ignore previous instructions"? */
+/**
+ * Text aimed at a model, as it appears inside a gym's own document. Narrower
+ * than ADDRESSES_A_MODEL on purpose: that list guards the short config fields,
+ * where refusing "instructor" costs one retyped word. Here a match discards
+ * every value quoted from the same part of a document, so it has to be text
+ * that is actually talking to an AI — not a gym's instructors, its prompt
+ * payment terms or its assistant manager.
+ */
+const DIRECTED_AT_A_MODEL: RegExp[] = [
+  /\b(ignor\w*|disregard\w*|overrid\w*|overrul\w*|bypass\w*|forget\w*)\b[^.!?\n]{0,60}\b(instructions?|rules|prompts?|guidelines|guardrails|directives|everything above|the above|previous|prior)\b/i,
+  /\b(system|developer)\s+(prompt|message|instruction|note)s?\b/i,
+  /\b(note|message|instructions?)\s+(to|for)\s+(the\s+|any\s+)?(ai|a\.i\.|assistant|model|llm|bot|chatbot|language model)\b/i,
+  /\b(ai|a\.i\.)\s+(assistant|model|system|agent|reader|tool)s?\b/i,
+  /\b(language model|llm|chatbot|chat bot|chatgpt|gpt-?\d)\b/i,
+  /\b(you are|act as|pretend to be|as) an? (ai|assistant|language model)\b/i,
+  /\b(jailbr\w*|prompt injection)\b/i,
+  /\b(set|fill|put|write|change|record)\b[^.!?\n]{0,40}\b(incentives? (field|section)|output format|json|schema)\b/i,
+  /\byour (instructions|rules|prompt|output|system prompt)\b/i,
+];
+
+/** Does this document text talk to a model — "note to the AI", "ignore prior instructions"? */
 export function addressesAModel(text: string): boolean {
   const normalised = normaliseText(text);
-  return ADDRESSES_A_MODEL.some((p) => p.test(normalised));
+  return DIRECTED_AT_A_MODEL.some((p) => p.test(normalised));
 }
 
 /**
- * Does this text read as something addressed to an AI? Used on the sentences an
- * extraction points to: a document's own sentences may say "you" and "offer",
- * but a sentence that talks to a model is never evidence for a field.
+ * Does this read as something addressed to an AI, or an instruction to offer
+ * everyone something? Used on the lines an extraction quotes: a document's own
+ * sentences may say "you" and "offer", but a line that talks to a model is
+ * never evidence for a field.
  */
 export function looksLikeInstruction(text: string): boolean {
   const normalised = normaliseText(text);
   return (
-    ADDRESSES_A_MODEL.some((p) => p.test(normalised)) ||
+    addressesAModel(normalised) ||
     /\b(offer|give|tell|promise|grant)\w*\s+(every|all|any)\s*(one|body|member\w*|caller\w*)?\b/i.test(normalised)
   );
 }
@@ -257,7 +278,10 @@ export function memberWordsForPrompt(text: string | null | undefined): string | 
   const normalised = normaliseText(text);
   if (!normalised || normalised.length > 160 || normalised.split(" ").length > 25) return null;
   if (!SPOKEN_CHARACTERS.test(normalised)) return null;
-  if (looksLikeInstruction(normalised) || OFFER_WORDS.some((p) => p.test(normalised))) return null;
+  // These words go straight into a prompt, so they get the strict list as well.
+  if (ADDRESSES_A_MODEL.some((p) => p.test(normalised)) || looksLikeInstruction(normalised) || OFFER_WORDS.some((p) => p.test(normalised))) {
+    return null;
+  }
   if (/\bcharlie\b/i.test(normalised)) return null;
   return normalised;
 }

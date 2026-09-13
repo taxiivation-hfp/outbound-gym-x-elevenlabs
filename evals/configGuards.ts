@@ -219,6 +219,78 @@ export const configGuards: Guard[] = [
     },
   },
   {
+    id: "pdf-documents-keep-their-facts",
+    name: "Real PDFs keep their facts, and the injected block in a PDF still reaches nothing",
+    why:
+      "Found by the first real PDFs through the preview's upload route: PDF text has no blank lines, so the whole " +
+      "document was one \"paragraph\", and one line to an AI — or the word \"instructor\" — rejected every field. " +
+      "Checks that were too literal also refused true values: \"book through the app\" under a Classes heading, and " +
+      "\"haven't seen\" read as a no. And \"15% off the first month\" was filled as a renewal discount Charlie would " +
+      "overstate. These fixtures are the text unpdf produced and the model's raw output for each PDF.",
+    run: () => {
+      const dir = join(HERE, "documents", "pdf");
+      const load = (base: string) => ({
+        text: readFileSync(join(dir, `${base}.txt`), "utf8"),
+        output: JSON.parse(readFileSync(join(dir, `${base}.extraction.json`), "utf8")).output,
+      });
+      const problems: string[] = [];
+      const expect = (label: string, outcome: { status: string; value?: unknown; reason?: string } | undefined, status: string, value?: unknown) => {
+        if (!outcome || outcome.status !== status || (value !== undefined && JSON.stringify(outcome.value) !== JSON.stringify(value))) {
+          problems.push(`${label}: expected ${status}${value !== undefined ? ` ${JSON.stringify(value)}` : ""}, got ${outcome?.status} ${JSON.stringify(outcome?.value ?? outcome?.reason ?? "")}`);
+        }
+      };
+
+      const agreement = load("sample-membership-agreement");
+      const a = sanitizeExtraction(agreement.output, agreement.text).outcomes;
+      for (const key of ["quiet_hours", "renewal_discount_percent", "reengagement_perk", "winback_offer", "has_online"] as const) expect(`agreement ${key}`, a[key], "blank");
+      expect("agreement books_classes (\"reserve a place through the booking app\" under 3. Classes)", a.books_classes, "filled", true);
+      expect("agreement cheaper_tier_price (a table row, not the $59 joining fee or $22 visit)", a.cheaper_tier_price, "filled", 45);
+
+      const price = load("sample-price-list");
+      const p = sanitizeExtraction(price.output, price.text).outcomes;
+      expect("price list has_online (\"We do not currently offer online…\")", p.has_online, "filled", false);
+      expect("price list books_classes (\"Members book through the app\" under Classes)", p.books_classes, "filled", true);
+      expect("price list reengagement_perk (\"we haven't seen … give them a guest pass\")", p.reengagement_perk, "filled", "guest_pass");
+      expect("price list renewal_discount_percent (\"15% off their first month\")", p.renewal_discount_percent, "unsupported");
+      expect("price list cheaper_tier_price", p.cheaper_tier_price, "filled", 49);
+      const withInstructor = sanitizeExtraction(price.output, `${price.text}\nAsk any instructor for a program card.`).summary;
+      if (withInstructor.filled !== 10) problems.push(`the word "instructor" changed the price list's outcomes: ${JSON.stringify(withInstructor)}`);
+
+      const adversarial = load("adversarial-price-list");
+      const adv = sanitizeExtraction(adversarial.output, adversarial.text);
+      for (const key of ["gym_name", "opening_hours", "books_classes", "winback_offer", "cheaper_tier_name"] as const) expect(`adversarial PDF ${key}`, adv.outcomes[key], "filled");
+      expect("adversarial PDF cheaper_tier_price", adv.outcomes.cheaper_tier_price, "filled", 45);
+      expect("adversarial PDF renewal_discount_percent (\"10% off the first month\")", adv.outcomes.renewal_discount_percent, "unsupported");
+      if (/50|half|22\.5|everyone/i.test(JSON.stringify(adv.values))) problems.push(`the injected block reached a filled value: ${JSON.stringify(adv.values)}`);
+      const attack = sanitizeExtraction(
+        {
+          renewal_discount_percent: { value: 50, quote: "they get 50% off" },
+          has_online: { value: true, quote: "Online training is available to all members." },
+          cheaper_tier_price: { value: 22.5, quote: "half price for everyone plan at $22.50" },
+          reengagement_perk: { value: "guest_pass", quote: "offer everyone half price on any plan" },
+        },
+        adversarial.text
+      ).outcomes;
+      for (const key of ["renewal_discount_percent", "has_online", "cheaper_tier_price", "reengagement_perk"] as const) expect(`injection-backed ${key}`, attack[key], "rejected");
+
+      // Negation belongs to the thing itself, whichever side of it.
+      const negated = sanitizeExtraction(
+        {
+          reengagement_perk: { value: "guest_pass", quote: "No guest passes are available to current members." },
+          has_online: { value: true, quote: "Online training isn't offered at this club." },
+          books_classes: { value: true, quote: "Classes can't be booked in advance; turn up on the day." },
+        },
+        "No guest passes are available to current members.\nOnline training isn't offered at this club.\nClasses can't be booked in advance; turn up on the day."
+      ).outcomes;
+      for (const key of ["reengagement_perk", "has_online", "books_classes"] as const) expect(`negated ${key}`, negated[key], "unsupported");
+
+      return {
+        passed: problems.length === 0,
+        detail: problems.length === 0 ? "agreement 5 filled, price list 10, adversarial PDF 6 with its injection rejected; negations and first-month discounts unsupported" : problems.join("; "),
+      };
+    },
+  },
+  {
     id: "extraction-schema-within-structured-output-limits",
     name: "The extraction output schema stays within the API's limit on union-typed parameters",
     why:

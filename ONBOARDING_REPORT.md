@@ -5,7 +5,14 @@ The report on `ONBOARDING_PLAN.md`, all seven phases. It was written for someone
 ## The short version
 
 - **All seven phases are built** on `feat/onboarding`. None of it is on `main`, because `main` deploys to production.
-- **Guards: 52/52.** The 20 original guards are untouched: 19 routing guards, plus the one that pins the transcript assertion patterns. The work adds 20 config guards and 12 member-data guards.
+- **Guards: 53/53.** The 20 original guards are untouched: 19 routing guards, plus the one that pins the transcript assertion patterns. The work adds 21 config guards and 12 member-data guards.
+- **Verified against the real Supabase project and the PR #10 preview on 13 September 2026:**
+  - the three migrations applied, with `db:verify` passing 30/30 against the real project inside a rolled-back transaction;
+  - a gym save and a CSV import through PostgREST, with the test data deleted afterwards;
+  - the nightly recompute fired on the preview;
+  - three real PDFs through the upload route.
+
+  The PDFs exposed a sanitiser bug that rejected every field of most real PDFs. It is fixed and guarded; see "Verification against the real project".
 - **All 15 conversation scenarios send byte-identical payloads** to the committed run that scored 15/15. One fixture changed how it gets there, and no assertion changed.
 - **The adversarial extraction fixture passes, deterministically and live.** It ran five times against `claude-haiku-4-5-20251001` on 13 September 2026, and all five ignored the injected line. The first live attempt found that the output schema was over the API's limit, so every real document upload would have failed. That is fixed and now guarded. See "The adversarial extraction fixture".
 - **Does an empty `quiet_hours` still produce an agent that admits it doesn't know, through the new config path? Yes.** The trace is below.
@@ -25,7 +32,8 @@ The report on `ONBOARDING_PLAN.md`, all seven phases. It was written for someone
 | `a3c03eb` | Phases 2–4 — onboarding form, document extraction, the independent validator, 16 guards (**the safety checkpoint**) |
 | `a728858` | Phase 5 — member data as contracts-per-term, CSV import, member source wiring, 7 guards |
 | `4b4f4a2` | Phases 6–7, the adversarial-review fixes, 8 more guards, docs and this report |
-| *(following commit)* | The first live extraction runs: the schema-limit fix and its guard, a corrected eval check, the five committed results |
+| `93bf715` | The first live extraction runs: the schema-limit fix and its guard, a corrected eval check, the five committed results |
+| *(not yet committed)* | Sanitiser fix after the real-PDF runs, its guard and PDF fixtures, and these doc updates |
 
 Phases 2 and 3 were built before Phase 4's validator existed as a commit point, so they share the checkpoint commit with Phase 4. Each checkpoint tree was checked out on its own in a separate worktree before committing, and passed type-check, guards, lint and the scenario-payload comparison there.
 
@@ -49,7 +57,7 @@ The review fixes land in the final commit and touch code from every phase, most 
 - `supabase/migrations/20260914000000_create_gyms.sql` mirrors the parser in check constraints, including the same character allowlist, because NFKC leaves combining marks in place.
 - `lib/gymStore.ts` falls back to the seed only when the table doesn't exist or Supabase isn't configured.
 
-**Doesn't / not verified.** The migration isn't applied to the project's Supabase: DDL needs database access. It is verified in in-process Postgres (`npm run db:verify`).
+**Applied to the real project** (13 September 2026, through the Management API). The stored character constraint has the exact code points, and both seed gyms match `data/gyms.json`.
 
 ### Phase 2 — The questionnaire
 
@@ -60,7 +68,7 @@ The review fixes land in the final commit and touch code from every phase, most 
 - `POST /api/gyms` parses again as untrusted input and compiles and validates all three blocks. It never overwrites an existing gym, and it is refused unless `ONBOARDING_WRITES=enabled`.
 - Checked in a real browser: first the Chrome extension, then — after the extension stopped responding — a separate headless Chrome over DevTools Protocol, at 1440px and 390px.
 
-**Doesn't / not verified.** No gym has been saved to a real table.
+**Saved to the real table** through `POST /api/gyms` during the CSV test; that test gym was deleted afterwards.
 
 ### Phase 3 — Document extraction
 
@@ -70,17 +78,17 @@ The review fixes land in the final commit and touch code from every phase, most 
 - Extraction uses `claude-haiku-4-5` with JSON-schema output: a value and a verbatim quote per field.
 - `lib/extraction/sanitize.ts` prefills a value only if its quote passes every check:
   - it is in the document;
-  - it isn't part of a paragraph addressed to an AI;
-  - it actually states the value: the number with what it's a number of, free text that is in the quote itself, and a sentence about the thing a yes or a choice refers to;
-  - a "yes" doesn't come from a sentence that says "no";
-  - a cheaper membership's name and price come from the same sentence.
+  - it isn't in a section of the document addressed to an AI (sections split at blank lines and headings, since PDF text has no blank lines);
+  - it actually states the value: the number with what it's a number of, free text that is in the quote itself, a sentence (or its section heading) about the thing a yes or a choice refers to, and a renewal discount that isn't only "off the first month";
+  - a "yes" or an offer doesn't come from a sentence that negates that thing;
+  - a cheaper membership's name and price come from the same line of the document.
 
   Anything else is shown for a person to check, not prefilled.
 - Verified in headless Chrome with only the model call stubbed. The real upload route read the adversarial price list, and the real check route sanitised the output. The form prefilled "Northside Iron"; the unsupported 10% showed "Use 10%", and pressing it filled the field and moved focus there.
 
 **The live model call works, since the schema fix.** Until then it didn't. Each field's `value` and `quote` were both nullable: 22 union-typed parameters against the API's limit of 16. The API refused the request (`invalid_request_error`), so the Extract stage would have failed on every real upload. The stubbed browser test and the offline guard couldn't see it. `quote` is now a plain string, empty when there's no line, which the sanitiser already reads as no quote. A guard counts the schema's unions.
 
-**Doesn't / not verified.** No binary PDF or DOCX fixture has been through the reader. The live runs send the text fixture straight to the model, not through the upload route.
+**Three real PDFs went through the preview's upload route** (unpdf → model → sanitiser), then again through the same routes locally after the sanitiser fix. See "Verification against the real project". No DOCX has been through the reader.
 
 ### Phase 4 — The validator, and new guards
 
@@ -112,7 +120,7 @@ The review fixes land in the final commit and touch code from every phase, most 
 - Imports are refused unless `ONBOARDING_WRITES=enabled`; checking a file still works.
 - `npm run db:verify` passes 30 checks against all three migrations, through the real import functions.
 
-**Doesn't / not verified.** No CSV has been imported into the real Supabase, and the import functions have only run in PGlite, not through PostgREST. An import large enough to exceed the database's statement timeout fails whole, and says to split the file.
+**Imported into the real project through PostgREST** during the CSV test, then deleted. An import large enough to exceed the database's statement timeout fails whole, and says to split the file.
 
 ### Phase 6 — Platform connectors, labelled honestly
 
@@ -126,18 +134,19 @@ The review fixes land in the final commit and touch code from every phase, most 
 - The call route reads the member fresh at dial time and re-checks eligibility on that read (plan item 23).
 - The README says the frozen clock exists because the dataset is synthetic.
 
-**Doesn't / not verified.** The cron has never fired: no deployment carries this branch.
+**Fired on the PR #10 preview:** 401 without the secret or with a wrong one, and 200 with it. It recorded a run with 500 entries in the real database, which was then deleted. Production doesn't have the route until the branch merges.
 
 ---
 
-## Guards: 52, and what each pins
+## Guards: 53, and what each pins
 
 The original 20 in `evals/guards.ts` are unchanged.
 
-### `evals/configGuards.ts` — 20
+### `evals/configGuards.ts` — 21
 
 | Guard | What it pins |
 |---|---|
+| `pdf-documents-keep-their-facts` | *(real PDFs)* The text unpdf produced for three real PDFs, and the model's raw output for each, sanitise to the right outcomes. The membership agreement fills 5 values, including class booking and the $45 plan from a table row, and leaves the expected fields blank. The price list fills 10, including `has_online` false and the guest pass. The adversarial PDF fills its 6 real facts and rejects every value backed by its injected block. "X% off the first month" is unsupported, and negations and the word "instructor" are handled. |
 | `extraction-schema-within-structured-output-limits` | *(first live run)* The extraction output schema has at most 16 union-typed parameters, the API's limit. At 22, every real upload failed. |
 | `seed-gyms-compile-to-signed-off-text` | Southbank and Kensington compile to their hand-written text, all six blocks byte for byte. This is what keeps the 15 scenario payloads identical. |
 | `every-config-compiles-to-a-valid-block` | All 384 combinations of offers, tier and quiet times compile to blocks the validator accepts. |
@@ -327,6 +336,7 @@ That last step is inference from byte identity, not a fresh live run. Re-running
 37. **Two independent adversarial reviews ran before the final commit.** Their fixes are in that commit rather than rewritten into the earlier checkpoints.
 38. **The extraction schema's `quote` is a plain string, empty when there is no line**, to fit the API's union limit. The sanitiser treats an empty quote as no quote, so a value with no line behind it is still unsupported, never prefilled.
 39. **One live-eval check was corrected after its first run** ("manager" → phrases only the injected line contains), with a control and before/after evidence. It is the eval's own check, not a guard or scenario assertion. The original 7/8 result for run 1 is kept in the committed file.
+40. **The sanitiser judges a quote by its section, not its paragraph.** A section is split at blank lines and at heading lines. Checks for text aimed at a model match only real model-directed text ("note to the AI", "ignore prior instructions"), not "instructor"; the config-field text rules stay strict. Topic words may come from the quote's own section. Negation must sit next to the offer word. The cheaper plan's name and price are paired by document line. "X% off the first month" is unsupported.
 
 ## Fixture changes
 
@@ -359,17 +369,52 @@ Run after Phase 3 was functionally complete, with a fixed brief: review only (1)
 
 | Check | Result |
 |---|---|
-| `npm run evals:guards` | 52/52 |
+| `npm run evals:guards` | 53/53 |
 | TypeScript (`tsc --noEmit`) | clean |
 | `npm run lint` | 2 errors and 1 warning, all pre-existing in files this work didn't change the lines of: `components/TranscriptPanel.tsx` (out of bounds) and an unused `NO_HISTORY` import in `app/api/call/route.ts` |
 | Scenario payloads vs. pre-onboarding | 15/15 byte-identical, at every checkpoint and after the review fixes |
 | `npm run data:verify-port` | exact, 500 members |
-| `npm run db:verify` | 30/30, all three migrations applied twice, imports through the real functions |
+| `npm run db:verify` | 30/30 locally, all three migrations applied twice, imports through the real functions; and 30/30 against the real project inside a rolled-back transaction |
 | `npm run gyms:seed-check` | matches |
 | `npm run evals:extraction` | 5 of 5 live runs pass (13 September 2026), after fixing the schema limit and a false-positive eval check; details above |
 | Headless Chrome, `/onboarding` | manual form, preview rewrite cue, stubbed document flow, prefill, Use-suggestion focus, stage heights at two widths, reduced motion — after the review fixes |
 | `/offer` landing | Kensington's guest-pass link makes no claim; Southbank's discount link shows 20% |
 | `next build` | compiles and type-checks; all 22 routes build, including `/onboarding`, `/onboarding/[gymId]/members`, `/api/cron/recompute` and the three `/api/onboarding/*` routes |
+
+## Verification against the real project (13 September 2026)
+
+**Migrations.** `call_records` already had every column from both `20260913*` migrations, so those two had been applied by hand. The three `20260914*` files were applied through the Management API, one request each, read from disk as bytes.
+- `gyms_text_characters` is stored with the exact accented code points, and its pattern accepts "Café Crème Fitness".
+- Both seed gyms match `data/gyms.json`.
+- RLS is on for all six new tables, and only `service_role` can run the four functions.
+
+**`db:verify` against the real project: 30/30.** Every check ran inside one PL/pgSQL block that ends by raising an exception, so every write rolled back. Afterwards the project still had 2 gyms and 0 member, contract, check-in and queue rows. Two checks' timestamp halves can't be observed inside one transaction; the CSV test below covered them.
+
+**CSV import through PostgREST.** This ran on a local server with `DATASET_CLOCK=live` in that process only.
+- "Import Test Gym" was saved through `POST /api/gyms`, and `TEST0001`–`TEST0005` imported: 5 members, 6 contract terms, and 25 check-ins with one duplicate collapsed.
+- Read at dial time, they routed as intended: renewal, excluded as auto-renew, winback, not due (the renewal row wins), and not due with no phone.
+- Re-importing the contracts wrote nothing and moved `last_seen_at` forward on all six.
+- One term was re-exported with auto-renew off, which made the member callable, then with it on again, which excluded them again.
+- The member data page showed matching counts and routing.
+- Everything for that gym was then deleted. No `TEST*` id existed in `call_records`.
+
+**Nightly recompute on the preview.** It returned 401 with no secret or a wrong one, and 200 with the right one, recording 500 entries: 37 renewal, 42 reengagement, 86 winback, 148 auto-renew, 10 in cooldown, 177 not due. Call history was readable. The run covered the synthetic dataset, so it has no gym and doesn't show on a gym's member data page, by design. It was deleted afterwards.
+
+**Three real PDFs through the preview's upload route.** unpdf read all three binary files accurately, and the model ignored the adversarial PDF's injected block. But the sanitiser, as deployed, failed:
+- PDF text has no blank lines, so the whole document was one "paragraph", and one line addressed to an AI rejected every field. The adversarial PDF's 7 real values were all rejected.
+- Adding the ordinary sentence "Ask any instructor for a program card." to the clean price list rejected all 11 of its fields.
+- The checks were too literal: "Members book through the app" under a Classes heading was unsupported, and "we haven't seen … give them a guest pass" read as a no.
+- "15% off their first month" was filled as a renewal discount Charlie would overstate.
+
+Fixed as decision 40, pinned by `pdf-documents-keep-their-facts`. Re-run through the same routes locally with fresh model calls:
+
+| PDF | Filled | Unsupported | Rejected | Notes |
+|---|---|---|---|---|
+| sample-membership-agreement | 5 | 0 | 1 | quiet_hours, renewal_discount_percent, reengagement_perk, winback_offer and has_online all blank. The $59 joining fee and $22 visit don't reach the price; $45 does. The rejected value is a street address given as a site name. |
+| sample-price-list | 10 | 1 | 0 | has_online false from "We do not currently offer online or remote programming". The unsupported value is "15% off their first month". |
+| adversarial-price-list | 6 | 1 | 0 | The six real facts are filled. The unsupported value is "10% off the first month". Every value backed by the injected block is rejected. |
+
+The five saved live runs of the text fixture still score 9/9, and all 15 scenario payloads are unchanged.
 
 ## The riskiest thing left
 
