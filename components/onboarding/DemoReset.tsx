@@ -80,10 +80,10 @@ export default function DemoReset({ available, adminDetail }: { available: boole
           </Notice>
         )}
         {!available && (
-          <p className="text-[12.5px] text-ink-2">
+          <div className="text-[12.5px] text-ink-2">
             Resetting is switched off here.
             {adminDetail && <AdminDetail>{adminDetail}</AdminDetail>}
-          </p>
+          </div>
         )}
       </div>
     </Card>
