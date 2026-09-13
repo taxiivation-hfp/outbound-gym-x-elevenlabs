@@ -1,61 +1,61 @@
 import gymsData from "@/data/gyms.json";
-import type { CallType } from "@/lib/callType";
+import { parseGymConfig, type GymConfig } from "@/lib/gymConfig";
 
 /**
- * Per-gym facts and per-gym-per-call-type incentive blocks.
+ * The seed gyms, from `data/gyms.json`.
  *
- * Everything gym-specific reaches the call as a dynamic variable, so one prompt
- * per call type serves every gym with no per-gym forks and no branching inside
- * the prompt. Changing a gym's rules is a data edit, not a prompt edit.
+ * Gym config lives in the Supabase `gyms` table once its migration is applied
+ * (`lib/gymStore.ts` reads it), and the onboarding flow writes new rows there.
+ * This file is where the two original gyms are defined, and it stays in the
+ * repo for three reasons: it is what the migration seeds the table with, it is
+ * what the deterministic guards and conversation scenarios compile against
+ * without a network, and it documents what a gym config looks like.
  *
- * There are two gyms in the file rather than one because "one agent, config per
- * gym" is the scalability claim, and switching between them live is the only way
- * to show it instead of asserting it. They are deliberately opposites:
- * Southbank has a discount, a guest pass, a PT session, two sister sites and
+ * There are two gyms rather than one because "one agent, config per gym" is the
+ * scalability claim, and switching between them live is the only way to show it
+ * instead of asserting it. They are deliberately opposites: Southbank has a
+ * discount, a guest pass, a PT session, a cheaper tier, two sister sites and
  * online training; Kensington has none of that and one room. The second gym is
  * what exercises the hardest guardrail in the brief — "if the incentives
  * section says you have nothing, you have nothing".
  *
- * Long term this file is written by the onboarding questionnaire. The incentive
- * blocks are stored as the finished plain-English text rather than generated
- * from flags, because the text is what the gym signs off on and what an auditor
- * needs to read. Every block ends with a sentence that closes the door on
- * everything else; without it the agent fills the gap with something the gym
- * never agreed to.
+ * The file holds typed values only. The incentive wording each gym used to
+ * carry as prose is now compiled by `lib/incentives.ts`, and a guard pins that
+ * both gyms still compile to the exact words they had.
  */
-export interface GymIncentives {
-  renewal: string;
-  reengagement: string;
-  winback: string;
+export type Gym = GymConfig;
+
+function loadSeed(): { defaultGymId: string; gyms: GymConfig[] } {
+  const config = gymsData as { default_gym_id: string; gyms: unknown[] };
+  const gyms = config.gyms.map((raw, i) => {
+    const parsed = parseGymConfig(raw);
+    if (!parsed.ok) {
+      // A checked-in seed that fails the same validation a form post faces is a
+      // bug in the repo, and it should stop the build rather than reach a call.
+      throw new Error(`data/gyms.json gym #${i + 1} is invalid: ${JSON.stringify(parsed.errors)}`);
+    }
+    return parsed.value;
+  });
+  if (!gyms.some((g) => g.gym_id === config.default_gym_id)) {
+    throw new Error(`data/gyms.json default_gym_id "${config.default_gym_id}" is not one of its gyms`);
+  }
+  return { defaultGymId: config.default_gym_id, gyms };
 }
 
-export interface Gym {
-  gym_id: string;
-  gym_name: string;
-  opening_hours: string;
-  quiet_hours: string;
-  /** "none" when single-site — the winback prompt branches on that literal. */
-  other_locations: string;
-  has_online: "yes" | "no";
-  books_classes: "yes" | "no";
-  incentives: GymIncentives;
-}
+const seed = loadSeed();
 
-const config = gymsData as { default_gym_id: string; gyms: Gym[] };
+export const gyms: Gym[] = seed.gyms;
 
-export const gyms: Gym[] = config.gyms;
+export const DEFAULT_GYM_ID = seed.defaultGymId;
 
-export const DEFAULT_GYM_ID = config.default_gym_id;
-
+/**
+ * A seed gym by id. Used where no database is involved — the guards, the
+ * scenarios — and as the fallback `lib/gymStore.ts` reads before the `gyms`
+ * migration has been applied. An unknown id falls back to the default gym, which
+ * is only ever reached by those offline callers; the call route resolves gyms
+ * through the store and refuses an unknown id instead.
+ */
 export function getGym(gymId?: string | null): Gym {
   const wanted = gymId ?? DEFAULT_GYM_ID;
-  const found = gyms.find((g) => g.gym_id === wanted);
-  if (found) return found;
-  // An unknown gym_id is a client bug, not a reason to fail a call — fall back
-  // to the default rather than dialling with empty gym facts.
-  return gyms.find((g) => g.gym_id === DEFAULT_GYM_ID) ?? gyms[0];
-}
-
-export function incentivesFor(gym: Gym, callType: CallType): string {
-  return gym.incentives[callType];
+  return gyms.find((g) => g.gym_id === wanted) ?? (gyms.find((g) => g.gym_id === DEFAULT_GYM_ID) as Gym);
 }

@@ -1,5 +1,6 @@
 import { routeMember, type CallType } from "@/lib/callType";
-import { NOT_RECORDED, compileVariables } from "@/lib/compileVariables";
+import { compileVariables } from "@/lib/compileVariables";
+import { parseGymConfig, type GymFields } from "@/lib/gymConfig";
 import { getGym } from "@/lib/gyms";
 import type { Member } from "@/lib/types";
 import {
@@ -56,6 +57,12 @@ export interface Scenario {
   member: Member;
   attemptNumber?: number;
   priorCall?: Parameters<typeof compileVariables>[0]["priorCall"];
+  /**
+   * Changes to the gym's typed config, applied before compiling and re-validated
+   * like any saved config. How a scenario tests a gym that left a field blank:
+   * through the same config path a real onboarded gym takes.
+   */
+  gymOverrides?: Partial<GymFields>;
   /** Applied on top of the compiled variables. Use sparingly. */
   varOverrides?: Record<string, string>;
   /** Variables to delete entirely, to test the agent's own defaults. */
@@ -536,9 +543,12 @@ export const scenarios: Scenario[] = [
     // The compiled payload always carries all sixteen variables: the defaults are
     // spread in before anything else, and a routing guard asserts it. So an
     // absent key is ElevenLabs' fallback to test, not ours. The failure mode that
-    // actually happens is a gym that skipped a question during onboarding, which
-    // is exactly what this value is.
-    varOverrides: { quiet_hours: NOT_RECORDED },
+    // actually happens is a gym that skipped a question during onboarding — so
+    // the gym's quiet_hours is left blank in its typed config and the compiler
+    // produces the absence, exactly as it would for a gym saved through
+    // /onboarding. (This scenario used to override the compiled variable with
+    // NOT_RECORDED directly; the payload it sends is byte-identical.)
+    gymOverrides: { quiet_hours: null },
     persona: persona(
       "You are Sarah. You confirm who you are and that now is fine. Ask "
         + '"when is it quietest in there?" and listen to the answer. Then agree to renew at the '
@@ -598,9 +608,14 @@ export function scenarioVariables(scenario: Scenario) {
     );
   }
 
+  const gymConfig = parseGymConfig({ ...getGym(scenario.gymId), ...(scenario.gymOverrides ?? {}) });
+  if (!gymConfig.ok) {
+    throw new Error(`Scenario "${scenario.id}" has an invalid gym config: ${JSON.stringify(gymConfig.errors)}`);
+  }
+
   const variables = compileVariables({
     member: scenario.member,
-    gym: getGym(scenario.gymId),
+    gym: gymConfig.value,
     routing,
     callType: scenario.callType,
     attemptNumber: scenario.attemptNumber ?? 1,

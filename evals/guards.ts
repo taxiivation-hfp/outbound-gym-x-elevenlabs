@@ -4,6 +4,8 @@ import { compileVariables, firstName } from "@/lib/compileVariables";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
 import { PATTERNS } from "./assertions";
+import { configGuards } from "./configGuards";
+import { memberGuards } from "./memberGuards";
 import { fixtureMember, isoOffset } from "./fixtures";
 
 /**
@@ -28,7 +30,7 @@ export interface GuardResult {
   why: string;
 }
 
-interface Guard {
+export interface Guard {
   id: string;
   name: string;
   why: string;
@@ -463,7 +465,7 @@ const guards: Guard[] = [
 ];
 
 export function runGuards(): GuardResult[] {
-  return guards.map((g) => {
+  return [...guards, ...configGuards, ...memberGuards].map((g) => {
     try {
       const { passed, detail } = g.run();
       return { id: g.id, name: g.name, passed, detail, why: g.why };

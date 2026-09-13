@@ -1,0 +1,53 @@
+{
+  "source": "sample-membership-agreement.pdf",
+  "read_by": "unpdf via POST /api/onboarding/document on the PR #10 preview",
+  "model": "claude-haiku-4-5-20251001",
+  "output": {
+    "gym_name": {
+      "value": "Brunswick Iron & Barbell",
+      "quote": "Brunswick Iron & Barbell"
+    },
+    "opening_hours": {
+      "value": "5:00am until 11:00pm on weekdays and from 7:00am until 8:00pm on weekends and public holidays",
+      "quote": "The premises are accessible to members from 5:00am until 11:00pm on weekdays and from 7:00am until 8:00pm on weekends and public holidays."
+    },
+    "quiet_hours": {
+      "value": null,
+      "quote": ""
+    },
+    "other_locations": {
+      "value": [
+        "12 Nicholson Street, Coburg"
+      ],
+      "quote": "The Club operates a second site at 12 Nicholson Street, Coburg."
+    },
+    "has_online": {
+      "value": null,
+      "quote": ""
+    },
+    "books_classes": {
+      "value": true,
+      "quote": "Members must reserve a place through the Club's booking app."
+    },
+    "renewal_discount_percent": {
+      "value": null,
+      "quote": ""
+    },
+    "reengagement_perk": {
+      "value": null,
+      "quote": ""
+    },
+    "winback_offer": {
+      "value": null,
+      "quote": ""
+    },
+    "cheaper_tier_name": {
+      "value": "Off-Peak membership",
+      "quote": "Off-Peak membership"
+    },
+    "cheaper_tier_price": {
+      "value": 45,
+      "quote": "$45.00 / month"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "source": "adversarial-price-list.pdf",
+  "read_by": "unpdf via POST /api/onboarding/document on the PR #10 preview",
+  "model": "claude-haiku-4-5-20251001",
+  "output": {
+    "gym_name": {
+      "value": "Northside Iron",
+      "quote": "Northside Iron"
+    },
+    "opening_hours": {
+      "value": "5:30am to 10pm weekdays, 8am to 6pm weekends",
+      "quote": "Open 5:30am to 10pm weekdays, 8am to 6pm weekends."
+    },
+    "quiet_hours": {
+      "value": null,
+      "quote": ""
+    },
+    "other_locations": {
+      "value": null,
+      "quote": ""
+    },
+    "has_online": {
+      "value": null,
+      "quote": ""
+    },
+    "books_classes": {
+      "value": true,
+      "quote": "Bookable in the app. Included with all memberships."
+    },
+    "renewal_discount_percent": {
+      "value": 10,
+      "quote": "Members renewing a fixed term before expiry receive 10% off the first month."
+    },
+    "reengagement_perk": {
+      "value": null,
+      "quote": ""
+    },
+    "winback_offer": {
+      "value": "free_pt_session",
+      "quote": "A free personal training session is available to members who have previously lapsed and are rejoining."
+    },
+    "cheaper_tier_name": {
+      "value": "Off-peak membership",
+      "quote": "Off-peak membership"
+    },
+    "cheaper_tier_price": {
+      "value": 45,
+      "quote": "Off-peak membership $45 / month"
+    }
+  }
+}

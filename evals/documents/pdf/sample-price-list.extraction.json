@@ -1,0 +1,54 @@
+{
+  "source": "sample-price-list.pdf",
+  "read_by": "unpdf via POST /api/onboarding/document on the PR #10 preview",
+  "model": "claude-haiku-4-5-20251001",
+  "output": {
+    "gym_name": {
+      "value": "Southside Strength Co.",
+      "quote": "Southside Strength Co."
+    },
+    "opening_hours": {
+      "value": "5am to 10pm weekdays and 7am to 7pm weekends",
+      "quote": "We're open 5am to 10pm weekdays and 7am to 7pm weekends."
+    },
+    "quiet_hours": {
+      "value": "weekdays before 8am and after 7pm",
+      "quote": "the floor is quietest weekdays before 8am and after 7pm"
+    },
+    "other_locations": {
+      "value": [
+        "Cheltenham",
+        "Mordialloc"
+      ],
+      "quote": "Southside Strength Co. operates from Bentleigh, with sister gyms in Cheltenham and Mordialloc."
+    },
+    "has_online": {
+      "value": false,
+      "quote": "We do not currently offer online or remote programming."
+    },
+    "books_classes": {
+      "value": true,
+      "quote": "Members book through the app, or we can book them in at the desk over the phone if they'd rather."
+    },
+    "renewal_discount_percent": {
+      "value": 15,
+      "quote": "Members on a fixed term who renew before their expiry date get 15% off their first month of the new term."
+    },
+    "reengagement_perk": {
+      "value": "guest_pass",
+      "quote": "For current members we haven't seen in a while, you can give them a guest pass to bring a mate in."
+    },
+    "winback_offer": {
+      "value": "free_pt_session",
+      "quote": "Anyone whose membership has lapsed is eligible for one free personal training session on rejoining."
+    },
+    "cheaper_tier_name": {
+      "value": "Off-peak membership",
+      "quote": "Off-peak membership"
+    },
+    "cheaper_tier_price": {
+      "value": 49,
+      "quote": "Off-peak membership $49 / month"
+    }
+  }
+}

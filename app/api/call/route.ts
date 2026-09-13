@@ -1,16 +1,14 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import membersData from "@/data/members_scored.json";
 import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
-import { compileVariables } from "@/lib/compileVariables";
+import { compileVariables, GymConfigError } from "@/lib/compileVariables";
+import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { getGym } from "@/lib/gyms";
+import { resolveGym } from "@/lib/gymStore";
 import { insertCallRecord } from "@/lib/callRecords";
-import type { Member } from "@/lib/types";
-
-const members = membersData as Member[];
+import { gymForMember, loadMember, type MemberSource } from "@/lib/memberSource";
 
 /** One agent per call type. Created by `scripts/sync-agents.mjs`. */
 const AGENT_ID_ENV: Record<CallType, string> = {
@@ -37,7 +35,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
 
-  const member = members.find((m) => m.member_id === memberId);
+  // Read the member now, not from whatever the queue showed. The queue was
+  // computed when the page rendered; since then a member can have renewed,
+  // switched to auto-renew or walked in, and an uploaded export is re-derived on
+  // every read. Eligibility below is decided on this read alone.
+  let member;
+  let source: MemberSource;
+  try {
+    const loaded = await loadMember(memberId);
+    member = loaded.member;
+    source = loaded.source;
+    if (!member && loaded.unroutedReason) {
+      return NextResponse.json({ error: "Member can't be routed", reason: loaded.unroutedReason }, { status: 409 });
+    }
+  } catch (err) {
+    console.error("Refusing to call: member data unreadable", err);
+    return NextResponse.json(
+      { error: `Member data couldn't be read, so the call was not placed: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 503 }
+    );
+  }
   if (!member) {
     return NextResponse.json({ error: "Unknown member_id" }, { status: 404 });
   }
@@ -73,7 +90,23 @@ export async function POST(req: NextRequest) {
   }
 
   const callType = eligibility.routing.call_type;
-  const gym = getGym(typeof body?.gym_id === "string" ? body.gym_id : null);
+
+  // Which gym's rules the agent speaks for. Read from the gyms table (or the
+  // seed before its migration), and an id that resolves to nothing is refused:
+  // substituting another gym would put that gym's offers in this gym's mouth.
+  if (body?.gym_id !== undefined && body?.gym_id !== null && typeof body.gym_id !== "string") {
+    return NextResponse.json({ error: "gym_id must be a string" }, { status: 400 });
+  }
+  // An uploaded member can only be called as the gym they were uploaded for.
+  const gymChoice = gymForMember(source, body?.gym_id ?? null);
+  if (!gymChoice.ok) {
+    return NextResponse.json({ error: "Refusing to call", reason: gymChoice.reason, blocked_by: "gym_mismatch" }, { status: 409 });
+  }
+  const gymLookup = await resolveGym(gymChoice.gymId);
+  if (!gymLookup.ok) {
+    return NextResponse.json({ error: gymLookup.error, blocked_by: "gym_config" }, { status: gymLookup.status });
+  }
+  const gym = gymLookup.gym;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const agentId = process.env[AGENT_ID_ENV[callType]];
@@ -87,20 +120,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const dynamicVariables = compileVariables({
-    member,
-    gym,
-    routing: eligibility.routing,
-    callType,
-    attemptNumber: eligibility.attemptNumber,
-    priorCall: history.priorCall,
-  });
+  // The compiler re-validates the gym and the incentives block it writes on
+  // every compile. A failure here means the agent would have been told
+  // something the config doesn't back, so nothing is dialled.
+  let dynamicVariables: Record<string, string>;
+  try {
+    dynamicVariables = compileVariables({
+      member,
+      gym,
+      routing: eligibility.routing,
+      callType,
+      attemptNumber: eligibility.attemptNumber,
+      priorCall: history.priorCall,
+    });
+  } catch (err) {
+    if (err instanceof IncentivesValidationError) {
+      return NextResponse.json(
+        {
+          error: `The ${err.callType} incentives for this gym failed validation, so the call was not placed.`,
+          blocked_by: "incentives_validation",
+          violations: err.violations,
+        },
+        { status: 422 }
+      );
+    }
+    if (err instanceof GymConfigError) {
+      return NextResponse.json(
+        { error: "This gym's config failed validation, so the call was not placed.", blocked_by: "gym_config", errors: err.errors },
+        { status: 422 }
+      );
+    }
+    throw err;
+  }
 
   // The last check before a phone rings. Every number in this dataset is Faker
   // output — well-formed, and belonging to a stranger — so the route refuses to
   // dial it unless an override number is set or someone has deliberately opted
   // in. Nothing about the routing changes, only the last hop.
-  const dial = resolveDialTarget(member.phone);
+  if (!member.phone.trim() && !process.env.CALL_OVERRIDE_NUMBER?.trim()) {
+    return NextResponse.json(
+      { error: "Refusing to dial", reason: "There is no mobile number on file for this member.", blocked_by: "no_number" },
+      { status: 409 }
+    );
+  }
+  const dial = resolveDialTarget(member.phone, source);
   if (!dial.allowed || !dial.to) {
     return NextResponse.json(
       { error: "Refusing to dial", reason: dial.reason, blocked_by: "unverified_number" },

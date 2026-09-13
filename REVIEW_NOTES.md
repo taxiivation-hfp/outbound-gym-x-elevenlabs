@@ -22,6 +22,43 @@ on the live URL, not just locally.
 
 ---
 
+## 0. Onboarding — on the `feat/onboarding` branch, not on `main`
+
+Gym setup, document extraction, member CSV import and the nightly recompute are
+built on `feat/onboarding` and open as a pull request. Nothing there is deployed:
+`main` deploys to production, so it has not been merged. What it does, what was
+verified and what wasn't is in [`ONBOARDING_REPORT.md`](ONBOARDING_REPORT.md).
+After merging, all of it stays switched off, and says so on screen, until these
+are done by hand:
+
+1. **Put access protection in front of the deployment first.** Onboarding's
+   routes have no login, like the rest of the app. Vercel → Settings →
+   Deployment Protection, or real auth, before step 3.
+2. **Done on 13 September 2026:** the three migrations were applied through the
+   Supabase Management API, and `db:verify`'s 30 checks passed against the real
+   project inside a rolled-back transaction. For another project, apply them in
+   order. Each is idempotent (`npm run db:verify`, 30 checks):
+   `supabase/migrations/20260914000000_create_gyms.sql`,
+   `20260914010000_member_data.sql`, `20260914020000_queue_runs.sql`.
+3. **Environment variables.**
+   - `ONBOARDING_WRITES=enabled`, only after step 1. Until it's set, saving a gym and importing members are refused in code. Checking a file still works.
+   - `ANTHROPIC_API_KEY` for document extraction.
+   - `CRON_SECRET` for the nightly recompute.
+   - Leave `MEMBER_SOURCE` unset to keep the synthetic dataset. For a gym's real data, set `MEMBER_SOURCE=supabase` with `MEMBER_SOURCE_GYM_ID` and `DATASET_CLOCK=live`; every reader refuses uploaded members without the live clock. Dialling those members directly also needs `ALLOW_UNVERIFIED_NUMBERS=true`, which never dials the synthetic numbers.
+4. **Before pointing a deployment at real members, archive the demo
+   `call_records`.** Call history is looked up by member id alone, and an export
+   that reuses the synthetic ids (`M0001`–`M0500`) would inherit a stranger's
+   cooldown and prior-call context.
+5. **Set `ANTHROPIC_API_KEY` on the deployment.** The live extraction eval has run
+   five times locally (13 September 2026). The first attempt found the output schema
+   over the API's limit, so every real upload would have failed; that is fixed and
+   guarded. All five runs ignored the injected line.
+
+No agent needs re-syncing: onboarding changed no prompt, and every scenario
+payload is byte-identical.
+
+---
+
 ## 1. Things only you can do
 
 > **The order of 1a and 1b matters.** The repository is currently private and has
@@ -29,6 +66,10 @@ on the live URL, not just locally.
 > token. Rotate the token *before* you flip the repo to public, not after.
 
 ### 1a. Rotate the Twilio credentials. Do this first.
+
+> **Status, 13 September 2026:** the auth token has been rotated, so the token in
+> git history no longer authenticates. Still outstanding: rewriting history to
+> remove the dead token (it is in commit `4a04a89`) before the repo is made public.
 
 `twilio_call.py` had a live Account SID and auth token in plaintext, committed,
 in a public repo. I have replaced them with env-var reads, **but they are still
@@ -97,7 +138,9 @@ I did not want that to depend on anyone remembering, so it no longer does:
 `409 Refusing to dial` when no override is set. Filling in the agent ids and
 forgetting the override cannot ring 173 real Australians — it will refuse and
 tell you why. `ALLOW_UNVERIFIED_NUMBERS=true` is the deliberate override, for
-real member data.
+real member data. (Since onboarding it applies only to a gym's uploaded members:
+the synthetic numbers need the override whatever else is set, so the flag can't
+be left on and dial them after a deployment switches back to the dataset.)
 
 ### 1e. Nothing else
 
@@ -188,8 +231,9 @@ today's queue is 173 calls at $70"*.
 
 ### Not built, on purpose
 
-Voicemail detection. A scheduler — the triggers are dated but a human presses
-the button. Live push to the browser, so a call at "initiated" needs the refresh
+Voicemail detection. Automatic dialling — the triggers are dated but a human
+presses the button (onboarding adds a nightly recompute that records who is due,
+not one that calls them). Live push to the browser, so a call at "initiated" needs the refresh
 button. The member who came in once after a call and then stopped again. All
 three are in the README's LIMITATIONS section with the reasoning.
 
