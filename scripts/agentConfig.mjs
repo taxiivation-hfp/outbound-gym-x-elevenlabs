@@ -5,26 +5,30 @@ import { fileURLToPath } from "node:url";
 /**
  * Agent configuration as code.
  *
- * The three ElevenLabs agents are not hand-edited in a dashboard. This module is
+ * The four ElevenLabs agents are not hand-edited in a dashboard. This module is
  * the source of truth for their prompts, model settings, data-collection fields
  * and evaluation criteria; `scripts/sync-agents.mjs` pushes it. Anything changed
  * in the ElevenLabs UI is overwritten on the next sync, on purpose — a prompt is
  * behaviour, and behaviour belongs in the repo where it can be reviewed and
  * diffed.
  *
- * ## Why three agents instead of one with a `call_type` branch
+ * ## Why four agents instead of one with a `call_type` branch
  *
- * A single prompt carrying `if renewal … if winback …` gives the model three
+ * A single prompt carrying `if renewal … if winback …` gives the model four
  * scripts and one call. It drifts: a winback conversation slides into renewal
  * language the moment the member mentions money, because the renewal branch is
- * sitting right there in its context. Three narrow prompts cannot drift into
- * each other. The cost is that four sections appear three times — paid for
- * below by storing them once on disk.
+ * sitting right there in its context. Narrow prompts cannot drift into each
+ * other. The cost is that four sections appear four times — paid for below by
+ * storing them once on disk.
+ *
+ * The fourth, `charlie-cancellation`, calls the one auto-renewing member the
+ * exclusion allows: someone who has already asked to cancel. It reuses every
+ * shared section byte for byte; only its Environment and Goal are its own.
  *
  * ## Why the four shared sections are files, not copies
  *
  * Personality, INCENTIVES, Tone, Guardrails and Tools must be byte-identical
- * across all three agents. Stored once in `agents/prompts/shared/` and
+ * across all four agents. Stored once in `agents/prompts/shared/` and
  * assembled at sync time, byte-identity is a property of the build rather than
  * a discipline someone has to remember when they fix a guardrail at 2am.
  */
@@ -32,13 +36,14 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROMPTS = join(HERE, "..", "agents", "prompts");
 
-export const CALL_TYPES = ["renewal", "reengagement", "winback"];
+export const CALL_TYPES = ["renewal", "reengagement", "winback", "cancellation"];
 
 /** ElevenLabs agent names. The `call_type` value is the bare word. */
 export const AGENT_NAMES = {
   renewal: "charlie-renewal",
   reengagement: "charlie-reengagement",
   winback: "charlie-winback",
+  cancellation: "charlie-cancellation",
 };
 
 /** Env var holding each agent's id, read by `/api/call`. */
@@ -46,10 +51,11 @@ export const AGENT_ID_ENV = {
   renewal: "ELEVENLABS_AGENT_ID_RENEWAL",
   reengagement: "ELEVENLABS_AGENT_ID_REENGAGEMENT",
   winback: "ELEVENLABS_AGENT_ID_WINBACK",
+  cancellation: "ELEVENLABS_AGENT_ID_CANCELLATION",
 };
 
 /**
- * Section order, identical for all three agents. `{agent}` resolves to the call
+ * Section order, identical for all four agents. `{agent}` resolves to the call
  * type's own directory; everything else is shared.
  */
 const SECTION_ORDER = [
@@ -78,7 +84,7 @@ export function buildFirstMessage(callType) {
 export const SHARED_SECTIONS = SECTION_ORDER.filter((s) => s.startsWith("shared/"));
 
 // ---------------------------------------------------------------------------
-// Model and audio settings — identical on all three agents
+// Model and audio settings — identical on all four agents
 // ---------------------------------------------------------------------------
 
 export const SETTINGS = {
@@ -147,10 +153,13 @@ export const SETTINGS = {
 };
 
 // ---------------------------------------------------------------------------
-// Data collection — the post-call extraction, identical on all three agents
+// Data collection — the post-call extraction, identical on all four agents
 //
 // The description field IS the extraction prompt, so each one is written as an
-// instruction to the extracting model rather than as a label.
+// instruction to the extracting model rather than as a label. On a cancellation
+// call `reason_for_absence` is why they are leaving, `offer_made` is the freeze
+// or the cheaper tier, and `human_followup` is the freeze someone has to
+// arrange — the same eleven fields, read on the same terms.
 // ---------------------------------------------------------------------------
 
 export const OUTCOME_VALUES = [
@@ -237,7 +246,7 @@ export const DATA_COLLECTION = {
 };
 
 // ---------------------------------------------------------------------------
-// Evaluation criteria — three, on all three agents
+// Evaluation criteria — three, on all four agents
 //
 // These are ElevenLabs' own per-conversation judges and they run on real calls
 // as well as simulated ones. The repo's own suite in `evals/` is separate and

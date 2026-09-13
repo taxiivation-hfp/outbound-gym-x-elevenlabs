@@ -18,7 +18,7 @@ import Avatar from "@/components/Avatar";
 import CancellationRequests from "@/components/CancellationRequests";
 import EconomicsPanel from "@/components/EconomicsPanel";
 
-const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];
+const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback", "cancellation"];
 const PER_COLUMN = 6;
 const PER_PLACED_COLUMN = 3;
 
@@ -41,13 +41,15 @@ export default function Dashboard({ view }: { view: QueueView }) {
       renewal: [],
       reengagement: [],
       winback: [],
+      cancellation: [],
     };
     for (const entry of due) out[entry.call_type as CallType].push(entry);
     // Most overdue first within each column: the member who has been away
-    // longest, or whose term lapses soonest.
+    // longest, whose term lapses soonest, or who asked to cancel longest ago.
     out.renewal.sort((a, b) => a.days_to_expiry - b.days_to_expiry);
     out.reengagement.sort((a, b) => b.days_since_visit - a.days_since_visit);
     out.winback.sort((a, b) => a.days_to_expiry - b.days_to_expiry);
+    out.cancellation.sort((a, b) => (a.cancellation_requested ?? "").localeCompare(b.cancellation_requested ?? ""));
     return out;
   }, [due]);
 
@@ -134,7 +136,7 @@ export default function Dashboard({ view }: { view: QueueView }) {
   // system: most recent call first within each call type, capped so a gym with
   // a long call history doesn't turn this into an endless scroll.
   const placedByType = useMemo(() => {
-    const out: Record<CallType, QueueEntry[]> = { renewal: [], reengagement: [], winback: [] };
+    const out: Record<CallType, QueueEntry[]> = { renewal: [], reengagement: [], winback: [], cancellation: [] };
     for (const entry of placedEntries) {
       const record = records[entry.member_id];
       const type = (record?.call_type ?? entry.call_type ?? "winback") as CallType;
@@ -164,6 +166,8 @@ export default function Dashboard({ view }: { view: QueueView }) {
             </span>{" "}
             — {view.auto_renewers_inside_expiry_window} of those have a renewal date inside
             the next fortnight, and a date-triggered dialer would ring every one of them.
+            The one exception is a member who has already asked to cancel: they get one
+            call, with something to offer, and the cancellation goes ahead regardless.
           </p>
         </div>
         <GymSwitcher
@@ -182,7 +186,7 @@ export default function Dashboard({ view }: { view: QueueView }) {
         </p>
       )}
 
-      <section className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
         {CALL_TYPES.map((type) => (
           <CallColumn
             key={type}
@@ -204,7 +208,7 @@ export default function Dashboard({ view }: { view: QueueView }) {
           someone posts to the call endpoint directly.
         </p>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {["auto_renew", "do_not_contact", "cooldown", "max_attempts", "not_due"].map((key) => (
+          {["auto_renew", "do_not_contact", "nothing_to_offer", "cooldown", "max_attempts", "not_due"].map((key) => (
             <ExcludedCard key={key} reason={key} entries={excluded[key] ?? []} />
           ))}
         </div>
@@ -234,7 +238,7 @@ export default function Dashboard({ view }: { view: QueueView }) {
             extracted analysis land here when the call ends.
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
             {CALL_TYPES.map((type) => (
               <PlacedColumn
                 key={type}
@@ -295,7 +299,7 @@ function GymSwitcher({
         ))}
       </div>
       <p className="mt-2.5 max-w-xs text-xs leading-relaxed text-zinc-600">
-        Same three prompts either way. The gym decides what the agent is allowed to put on
+        Same four prompts either way. The gym decides what the agent is allowed to put on
         the table, and it arrives as a variable.
       </p>
       <p className="mt-2 text-xs text-zinc-700">Member data as of {asOf}</p>

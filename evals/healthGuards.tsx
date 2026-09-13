@@ -145,10 +145,13 @@ export const healthGuards: Guard[] = [
       expect("August", august && { at_start: august.members_at_start, lost: august.lost, churn: august.churn_rate }, { at_start: 5, lost: 1, churn: 0.2 });
       // All five joined 120–485 days ago; only the lapsed member stopped paying before day 120.
       expect("90-day retention", { measured: h.ninety_day.measured, retained: h.ninety_day.retained, rate: h.ninety_day.rate }, { measured: 5, retained: 4, rate: 0.8 });
+      // `cancellation` joined the record in pass two; none of these five has
+      // asked to cancel, so it counts nothing. The other three are unchanged.
       expect("revenue at risk", revenue, {
         renewal: { members: 1, monthly_fees: 80 },
         reengagement: { members: 1, monthly_fees: 100 },
         winback: { members: 1, monthly_fees: 70 },
+        cancellation: { members: 0, monthly_fees: 0 },
       });
       return { passed: problems.length === 0, detail: problems.length === 0 ? "every figure matches the hand count" : problems.join("; ") };
     },
@@ -305,7 +308,7 @@ export const healthGuards: Guard[] = [
         }
         if (/reason_themes|reasonThemes|ReasonThemes/.test(text)) problems.push(`${rel} names the summary`);
       }
-      for (const sub of ["shared", "renewal", "reengagement", "winback"]) {
+      for (const sub of ["shared", "renewal", "reengagement", "winback", "cancellation"]) {
         const dir = join(ROOT, "agents", "prompts", sub);
         for (const name of readdirSync(dir)) {
           if (/reason_themes|reasonThemes|\{\{\s*themes?\s*\}\}/.test(readFileSync(join(dir, name), "utf8"))) problems.push(`agents/prompts/${sub}/${name} references the summary`);

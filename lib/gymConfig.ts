@@ -56,6 +56,14 @@ export interface GymFields {
   cheaper_tier_name: string | null;
   /** Dollars a month, up to two decimal places. */
   cheaper_tier_price: number | null;
+  /**
+   * A membership freeze: the longest pause the gym allows, in weeks (1–26).
+   * Both or neither with the fee. Null → the gym offers no freeze, which is a
+   * different thing from a free one. Only the cancellation call can offer it.
+   */
+  freeze_max_weeks: number | null;
+  /** Dollars a week while frozen, 0–50. Zero is a free freeze and is valid. */
+  freeze_weekly_fee: number | null;
   /** Set exactly when `reengagement_perk` is "other": what the offer is, as a short noun ("protein shake"). */
   reengagement_other_label: string | null;
   /** Set exactly when `reengagement_perk` is "other": texted as a link, or booked by a person. */
@@ -185,10 +193,19 @@ export function parseOfferSchedule(value: unknown, gym: GymFields): FieldParse<O
 
 export type GymFieldKey = keyof GymFields;
 
-/** The fields a document can fill: everything but an "other" offer's name and delivery, which a person types. */
+/**
+ * The fields a document can fill: everything but an "other" offer's name and
+ * delivery, which a person types, and the freeze terms, which are set on the
+ * form (a document's suspension clause is read by a person, not the extractor).
+ */
 export type ExtractableFieldKey = Exclude<
   GymFieldKey,
-  "reengagement_other_label" | "reengagement_other_delivery" | "winback_other_label" | "winback_other_delivery"
+  | "reengagement_other_label"
+  | "reengagement_other_delivery"
+  | "winback_other_label"
+  | "winback_other_delivery"
+  | "freeze_max_weeks"
+  | "freeze_weekly_fee"
 >;
 
 export const GYM_FIELD_KEYS: GymFieldKey[] = [
@@ -203,6 +220,8 @@ export const GYM_FIELD_KEYS: GymFieldKey[] = [
   "winback_offer",
   "cheaper_tier_name",
   "cheaper_tier_price",
+  "freeze_max_weeks",
+  "freeze_weekly_fee",
   "reengagement_other_label",
   "reengagement_other_delivery",
   "winback_other_label",
@@ -218,6 +237,11 @@ export const RENEWAL_DISCOUNT_MIN = 1;
 export const RENEWAL_DISCOUNT_MAX = 50;
 export const TIER_PRICE_MAX = 500;
 export const MAX_OTHER_LOCATIONS = 10;
+/** Half a year is the longest pause a membership agreement plausibly allows. */
+export const FREEZE_WEEKS_MIN = 1;
+export const FREEZE_WEEKS_MAX = 26;
+/** A weekly holding fee. Above this it is a membership, not a freeze. */
+export const FREEZE_FEE_MAX = 50;
 
 const LIMITS = {
   gym_name: 80,
@@ -397,6 +421,27 @@ export const FIELD_SPECS: FieldSpec[] = [
     whenBlank: null,
     extraction:
       "The monthly price in dollars of that cheaper option, as a number (39 for \"$39 a month\"). If the document only gives a weekly or fortnightly price, return null — do not convert it.",
+  },
+  {
+    key: "freeze_max_weeks",
+    label: "Membership freeze — longest pause",
+    shortLabel: "freeze length",
+    kind: "integer",
+    required: false,
+    whenBlank:
+      "No freeze. Charlie never offers to pause a membership, and a member who has asked to cancel is called only if there is a cheaper membership to mention.",
+    extraction: "",
+    extract: false,
+  },
+  {
+    key: "freeze_weekly_fee",
+    label: "Freeze fee per week",
+    shortLabel: "freeze fee",
+    kind: "decimal",
+    required: false,
+    whenBlank: null,
+    extraction: "",
+    extract: false,
   },
   {
     key: "reengagement_other_label",
@@ -583,6 +628,37 @@ function parsePrice(value: unknown): FieldParse<number> {
   return { value };
 }
 
+function parseFreezeWeeks(value: unknown): FieldParse<number> {
+  if (isBlank(value)) return { value: null };
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return { value: null, error: "Enter the longest pause as a whole number of weeks, like 8." };
+  }
+  if (!Number.isInteger(value)) return { value: null, error: "Enter a whole number of weeks, like 8 — no decimals." };
+  if (value < FREEZE_WEEKS_MIN) {
+    return { value: null, error: `A freeze needs at least ${FREEZE_WEEKS_MIN} week. Leave this blank if there is no freeze.` };
+  }
+  if (value > FREEZE_WEEKS_MAX) {
+    return { value: null, error: `Enter ${FREEZE_WEEKS_MAX} weeks or fewer, or leave it blank.` };
+  }
+  return { value };
+}
+
+/** Zero is a free freeze, and a valid answer; blank is no freeze at all. */
+function parseFreezeFee(value: unknown): FieldParse<number> {
+  if (isBlank(value)) return { value: null };
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return { value: null, error: "Enter the weekly fee as a number, like 5 or 2.50 — 0 if the freeze is free." };
+  }
+  if (value < 0) return { value: null, error: "Enter 0 for a free freeze, or the weekly fee." };
+  if (value > FREEZE_FEE_MAX) {
+    return { value: null, error: `Enter a weekly fee of $${FREEZE_FEE_MAX} or less.` };
+  }
+  if (!hasAtMostTwoDecimals(value)) {
+    return { value: null, error: "Use two decimal places at most, like 2.50." };
+  }
+  return { value };
+}
+
 /**
  * Parses one field on its own. Used by `parseGymFields`, and by the extraction
  * sanitiser, which judges each extracted value separately. Cross-field rules —
@@ -612,6 +688,10 @@ export function parseGymField(key: GymFieldKey, value: unknown): FieldParse<GymF
       return parseText(value, { kind: "tier_name", max: LIMITS.tier_name, label: "Cheaper membership name" });
     case "cheaper_tier_price":
       return parsePrice(value);
+    case "freeze_max_weeks":
+      return parseFreezeWeeks(value);
+    case "freeze_weekly_fee":
+      return parseFreezeFee(value);
     case "reengagement_other_label":
     case "winback_other_label":
       return parseText(value, { kind: "offer_label", max: LIMITS.offer_label, label: "The offer" });
@@ -665,6 +745,16 @@ export function parseGymFields(
       errors.cheaper_tier_price = "Add the monthly price for this membership, or clear its name.";
     } else if (value.cheaper_tier_name === null && value.cheaper_tier_price !== null) {
       errors.cheaper_tier_name = "Add a name for this membership, or clear its price.";
+    }
+  }
+
+  // A freeze is its length and its fee, both or neither. A fee of 0 is a free
+  // freeze; a blank fee beside a length is a question nobody answered.
+  if (!errors.freeze_max_weeks && !errors.freeze_weekly_fee) {
+    if (value.freeze_max_weeks !== null && value.freeze_weekly_fee === null) {
+      errors.freeze_weekly_fee = "Add the weekly fee — 0 if the freeze is free — or clear the number of weeks.";
+    } else if (value.freeze_max_weeks === null && value.freeze_weekly_fee !== null) {
+      errors.freeze_max_weeks = "Add the longest pause in weeks, or clear the fee.";
     }
   }
 
@@ -745,6 +835,8 @@ export function emptyGymFields(): GymFields {
     winback_offer: null,
     cheaper_tier_name: null,
     cheaper_tier_price: null,
+    freeze_max_weeks: null,
+    freeze_weekly_fee: null,
     reengagement_other_label: null,
     reengagement_other_delivery: null,
     winback_other_label: null,
@@ -755,4 +847,9 @@ export function emptyGymFields(): GymFields {
 /** A cheaper tier counts only when both halves are present. */
 export function hasCheaperTier(gym: GymFields): boolean {
   return gym.cheaper_tier_name !== null && gym.cheaper_tier_price !== null;
+}
+
+/** A freeze counts only when both halves are present. A fee of 0 is a freeze; null is none. */
+export function hasFreeze(gym: GymFields): boolean {
+  return gym.freeze_max_weeks !== null && gym.freeze_weekly_fee !== null;
 }

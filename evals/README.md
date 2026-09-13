@@ -3,10 +3,11 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # all 73 guards + all fifteen conversations
+npm run evals            # all 80 guards + all thirty-one conversations
 npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
 npm run evals:extraction # the adversarial document through the real extraction model
+npx tsx scripts/snapshot-scenario-payloads.ts   # re-pin evals/payloads/scenarios.json after a deliberate payload change
 ```
 
 **Routing guards** (`guards.ts`) — 19 deterministic assertions over
@@ -70,9 +71,23 @@ safety model for gym setup:
   and scheduling, texting and extraction for it;
 - `gymEditGuards.ts` (2): PATCH updates and re-validates; POST still refuses to
   overwrite;
-- `cancellationGuards.ts` (3): the cancellation flag doesn't yet change who is
-  called, generated flags obey both exclusion rules, and the CSV column is
-  optional.
+- `cancellationGuards.ts`, as pass one left it (3): the cancellation flag
+  doesn't yet change who is called, generated flags obey both exclusion rules,
+  and the CSV column is optional.
+
+**Pass-two guards** — `cancellationGuards.ts` rewritten (10, of which 8 are
+new; details in `PASS_TWO_REPORT.md`). The pass-one tripwire is replaced by
+`cancellation-flip-is-narrow`: a flagged member is callable on the cancellation
+call and on nothing else, every other auto-renewer is refused exactly as
+before, do-not-contact holds, and a flagged member whose term has ended gets
+nothing rather than a winback. The rest pin that the call needs a freeze or a
+cheaper tier (either alone, both, or neither → not called), happens once,
+ignores the offer schedule and the habit guard while a winback call still
+obeys both, compiles to blocks that name only the configured weeks, fee, tier
+name and price, parses the freeze as both-or-neither with 0 a free freeze,
+and that every scenario payload matches `payloads/scenarios.json` byte for
+byte — the fifteen original payloads were compared against a snapshot taken
+before pass two touched anything, and held.
 
 **Extraction eval** (`extraction.ts`) — sends the adversarial price list to the
 real extraction model and runs its answer through the sanitiser. It needs
@@ -83,10 +98,25 @@ deterministic half: it doesn't depend on what the model does. The checks live in
 Five runs from 13 September 2026 are committed as
 `results/extraction-2026-09-13T*.json`; all five ignored the injected line.
 
-**Conversations** (`scenarios.ts`) — 15 simulated calls against the real
-ElevenLabs agents. Each is the brief's own verification list turned into a test:
-a fixture member whose situation the router reads, a scripted member persona, and
-pass conditions.
+**Conversations** (`scenarios.ts`) — 31 simulated calls against the real
+ElevenLabs agents. Fifteen are the brief's own verification list turned into
+tests for the first three agents; sixteen, added in pass two, are the
+cancellation agent's: the cancellation is never obstructed, the processing
+reassurance comes before any question, the reason is asked once, no
+justification is demanded, the first offer matches the reason, the ladder runs
+on unsuitability and stops on refusal (the one that matters most), an ambiguous
+decline is a refusal, a gym with only a cheaper tier or only a freeze offers
+exactly that, the terms are stated exactly, and the shared guardrails hold on
+the new agent. Each is a fixture member whose situation the router reads, a
+scripted member persona, and pass conditions.
+
+Three helpers were added for them, all local: `saysBefore` (an ordering between
+two things the agent says, judged by position), `firstOfferIs` (the first offer
+put on the table, not whether the other ever appears), and `onlyNumbersNear`
+(every number in an agent sentence about an offer, digits or words, is one the
+gym set). Their patterns were written before the agent had produced a
+transcript and are held to hand-written lines by a guard; a live run that
+exposes a false positive is reported, not fixed by relaxing the pattern.
 
 ## How a scenario is judged
 
@@ -140,7 +170,9 @@ where it failed. The failures are the useful part.
 | `17-51-28` | 19/19 | **13/15** | **conversation model changed** |
 | `17-54-47` | 20/20 | **13/15** | assertions pinned to real transcript lines |
 | `17-57-11` | 20/20 | **13/15** | judge conditions narrowed |
-| `17-59-57` | 20/20 | **15/15** | current |
+| `17-59-57` | 20/20 | **15/15** | the last run of the three-agent suite |
+| `2026-09-13T11-47-36` | 80/80 | **23/31** | pass two: the cancellation agent's first run. 13/15 on the unchanged agents (judge variance, a platform timeout); 10/16 on the new one, three of the six being a second offer after a refusal — see `PASS_TWO_REPORT.md` |
+| `2026-09-13T12-21-51` | 80/80 | **28/31** (1 inconclusive) | the ladder inverted — offers stop by default after any decline — and three suite errors corrected. 13/15 on the unchanged agents; 15/16 on the cancellation agent, the ladder 4/4, the miss a callback phrasing the pattern doesn't cover |
 
 **The score is not stable, and that matters more than the best number.** It moved
 between 11 and 15 across runs that changed nothing about the agents, because a

@@ -6,6 +6,8 @@ import {
   OFFER_PERIOD_LABEL,
   SCHEDULABLE_OFFER_LABEL,
   SCHEDULABLE_OFFERS,
+  hasCheaperTier,
+  hasFreeze,
   type GymFields,
   type OfferSchedule,
   type SchedulableOffer,
@@ -21,6 +23,12 @@ import type { Member } from "@/lib/types";
  * have we already rung them about this, did the last call work. Both halves have
  * to agree before a phone rings, and the answer is computed server-side from the
  * dataset and Supabase — never from anything the client sent.
+ *
+ * The cancellation call adds one gate that needs the gym's config rather than
+ * the database: a member who has asked to cancel is called only when the gym
+ * has a freeze or a cheaper tier to offer them. A call to someone who is
+ * leaving, with nothing to put on the table, only annoys — and the product's
+ * whole thesis is refusing calls that cost more than they return.
  */
 
 export interface Eligibility {
@@ -38,6 +46,7 @@ export interface Eligibility {
     | "not_due"
     | "cooldown"
     | "max_attempts"
+    | "nothing_to_offer"
     | null;
 }
 
@@ -62,16 +71,37 @@ const COOLDOWN_DAYS_AFTER_NO_ANSWER = 7;
  * fourth call would be running on undefined behaviour.
  */
 const MAX_ATTEMPTS = 3;
+/**
+ * You do not ring someone twice about their cancellation. One conversation
+ * about it, ever — counted on cancellation calls alone, so an earlier
+ * reengagement or winback conversation doesn't use it up.
+ */
+const CANCELLATION_MAX_ATTEMPTS = 1;
 
 function daysBetween(iso: string, asOf: Date): number {
   const then = new Date(iso).getTime();
   return Math.floor((asOf.getTime() - then) / 86_400_000);
 }
 
+/** What a gym can put on the table for a member who has asked to cancel. */
+export function cancellationOffers(gym: GymFields): { freeze: boolean; cheaperTier: boolean; any: boolean } {
+  const freeze = hasFreeze(gym);
+  const cheaperTier = hasCheaperTier(gym);
+  return { freeze, cheaperTier, any: freeze || cheaperTier };
+}
+
+/**
+ * `gym` is the config the call would speak for. It only matters to a
+ * cancellation routing: a gym with neither a freeze nor a cheaper tier has
+ * nothing to offer a member who is leaving, and doesn't call them. When the
+ * gym isn't known — a reader with no gym in scope — the gate isn't applied
+ * here; the call route always has the gym and applies it before dialling.
+ */
 export function evaluateEligibility(
   member: Member,
   history: CallHistory = NO_HISTORY,
-  asOf: Date = today()
+  asOf: Date = today(),
+  gym?: GymFields | null
 ): Eligibility {
   const routing = routeMember(member, asOf);
   const base = {
@@ -88,7 +118,7 @@ export function evaluateEligibility(
       allowed: false,
       blockedBy: "do_not_contact",
       blockedReason:
-        "Asked not to be called again. Permanent, and it holds across all three call types.",
+        "Asked not to be called again. Permanent, and it holds across every call type.",
     };
   }
 
@@ -108,6 +138,33 @@ export function evaluateEligibility(
       blockedBy: "not_due",
       blockedReason: routing.excluded_reason,
     };
+  }
+
+  if (routing.call_type === "cancellation") {
+    if (gym && !cancellationOffers(gym).any) {
+      return {
+        ...base,
+        allowed: false,
+        blockedBy: "nothing_to_offer",
+        blockedReason:
+          `${gym.gym_name} has neither a freeze nor a cheaper membership to offer, so there is nothing to ` +
+          "put on the table. A call to someone who is leaving, with nothing to offer them, only annoys.",
+      };
+    }
+    if (history.cancellationConversations >= CANCELLATION_MAX_ATTEMPTS) {
+      return {
+        ...base,
+        allowed: false,
+        blockedBy: "max_attempts",
+        blockedReason: "Already spoken to about their cancellation. Nobody is rung twice about leaving.",
+      };
+    }
+    // Not the conversation cooldown: that exists for a trigger that fires
+    // again every day, and this one fires once. A dial nobody answered still
+    // waits its week before a redial.
+    const redial = noAnswerBlock(history, asOf);
+    if (redial) return { ...base, allowed: false, blockedBy: "cooldown", blockedReason: redial };
+    return { ...base, allowed: true, blockedBy: null, blockedReason: null };
   }
 
   if (history.attemptNumber > MAX_ATTEMPTS) {
@@ -141,14 +198,17 @@ function cooldownBlock(history: CallHistory, asOf: Date): string | null {
     return null;
   }
 
-  if (history.lastCallAt) {
-    const since = daysBetween(history.lastCallAt, asOf);
-    if (since < COOLDOWN_DAYS_AFTER_NO_ANSWER) {
-      const wait = COOLDOWN_DAYS_AFTER_NO_ANSWER - since;
-      return `Dialled ${since} day${since === 1 ? "" : "s"} ago with no answer. Trying again in ${wait} day${wait === 1 ? "" : "s"}.`;
-    }
-  }
+  return noAnswerBlock(history, asOf);
+}
 
+/** The redial wait after a dial nobody answered — the only cooldown a cancellation call observes. */
+function noAnswerBlock(history: CallHistory, asOf: Date): string | null {
+  if (!history.lastCallAt) return null;
+  const since = daysBetween(history.lastCallAt, asOf);
+  if (since < COOLDOWN_DAYS_AFTER_NO_ANSWER) {
+    const wait = COOLDOWN_DAYS_AFTER_NO_ANSWER - since;
+    return `Dialled ${since} day${since === 1 ? "" : "s"} ago with no answer. Trying again in ${wait} day${wait === 1 ? "" : "s"}.`;
+  }
   return null;
 }
 
@@ -190,8 +250,13 @@ function offerLabel(offer: SchedulableOffer): string {
   return SCHEDULABLE_OFFER_LABEL[offer];
 }
 
-/** The schedule's key for an offer a compiled block grants on a call type. */
+/**
+ * The schedule's key for an offer a compiled block grants on a call type. A
+ * freeze has no key: it isn't scheduled, because the only call that carries it
+ * is the one the schedule doesn't apply to.
+ */
 export function scheduleKey(offer: OfferKind, callType: CallType): SchedulableOffer | null {
+  if (offer === "freeze") return null;
   if (offer !== "other") return offer;
   return callType === "reengagement" ? "reengagement_other" : callType === "winback" ? "winback_other" : null;
 }
@@ -205,6 +270,14 @@ export function evaluateOffers(
 ): OfferEligibility {
   const withheld: OfferEligibility["withheld"] = {};
   const { ABSENCE_DAYS, HABIT_MIN_RATE } = ROUTING_THRESHOLDS;
+
+  // Neither gate applies to a cancellation call, and that is a decision rather
+  // than an omission. The schedule's cooldown exists so a member isn't offered
+  // the same thing every month; a member who has asked to cancel is on their
+  // way out and gets this one call. The habit gate exists to tell a routine
+  // from sporadic attendance, which says nothing about someone actively
+  // leaving. Whatever the gym configured is on the table, once.
+  if (callType === "cancellation") return { withheld };
 
   if (ABSENCE_CALLS.has(callType)) {
     const lapsed = member.contract_status === "expired" || daysUntil(member.expiry_date, asOf) < 0;
@@ -277,4 +350,5 @@ export const COOLDOWN_RULES = {
   COOLDOWN_DAYS_AFTER_CONVERSATION,
   COOLDOWN_DAYS_AFTER_NO_ANSWER,
   MAX_ATTEMPTS,
+  CANCELLATION_MAX_ATTEMPTS,
 };

@@ -60,21 +60,22 @@ Two kinds of product already exist in this space, but neither does what the excl
 
 **Executors** — Replify runs outbound retention calls, Keepme's Antares runs text, chat and email follow-up. Both carry out outreach to whoever the predictor (or the sales funnel) flags. Neither has a reason to say no to a call.
 
-Point either category at this dataset and both would ring all 148 auto-renewing members, hardest at the 72 who are two weeks from a renewal date — because a high churn score plus an imminent renewal date is exactly what a predictor is built to flag as urgent. That's the call that costs the gym a paying member.
+Point either category at this dataset and both would ring all 145 auto-renewing members, hardest at the 67 who are two weeks from a renewal date — because a high churn score plus an imminent renewal date is exactly what a predictor is built to flag as urgent. That's the call that costs the gym a paying member.
 
 The second difference is what gets handed back. A churn score is a number a front-desk manager can't argue with. This router hands back a sentence — *"never a regular, a quiet month isn't a signal"* — that they can. An exclusion nobody can audit is a black box wearing a decision; a sentence is a claim the gym owner can check against what they actually know about that member.
 
 ## What it does
 
-Three call types, three agents, one shared set of guardrails.
+Four call types, four agents, one shared set of guardrails.
 
 | | Member state | Trigger | The job |
 |---|---|---|---|
 | **Renewal** | Training, fixed term lapsing | 14 days before expiry | Make sure they know it won't renew itself. Make renewing easy. |
 | **Reengagement** | Membership live, stopped coming | 28 days absent, or absent with the term nearly up | Get them back in the door once. Don't sell. |
 | **Winback** | Already lapsed | ~1, ~3 and ~6 months after expiry | Find out why they stopped. |
+| **Cancellation** | Has asked to cancel | The request itself, once, and only if the gym has a freeze or a cheaper tier to offer | Check in before it goes ahead. One alternative, at most two, and never a gate on the exit. |
 
-On top of those triggers sits an eligibility gate that reads call history: do-not-contact is permanent and holds across all three call types, a member gets at most three conversations, and after a conversation that changed nothing the member is left alone for three months — unless the call actually got them in, in which case the normal trigger resumes immediately.
+On top of those triggers sits an eligibility gate that reads call history: do-not-contact is permanent and holds across every call type, a member gets at most three conversations (one, ever, about their cancellation), and after a conversation that changed nothing the member is left alone for three months — unless the call actually got them in, in which case the normal trigger resumes immediately.
 
 Every decision, including every refusal, comes back as a sentence a front-desk manager can read:
 
@@ -108,9 +109,9 @@ npm run dev                    # http://localhost:3000
 ```
 
 ```bash
-npm run agents:sync            # create/update the three ElevenLabs agents
-npm run agents:diff            # what a sync would change, without doing it
-npm run evals                  # 53 guards + 15 simulated calls
+npm run agents:sync            # create/update the four ElevenLabs agents
+npm run agents:diff            # compare the repo against ElevenLabs, agent by agent, without writing
+npm run evals                  # 80 guards + 31 simulated calls
 npm run evals:guards           # just the deterministic half: no model, no network
 npm run evals:extraction       # the adversarial price list through the real extraction model
 npm run data:build             # regenerate the synthetic dataset
@@ -132,7 +133,7 @@ Before the first call works end to end, three things have to be done by hand and
 
 **At call time, TypeScript (`lib/`).** `callType.ts` decides which agent a member is due for. `eligibility.ts` adds what only the database knows. `compileVariables.ts` turns raw facts into the plain-English strings the agent reads aloud. `economics.ts` prices the whole thing.
 
-**The agents (`agents/prompts/`, `scripts/`).** Three ElevenLabs agents whose prompts, model settings, eleven data-collection fields and three evaluation criteria all live in this repo and are pushed by `scripts/sync-agents.mjs`. Anything edited in the ElevenLabs dashboard is overwritten on the next sync, on purpose.
+**The agents (`agents/prompts/`, `scripts/`).** Four ElevenLabs agents whose prompts, model settings, eleven data-collection fields and three evaluation criteria all live in this repo and are pushed by `scripts/sync-agents.mjs`. Anything edited in the ElevenLabs dashboard is overwritten on the next sync, on purpose.
 
 **Back again (`app/api/webhook`).** The post-call webhook verifies an HMAC signature, writes eleven typed fields plus the three criteria results plus the raw analysis object, and marks a dial that never connected as failed rather than leaving it "initiated" forever.
 
@@ -142,11 +143,11 @@ Before the first call works end to end, three things have to be done by hand and
 
 ## Decisions, and why
 
-### Three narrow agents, not one with a `call_type` branch
+### Four narrow agents, not one with a `call_type` branch
 
-A single prompt carrying `if renewal … if winback …` hands the model three scripts and one call, and it drifts: a winback conversation slides into renewal language the moment the member mentions money, because the renewal branch is sitting right there in its context. Three narrow prompts can't drift into each other.
+A single prompt carrying `if renewal … if winback …` hands the model four scripts and one call, and it drifts: a winback conversation slides into renewal language the moment the member mentions money, because the renewal branch is sitting right there in its context. Narrow prompts can't drift into each other.
 
-The cost is that four sections — Personality, Tone, Guardrails, Tools — appear three times. We pay for it by storing each one **once** in `agents/prompts/shared/` and assembling the prompts at sync time. Byte-identity across the three agents is therefore a property of the build rather than a discipline someone has to remember when they fix a guardrail at 2am, and the sync script fails loudly if a per-agent copy of a shared section ever appears.
+The cost is that four sections — Personality, Tone, Guardrails, Tools — appear four times. We pay for it by storing each one **once** in `agents/prompts/shared/` and assembling the prompts at sync time. Byte-identity across the four agents is therefore a property of the build rather than a discipline someone has to remember when they fix a guardrail at 2am, and the sync script fails loudly if a per-agent copy of a shared section ever appears. The fourth agent, `charlie-cancellation`, was added in pass two without a byte of the other three changing, and `agents:diff` now compares each agent against what ElevenLabs actually holds, so that can be checked before a sync rather than assumed.
 
 ### Prompt variables are compiled plain English, not conditionals in the prompt
 
@@ -166,9 +167,11 @@ This is a deliberate trade against raw accuracy. A front-desk manager has to be 
 
 It also makes the exclusions auditable, which matters more than the inclusions. "We didn't call these 148 people, and here's the rule" is a claim a gym owner can check.
 
-### Auto-renewing members are never called
+### Auto-renewing members are never called, with one exception inside the rule
 
-Covered above, and it's checked before any other branch so nothing downstream can undo it, enforced server-side in `/api/call` so a hand-rolled POST gets a 403, and asserted by two of the nineteen routing guards.
+Covered above, and it's checked before any other branch so nothing downstream can undo it, enforced server-side in `/api/call` so a hand-rolled POST gets a 403, and asserted by the routing guards.
+
+The one exception lives *inside* that branch, not before it. An auto-renewing member who has already asked to cancel has ended the membership themselves, so the call is no longer the thing that could — the reason for the exclusion is void, and only for them. They are routed to the cancellation call and nothing else: never renewal, reengagement or winback. That call happens once, only when the gym has a freeze or a cheaper tier to put on the table, and its agent never obstructs the cancellation — it says the request is being processed before asking anything, asks why once, makes at most two offers and only a second when the first was found unsuitable rather than refused, and confirms the cancellation is going ahead. A gym with neither offer doesn't place it: a call to someone who is leaving, with nothing to offer them, only annoys. All of that is guarded, and the retention-gauntlet failure is what the cancellation scenarios exist to catch.
 
 ### A document fills typed fields; it never writes a sentence
 
@@ -198,21 +201,21 @@ Two suites, one runner, both committed: [`evals/`](evals/README.md), rendered at
 
 **19 routing guards.** Deterministic assertions over the router, the eligibility gate, call-history summarising and the variable compiler. No model, no network, milliseconds. They cover the auto-renew rule, the three winback windows *and the silence between them*, do-not-contact holding across call types, a no-answer not counting as a conversation, and the gym switch changing what the agent may offer.
 
-**33 onboarding guards** run in the same runner, added with gym setup and member import. That makes 53 in all, with the original 20 unchanged.
+**33 onboarding guards** run in the same runner, added with gym setup and member import. Pass one added 20 more (gym health, offer schedules, the offer long tail, gym edits, cancellation requests) and pass two rewrote one and added 8 — the flip of the auto-renew exclusion for members who asked to cancel is asserted to be narrow, the cancellation call needs something to offer and happens once, the offer schedule and habit guard leave it alone, its blocks name only the configured terms, and every scenario payload is pinned to a committed snapshot. That makes 80 in all, with the original 20 unchanged.
 
 - **Twenty-one pin the config path.** The extraction schema stays within the API's structured-output limits, and three real PDFs keep their facts while the injected block in one of them reaches nothing. The two seed gyms still compile to their signed-off text byte for byte, and every combination of offers compiles to a block the validator accepts. The validator refuses appended instructions, numbers or offers the config doesn't hold, and blocks that grant an offer and then deny it. Invisible combining marks, look-alike letters and offer synonyms can't get into a text field, and a tier name can't smuggle in an offer. A previous call's summary can't plant an instruction in the next call, and an "incentive" text carries only the offer the gym grants. A blank quiet-times field still produces an agent that admits it doesn't know, and the adversarial price list changes nothing the agent hears.
 - **Twelve pin the member data.** A renewal is a new contract row rather than a stale queue entry, and contract rows that disagree about auto-renew resolve to not calling. A blank auto-renew cell is refused rather than defaulted, and a missing renewal fee stays unknown. A queue entry made before the latest import can't produce a call, and an uploaded member can't be called under another gym's name. Uploaded members are never measured against the synthetic dataset's frozen date. A synthetic number is never dialled, whatever is set.
 
-**15 simulated conversations** against the real agents, via ElevenLabs' agent-testing API. Each is one of the brief's verification behaviours, with local regex conditions checked in this repo **and** one plain-English condition handed to a judge model. Both halves must pass. Ordering questions — *did it state the price before being asked*, *did it raise the expiry before they agreed to come in* — are never delegated to the judge, because a regex settles them exactly and for free.
+**31 simulated conversations** against the real agents, via ElevenLabs' agent-testing API. Fifteen are the brief's verification behaviours for the first three agents; sixteen are the cancellation agent's, and the one that matters most there is the ladder stopping on a flat refusal. Each has local regex conditions checked in this repo **and** one plain-English condition handed to a judge model. Both halves must pass. Ordering questions — *did it state the price before being asked*, *did it say the cancellation was being processed before asking why* — are never delegated to the judge, because a regex settles them exactly and for free.
 
 Scenarios build their variables with `compileVariables`, the same compiler the live route uses, and fail loudly if a fixture doesn't route to the call type it claims. The suite can't drift away from the live path.
 
 ### The numbers, and the runs that failed
 
-Nine runs, all committed with transcripts. Latest: **20/20 guards, 15/15 conversations.** That run predates onboarding; the guards are 53/53 now, and the fifteen scenario payloads are byte-identical to what that run sent.
+Eleven runs, all committed with transcripts. Nine were the original suite. The tenth was the first with the cancellation agent: **23/31**, where three of the cancellation agent's six failures were the same real defect — a second offer after a flat "no thanks" — and the prompt treated refusal as the exception to offering rather than the rule. The eleventh, after that rule was inverted and the suite's three errors corrected: **80/80 guards, 28/31 conversations** — 13/15 on the three unchanged agents (a platform timeout, now labelled inconclusive, and a judge verdict whose own rationale describes a pass) and **15/16 on the cancellation agent**, with the four ladder scenarios passing and the one miss a phrasing the suite's callback pattern doesn't cover. The fifteen original payloads are byte-identical to what the 15/15 run sent — a guard pins them to a committed snapshot. The full account, transcript by transcript, is in [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
 
 ```
-10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15
+10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15 -> 23/31 -> 28/31
 ```
 
 **The conversation score isn't stable, and saying so is more useful than quoting the best number.** It moved between 11 and 15 across runs that changed nothing about the agents, because the simulated member is a model and so is the judge. The deterministic half sat at 19/19 or 20/20 throughout, which is precisely why it exists: the spine of the measurement doesn't wobble.
@@ -246,7 +249,7 @@ Written to be read by someone looking for the holes.
 ### The data is synthetic, and that limits what we can claim
 
 - **500 generated members, seed 42.** No real gym's data has touched this. The router is validated in structure — every branch fires, every window has a population, the exclusions hold — and **not** in accuracy. We can't tell you what share of the members it calls would have actually churned.
-- **The dataset is built to exercise the product.** Guaranteed sub-slices put 40 members inside the renewal window and 30 in each winback window, because otherwise two of the three call types couldn't be demonstrated at all. A real gym's distribution would look nothing like this, and the 30% auto-renew share is a modelling choice, not a finding.
+- **The dataset is built to exercise the product.** Guaranteed sub-slices put 40 members inside the renewal window, and lapsed members are spread across the last six months so each winback window holds 13–15, because otherwise two of the three call types couldn't be demonstrated at all. A real gym's distribution would look nothing like this, and the 30% auto-renew share is a modelling choice, not a finding.
 - **The synthetic dataset's clock is frozen at 2026-09-12.** That's a property of the data, not of the design. Every generated date is relative to that instant, so the app reads it back from `data/dataset_meta.json` — otherwise a member twelve days from expiry quietly lapses a fortnight later and the demo's renewal queue empties out. Nothing else in the architecture needs a frozen date: routing takes "today" as an argument, and `DATASET_CLOCK=live` measures from the wall clock. A gym's uploaded members should always run live, and the nightly recompute refuses to measure them against the frozen date. Re-run `npm run data:build` to move the demo's date.
 - **Phone numbers are Faker output** in six inconsistent formats and belong to nobody. Every call and text goes to one verified number via `CALL_OVERRIDE_NUMBER`.
 
@@ -256,7 +259,8 @@ Written to be read by someone looking for the holes.
 - **Onboarding has been exercised against the real project, not against production traffic.** On 13 September 2026 the three onboarding migrations were applied to the Supabase project, and `db:verify`'s 30 checks passed against it inside a rolled-back transaction. Saving a gym and a full CSV import passed through PostgREST, and the test data was then deleted. On the PR preview, the nightly recompute ran, and three real PDFs went through the upload route, the real model and the sanitiser. The adversarial extraction eval has run five times against the real model, and every run ignored the injected line. No Word document has been through the reader.
 - **Onboarding writes are unauthenticated, and that risk is accepted for the demo.** There is no login anywhere in the app. Saving a gym, editing one (`PATCH /api/gyms/[gymId]`) and importing members are refused in code until a deployment sets `ONBOARDING_WRITES=enabled`, and for pass one that is to be set on Vercel for Production and Preview so onboarding can be demoed on the live URL — without deployment protection in front. So anyone who can reach the URL can create or edit a gym's offers and upload member data, including which members are on auto-renew. Every write is still parsed, compiled and validated, so what can be saved is no looser than before; who can save it is. Real auth, or Vercel's deployment protection, is what closes this. Document extraction runs for anyone once `ANTHROPIC_API_KEY` is set. It writes nothing, but it spends the key.
 - **Gym edits aren't versioned.** A PATCH replaces the row; the previous config isn't kept, and a call record stores the gym's id and the offers its block granted, not the full config it was compiled from.
-- **Cancellation requests are shown, not acted on.** `cancellation_requested` is stored, generated for 25 synthetic members and listed on the dashboard, but an auto-renewing member who has asked to cancel is still never called, and a guard pins that. The path for them, and the freeze offer, are pass two.
+- **The cancellation call is judged against one gym at a time.** The queue and the intelligence page apply its "anything to offer?" gate against the default gym; the call route applies it against whichever gym the operator picked. Switching the dashboard to a gym with neither a freeze nor a cheaper tier turns a due cancellation call into a refusal at the button, which is honest but is a place the screen and the endpoint can read differently. A member whose cancellation request is stale — withdrawn at the desk but still in the last export — is called once; the CSV import clears a request whenever the column is absent, which is the safe direction.
+- **The freeze is set on the form, not read from a document.** The extractor doesn't fill the freeze fields, even though a membership agreement's suspension clause states them, because a wrong pause length or fee is a term the gym has to honour; a person types them.
 - **No voicemail detection or message.** A call that reaches an answering machine is recorded as a completed call with `reached_member = false` and nothing else happens. The ElevenLabs voicemail tool isn't configured.
 - **No automatic dialling.** A nightly job recomputes and records who is due, but a human presses "Call now", and the call route re-reads the member and re-checks eligibility at that moment. That keeps a person in the loop, which is right for a demo and arguably right for a first deployment, but it isn't automation, and calling-hours rules aren't enforced anywhere.
 - **No live push to the browser.** A call sitting at "initiated" doesn't flip to "completed" on its own; there's a refresh button. Real-time subscriptions were deferred rather than half-built.
@@ -273,7 +277,7 @@ Written to be read by someone looking for the holes.
 - **The live clock reads today's date in UTC.** For an Australian gym before 10am, "today" is still yesterday: a same-morning check-in counts as zero days ago, but an expiry date can be a day early. A gym timezone setting would fix it; there isn't one.
 - **The dashboard's queue reads call history in one request**, so past the database API's row limit (1,000 by default) it counts only the newest call records. The call route reads each member's history separately at dial time, so do-not-contact and the cooldown are always enforced before a phone rings.
 - **Free text is Latin script only, and hours use a fixed vocabulary** of days and times. A gym name in another script, or hours written in words the list doesn't have, is refused with a message saying what to write. That false-positive cost was chosen over a PDF being able to write the agent's guardrails.
-- **Gym-health trends describe the synthetic generator as much as a gym.** Lapsed members exist only in the three winback windows, so monthly churn is lumpy, and every lapsed member was generated with at least 120 days of tenure, so 90-day retention reads 100%. Check-in hours are drawn uniformly, so the busy-hours grid is flat. A member who left before an export's history begins can't be counted as lost by anyone. On real uploaded data the same functions run on real dates.
+- **Gym-health trends describe the synthetic generator as much as a gym.** Lapses are spread evenly, so monthly churn (about 4%) is smoother than a real gym's; half of lapsed members were set to leave before their 120-day mark, which is what puts 90-day retention at 86%; and the busy-hours shape is a drawn weekday/weekend profile, not observed behaviour. A member who left before an export's history begins can't be counted as lost by anyone. On real uploaded data the same functions run on real dates.
 - **The themed summary of why members left is a model's grouping.** The nightly recompute sends up to 200 recent `reason_detail` sentences to `claude-haiku-4-5` and stores themes with counts; the counts are re-derived from the statements the model assigns, but which statements share a theme is its judgement. It needs ten statements, runs only at night, and never reaches a prompt.
 - **Offer cooldowns can't tell which of two offers was made.** A call analysis records that an offer was made, not which, so a winback block that granted a PT session and a cheaper plan spends both; a call record from before `offers_available` spends every offer its call type can carry. Both err towards a longer cooldown. "Never" in the offer schedule switches an offer off; there is no lifetime cap.
 - **The `sleeping_dog` cohort's `action` and `contact` fields are stale descriptive text.** They say "do not contact," which was keyed on dormancy; the exclusion is now keyed on contract type. The dashboard renders the derived routing instead, so nothing reads them, but they're wrong where they sit.
@@ -307,9 +311,9 @@ pipeline/        synthetic data generator + the cohort router (Python)
 lib/             routing, eligibility, the variable compiler, economics
                  gym config, the incentives registry and its validator, member data
 lib/extraction/  document reading, the extraction call, the sanitiser that checks it
-agents/prompts/  the three system prompts; shared sections stored once
+agents/prompts/  the four system prompts; shared sections stored once
 scripts/         sync-agents.mjs pushes agent config; agentConfig.mjs is its source of truth
-evals/           53 guards, 15 simulated calls, the adversarial document, every run committed
+evals/           80 guards, 31 simulated calls, the adversarial document, every run committed
 app/             dashboard, intelligence, evals page, onboarding, API routes, texted-link landings
 supabase/        migrations for call_records, gyms, member data and queue runs
 docs/            architecture diagram

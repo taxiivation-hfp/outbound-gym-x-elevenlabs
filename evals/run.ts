@@ -59,6 +59,7 @@ const AGENT_IDS: Record<string, string | undefined> = {
   renewal: process.env.ELEVENLABS_AGENT_ID_RENEWAL,
   reengagement: process.env.ELEVENLABS_AGENT_ID_REENGAGEMENT,
   winback: process.env.ELEVENLABS_AGENT_ID_WINBACK,
+  cancellation: process.env.ELEVENLABS_AGENT_ID_CANCELLATION,
 };
 
 // --- args -------------------------------------------------------------------
@@ -90,6 +91,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // --- tests ------------------------------------------------------------------
 
 const TEST_NAME_PREFIX = "charlie-eval";
+const INVOCATION_TIMEOUT_MINUTES = 20;
 
 function testName(scenario: Scenario): string {
   return `${TEST_NAME_PREFIX}/${scenario.id}`;
@@ -176,7 +178,9 @@ async function runAgentTests(agentId: string, testIds: string[]): Promise<Invoca
     tests: testIds.map((test_id) => ({ test_id })),
   });
 
-  const deadline = Date.now() + 10 * 60 * 1000;
+  // The cancellation agent carries the largest group (sixteen scenarios), and
+  // the platform runs an invocation's tests with limited concurrency.
+  const deadline = Date.now() + INVOCATION_TIMEOUT_MINUTES * 60 * 1000;
   let current = invocation;
   while (Date.now() < deadline) {
     const pending = current.test_runs.filter((r) => r.status === "pending").length;
@@ -185,7 +189,7 @@ async function runAgentTests(agentId: string, testIds: string[]): Promise<Invoca
     await sleep(5000);
     current = await call<Invocation>("GET", `/convai/test-invocations/${current.id}`);
   }
-  throw new Error(`invocation ${current.id} did not finish within ten minutes`);
+  throw new Error(`invocation ${current.id} did not finish within ${INVOCATION_TIMEOUT_MINUTES} minutes`);
 }
 
 function toTurns(run: TestRun): Turn[] {
@@ -204,6 +208,14 @@ interface ScenarioResult {
   gym_id: string;
   why: string;
   passed: boolean;
+  /**
+   * Not passed, but not the agent's failure either: the platform cut the
+   * conversation off (a judge timeout, or a local check that never got the
+   * turn it needed). Counted as a failure in the totals — a truncated call is
+   * no evidence — and labelled so a reader doesn't chase a behaviour that
+   * wasn't there.
+   */
+  inconclusive: boolean;
   local: AssertionResult[];
   llm: { conditions: string[]; result: string | null; rationale: string | null; passed: boolean };
   turns: Turn[];
@@ -217,6 +229,8 @@ interface RunFile {
   conversations: {
     passed: number;
     total: number;
+    /** Of the failures, how many the platform cut off before they could be judged. */
+    inconclusive: number;
     by_agent: Record<string, { passed: number; total: number }>;
     results: ScenarioResult[];
   };
@@ -246,6 +260,7 @@ function summariseScenario(scenario: Scenario, run: TestRun | undefined): Scenar
     return {
       ...base,
       passed: false,
+      inconclusive: false,
       local: [],
       llm: { conditions: scenario.llm, result: null, rationale: null, passed: false },
       turns: [],
@@ -258,10 +273,16 @@ function summariseScenario(scenario: Scenario, run: TestRun | undefined): Scenar
   const judgeResult = run.condition_result?.result ?? (run.status === "passed" ? "success" : "failure");
   const rationale = normaliseRationale(run.condition_result?.rationale);
   const llmPassed = judgeResult === "success";
+  const passed = local.every((l) => l.passed) && llmPassed;
+  // The platform's own words for a conversation it cut off, or a local check
+  // that reported the same shape. Only a non-pass can be inconclusive.
+  const truncated = /timed out/i.test(rationale ?? "") || local.some((l) => l.inconclusive);
+  const behaviourFailed = local.some((l) => !l.passed && !l.inconclusive) || (!llmPassed && !/timed out/i.test(rationale ?? ""));
 
   return {
     ...base,
-    passed: local.every((l) => l.passed) && llmPassed,
+    passed,
+    inconclusive: !passed && truncated && !behaviourFailed,
     local,
     llm: {
       conditions: scenario.llm,
@@ -290,7 +311,8 @@ function markdown(file: RunFile): string {
   lines.push("");
   lines.push(
     `**Routing guards: ${file.guards.passed}/${file.guards.total}.** ` +
-      `**Conversations: ${file.conversations.passed}/${file.conversations.total}.**`
+      `**Conversations: ${file.conversations.passed}/${file.conversations.total}.**` +
+      (file.conversations.inconclusive > 0 ? ` ${file.conversations.inconclusive} of the rest inconclusive — cut off by the platform before they could be judged.` : "")
   );
   lines.push("");
   lines.push("## Routing guards");
@@ -304,14 +326,14 @@ function markdown(file: RunFile): string {
   lines.push("## Conversations");
   lines.push("");
   for (const r of file.conversations.results) {
-    lines.push(`### ${r.passed ? "pass" : "**FAIL**"} — ${r.name}`);
+    lines.push(`### ${r.passed ? "pass" : r.inconclusive ? "**INCONCLUSIVE**" : "**FAIL**"} — ${r.name}`);
     lines.push("");
     lines.push(`\`${r.id}\` · ${r.call_type} agent · ${r.gym_id}${r.brief_item ? ` · brief item ${r.brief_item}` : ""}`);
     lines.push("");
     lines.push(r.why);
     lines.push("");
     if (r.error) lines.push(`- error: ${r.error}`);
-    for (const l of r.local) lines.push(`- ${l.passed ? "pass" : "**FAIL**"} (local) ${l.name} — ${l.detail}`);
+    for (const l of r.local) lines.push(`- ${l.passed ? "pass" : l.inconclusive ? "**inconclusive**" : "**FAIL**"} (local) ${l.name} — ${l.detail}`);
     lines.push(
       `- ${r.llm.passed ? "pass" : "**FAIL**"} (judge) ${r.llm.conditions.join(" / ")}` +
         (r.llm.rationale ? ` — ${r.llm.rationale}` : "")
@@ -373,9 +395,9 @@ async function main() {
       for (const scenario of group) {
         const result = summariseScenario(scenario, runByTestId.get(testIdByScenario.get(scenario.id)!));
         results.push(result);
-        console.log(`    ${result.passed ? "pass" : "FAIL"}  ${result.name}`);
+        console.log(`    ${result.passed ? "pass" : result.inconclusive ? "INCONCLUSIVE" : "FAIL"}  ${result.name}`);
         for (const l of result.local.filter((x) => !x.passed)) {
-          console.log(`          local: ${l.name} — ${l.detail}`);
+          console.log(`          local${l.inconclusive ? " (inconclusive)" : ""}: ${l.name} — ${l.detail}`);
         }
         if (!result.llm.passed) {
           console.log(`          judge: ${result.llm.rationale ?? result.llm.result}`);
@@ -398,6 +420,7 @@ async function main() {
     conversations: {
       passed: results.filter((r) => r.passed).length,
       total: results.length,
+      inconclusive: results.filter((r) => r.inconclusive).length,
       by_agent: byAgentCounts,
       results,
     },
@@ -406,7 +429,8 @@ async function main() {
   if (!GUARDS_ONLY) writeResults(file);
 
   console.log(
-    `\nGuards ${guardsPassed}/${guards.length} · Conversations ${file.conversations.passed}/${file.conversations.total}`
+    `\nGuards ${guardsPassed}/${guards.length} · Conversations ${file.conversations.passed}/${file.conversations.total}` +
+      (file.conversations.inconclusive > 0 ? ` (${file.conversations.inconclusive} inconclusive: cut off by the platform)` : "")
   );
   if (!GUARDS_ONLY) console.log(`Written to evals/results/latest.json and latest.md`);
 

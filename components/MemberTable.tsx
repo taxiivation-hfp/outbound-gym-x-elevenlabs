@@ -22,6 +22,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: "renewal", label: "Renewal" },
   { key: "reengagement", label: "Reengagement" },
   { key: "winback", label: "Winback" },
+  { key: "cancellation", label: "Cancellation" },
   { key: "excluded", label: "Not called" },
   { key: "auto_renew", label: "Auto-renew" },
 ];

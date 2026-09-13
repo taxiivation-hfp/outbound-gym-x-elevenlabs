@@ -86,6 +86,40 @@ by pull request, so `main`'s production deploy carries them. Status:
 
 ---
 
+## 0b. Pass two — the fourth agent and the exclusion flip
+
+The `pass-two` branch; the report is [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
+A member who has asked to cancel is now called once, on `charlie-cancellation`,
+with a freeze or a cheaper tier to offer, and the cancellation goes ahead
+regardless. Status:
+
+1. **Done on 13 September 2026:**
+   `supabase/migrations/20260915040000_freeze_and_cancellation_call.sql` was
+   applied to the Supabase project through the Management API, twice (it is
+   idempotent). Read back afterwards: `gyms.freeze_max_weeks` (integer) and
+   `gyms.freeze_weekly_fee` (numeric(5,2)) exist, `gyms_freeze_complete` is
+   stored with the exact bounds, and `queue_run_entries_call_type_check` now
+   lists `cancellation`. A rolled-back block then stored a paid and a free
+   freeze, had 27 weeks, weeks-without-a-fee and $51 refused, stored a
+   cancellation entry and had `upsell` refused. Nothing was left behind, and
+   both seed gyms are unchanged. For another project, apply it in order after
+   the pass-one migrations (`npm run db:verify`).
+2. **Synced on 13 September 2026, twice.** `charlie-cancellation` is
+   `agent_1601m2d9fhg1fx2vft4skxneahkm`, in `.env.local` as
+   `ELEVENLABS_AGENT_ID_CANCELLATION` and nowhere else — setting it on Vercel
+   is yours to do. The first live run showed the agent making a second offer
+   after a flat "no thanks"; the Goal's ladder rule was inverted (offers stop
+   by default after any decline) and the second run passed all four ladder
+   scenarios. Until the deployment has the variable, `/api/call` refuses
+   every cancellation call with a 500 naming it. Listen to the first real
+   cancellation call: a simulated member says exactly what its persona says.
+3. **Give Southbank a freeze if you want the ladder on the live URL.** The seed
+   is unchanged (Southbank has only the cheaper tier, so its flagged members get
+   that one offer); the eval scenarios add the freeze through a config override.
+   Edit the gym at `/onboarding/southbank/edit` once `ONBOARDING_WRITES` is on.
+
+---
+
 ## 1. Things only you can do
 
 > **The order of 1a and 1b matters.** The repository is currently private and has
@@ -146,6 +180,7 @@ gitignored, so here they are:
 ELEVENLABS_AGENT_ID_RENEWAL=agent_2501m2b7vj32eewtgj7nxcecx061
 ELEVENLABS_AGENT_ID_REENGAGEMENT=agent_6101m2b7vkzmed1bstqatsc98gaf
 ELEVENLABS_AGENT_ID_WINBACK=agent_3701m2b7vnvse2z8yzte3w00hkxh
+ELEVENLABS_AGENT_ID_CANCELLATION=<printed by agents:sync in pass two — see .env.local>
 PUBLIC_BASE_URL=https://retention-router.vercel.app
 CALL_OVERRIDE_NUMBER=<the verified handset — see .env.local>
 TWILIO_ACCOUNT_SID=<from .env.local, after you have rotated it>

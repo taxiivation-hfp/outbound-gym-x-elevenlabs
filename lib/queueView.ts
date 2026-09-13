@@ -1,8 +1,10 @@
 import { getAllCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
+import { today } from "@/lib/clock";
 import { referenceDate } from "@/lib/compileVariables";
 import { campaignEconomics, ASSUMPTIONS, type CampaignEconomics, type Assumption } from "@/lib/economics";
 import { evaluateEligibility } from "@/lib/eligibility";
+import type { GymFields } from "@/lib/gymConfig";
 import { listGyms, type GymSource } from "@/lib/gymStore";
 import { sortByPriority } from "@/lib/sortMembers";
 import { loadMembers } from "@/lib/memberSource";
@@ -50,11 +52,14 @@ export interface QueueCounts {
   renewal: number;
   reengagement: number;
   winback: number;
+  cancellation: number;
   due_total: number;
   excluded_auto_renew: number;
   excluded_do_not_contact: number;
   excluded_cooldown: number;
   excluded_max_attempts: number;
+  /** Asked to cancel, but the gym has neither a freeze nor a cheaper tier to offer them. */
+  excluded_nothing_to_offer: number;
   not_due: number;
   total: number;
 }
@@ -80,8 +85,8 @@ export interface QueueView {
   gym_notice: string | null;
 }
 
-function toEntry(member: Member, history: CallHistory): QueueEntry {
-  const e = evaluateEligibility(member, history);
+function toEntry(member: Member, history: CallHistory, gym: GymFields | null): QueueEntry {
+  const e = evaluateEligibility(member, history, today(), gym);
   return {
     member_id: member.member_id,
     name: member.name,
@@ -128,10 +133,19 @@ export async function buildQueueView(): Promise<QueueView> {
     historyError = err instanceof Error ? err.message : String(err);
   }
 
+  // The gym switcher offers whatever the gyms table holds — including gyms
+  // added through onboarding — or the two seed gyms before its migration runs.
+  // The default gym is also the one a cancellation call's "anything to offer?"
+  // gate is judged against here; the call route judges it against whichever
+  // gym the operator picked, so switching gym can only turn a due call into a
+  // readable refusal, never the other way round.
+  const gymListing = await gymListingRead;
+  const defaultGym = gymListing.gyms.find((g) => g.gym_id === gymListing.default_gym_id) ?? null;
+
   // Cohort urgency first, most dormant first within each — the framework's own
   // definition of priority, kept as the default order of the member list.
   const entries = sortByPriority(
-    members.map((m) => toEntry(m, history.get(m.member_id) ?? NO_HISTORY))
+    members.map((m) => toEntry(m, history.get(m.member_id) ?? NO_HISTORY, defaultGym))
   );
   const count = (predicate: (e: QueueEntry) => boolean) => entries.filter(predicate).length;
 
@@ -139,21 +153,19 @@ export async function buildQueueView(): Promise<QueueView> {
     renewal: count((e) => e.call_type === "renewal"),
     reengagement: count((e) => e.call_type === "reengagement"),
     winback: count((e) => e.call_type === "winback"),
+    cancellation: count((e) => e.call_type === "cancellation"),
     due_total: count((e) => e.call_type !== null),
     excluded_auto_renew: count((e) => e.blocked_by === "auto_renew"),
     excluded_do_not_contact: count((e) => e.blocked_by === "do_not_contact"),
     excluded_cooldown: count((e) => e.blocked_by === "cooldown"),
     excluded_max_attempts: count((e) => e.blocked_by === "max_attempts"),
+    excluded_nothing_to_offer: count((e) => e.blocked_by === "nothing_to_offer"),
     not_due: count((e) => e.blocked_by === "not_due"),
     total: entries.length,
   };
 
   const dueIds = new Set(entries.filter((e) => e.call_type).map((e) => e.member_id));
   const dueMembers = members.filter((m) => dueIds.has(m.member_id));
-
-  // The gym switcher offers whatever the gyms table holds — including gyms
-  // added through onboarding — or the two seed gyms before its migration runs.
-  const gymListing = await gymListingRead;
 
   return {
     as_of: referenceDate(),

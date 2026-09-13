@@ -3,6 +3,8 @@ import { NO_HISTORY, getAllCallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { DATA_AS_OF } from "@/lib/clock";
 import { evaluateEligibility } from "@/lib/eligibility";
+import type { GymFields } from "@/lib/gymConfig";
+import { resolveGym } from "@/lib/gymStore";
 import { loadMembers, memberSource, type MemberSource } from "@/lib/memberSource";
 import { readAllCallRows } from "@/lib/callRecords";
 import { reasonDetails, type ReasonRow, type StoredReasonThemes } from "@/lib/reasonThemes";
@@ -74,18 +76,25 @@ export interface SnapshotCounts {
   renewal: number;
   reengagement: number;
   winback: number;
+  cancellation: number;
   auto_renew: number;
   do_not_contact: number;
   cooldown: number;
   max_attempts: number;
+  nothing_to_offer: number;
   not_due: number;
 }
 
-/** Routing and eligibility for every member, as of one date. Pure. */
+/**
+ * Routing and eligibility for every member, as of one date. Pure. `gym` is the
+ * config a cancellation call would speak for; without it that call's
+ * "anything to offer?" gate isn't applied, and the snapshot says so.
+ */
 export function computeSnapshot(
   members: Member[],
   history: Map<string, CallHistory>,
-  asOf: Date
+  asOf: Date,
+  gym: GymFields | null = null
 ): { counts: SnapshotCounts; entries: SnapshotEntry[] } {
   const counts: SnapshotCounts = {
     total: members.length,
@@ -93,14 +102,16 @@ export function computeSnapshot(
     renewal: 0,
     reengagement: 0,
     winback: 0,
+    cancellation: 0,
     auto_renew: 0,
     do_not_contact: 0,
     cooldown: 0,
     max_attempts: 0,
+    nothing_to_offer: 0,
     not_due: 0,
   };
   const entries = members.map((member) => {
-    const e = evaluateEligibility(member, history.get(member.member_id) ?? NO_HISTORY, asOf);
+    const e = evaluateEligibility(member, history.get(member.member_id) ?? NO_HISTORY, asOf, gym);
     if (e.allowed && e.routing.call_type) {
       counts.due += 1;
       counts[e.routing.call_type] += 1;
@@ -165,9 +176,20 @@ export async function runRecompute(now: Date): Promise<RecomputeResult> {
     historyError = err instanceof Error ? err.message : String(err);
   }
 
-  const { counts, entries } = computeSnapshot(members, history, plan.asOf);
   const asOfIso = plan.asOf.toISOString().slice(0, 10);
   const gymId = plan.source.kind === "supabase" ? plan.source.gymId : null;
+
+  // The gym a cancellation call would speak for: the uploaded members' own
+  // gym, or the default gym for the synthetic dataset. If it can't be read
+  // the run still records — without that one gate, and it says so — because
+  // the call route re-checks everything, gym included, before dialling.
+  const gymLookup = await resolveGym(gymId);
+  if (!gymLookup.ok) {
+    historyError = [historyError, `gym config not read, so the cancellation call's nothing-to-offer gate wasn't applied: ${gymLookup.error}`]
+      .filter(Boolean)
+      .join("; ");
+  }
+  const { counts, entries } = computeSnapshot(members, history, plan.asOf, gymLookup.ok ? gymLookup.gym : null);
 
   const { data, error } = await supabaseAdmin
     .from("queue_runs")

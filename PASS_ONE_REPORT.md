@@ -56,11 +56,11 @@ Every number is computed by pure functions in `lib/gymHealth.ts`, called from `c
 
 - **Frequency segments:** frequent, occasional, inactive after a habit, and inactive and never regular.
   - They are cut at `ABSENCE_DAYS` and `HABIT_MIN_RATE`, which `lib/callType.ts` now exports as `ROUTING_THRESHOLDS`.
-  - A guard checks the thresholds' edges. It also checks that all 20 dataset members the router sends to reengagement for a settled habit land in "inactive, had a habit". The page's 50 in that segment also include members it doesn't call: those near expiry, who get the near-expiry trigger, and auto-renewers.
+  - A guard checks the thresholds' edges. It also checks that all 17 dataset members the router sends to reengagement for a settled habit land in "inactive, had a habit". The page's 50 in that segment also include members it doesn't call: those near expiry, who get the near-expiry trigger, and auto-renewers.
 - **Visits per member per week:** twelve seven-day windows of completed days.
 - **Busyness:** a weekday × hour grid over the last twelve weeks, with the five busiest cells named.
 - **Where the check-in data comes from:**
-  - *Synthetic dataset:* `data/checkin_activity.json`, built by `scripts/build-checkin-activity.ts`, which is now part of `data:build`. Shipping all 37,692 check-ins to a page render would cost load time.
+  - *Synthetic dataset:* `data/checkin_activity.json`, built by `scripts/build-checkin-activity.ts`, which is now part of `data:build`. Shipping all 33,290 check-ins to a page render would cost load time.
   - *Uploaded data:* two SQL functions, `checkin_weekly` and `checkin_hourly`. `db:verify` checks that they return exactly what `summariseCheckins` returns for the whole dataset.
 
 **Why members leave**
@@ -78,19 +78,20 @@ Every number is computed by pure functions in `lib/gymHealth.ts`, called from `c
   - The injected line was one of the 3 unthemed statements.
   - Nothing was stored.
 
-**Checked in a real page render** against the local dev server, reading the real Supabase project read-only. Synthetic dataset, 2026-09-12:
+**Checked in a real page render** against the local dev server, reading the real Supabase project read-only. The figures below were recomputed from the same functions after the generator fix in "Metrics and what the data can say" (synthetic dataset, 2026-09-12, no call history, so the queues are before any cooldown):
 
 | Measure | Value |
 |---|---|
-| Active members | 410, of whom 148 are on auto-renew |
-| MRR | $32,570 |
-| ARPM | $79.44 |
-| 90-day retention | 100% (354 of 354) |
-| Fixed terms ending in 14 / 30 / 90 days | 65 / 65 / 103 |
-| Revenue at risk: renewal | $2,903 a month, 37 members |
-| Revenue at risk: reengagement | $3,268 a month, 42 members |
-| Revenue at risk: winback | $6,824 a month, 86 members |
-| Segments | 189 frequent, 123 occasional, 50 inactive after a habit, 48 inactive and never regular |
+| Active members | 380, of whom 145 are on auto-renew |
+| MRR | $30,200 |
+| ARPM | $79.47 |
+| 90-day retention | 86.0% (308 of 358) |
+| Monthly churn, March–August | 4.6%, 4.4%, 3.9%, 4.1%, 4.2%, 4.6% |
+| Fixed terms ending in 14 / 30 / 90 days | 65 / 65 / 100 |
+| Revenue at risk: renewal | $3,200 a month, 40 members |
+| Revenue at risk: reengagement | $3,398 a month, 42 members |
+| Revenue at risk: winback | $3,567 a month, 43 members |
+| Segments | 186 frequent, 107 occasional, 50 inactive after a habit, 37 inactive and never regular |
 
 ### 2. Deal offers: scheduling and eligibility
 
@@ -193,19 +194,19 @@ Every number is computed by pure functions in `lib/gymHealth.ts`, called from `c
 
 | Shape (plan) | Planned | Generated | Eligible pool | Notes |
 |---|---|---|---|---|
-| Auto-renewing, absent 8+ weeks | ~12 | **12** | 14 | Away 56–139 days. Tenure 109–585 days. |
-| Fixed-term, term ending within 14 days, says so | ~5 | **5** | 6 | Terms end in 3–14 days. Last visit 8–22 days ago, so all five are in the renewal queue today. |
-| Recent joiner churning early | ~5 | **5** | 5 | Tenure 16–21 days. **Four of the five have never checked in**, and one is on auto-renew. |
-| Long-tenured active cancelling anyway | ~3 | **3** | 33 | Tenure 431–519 days, last visit 9–26 days ago. One is on auto-renew. |
+| Auto-renewing, absent 8+ weeks | ~12 | **12** | 20 | Away 58–174 days. Tenure 194–580 days. |
+| Fixed-term, term ending within 14 days, says so | ~5 | **5** | 27 | Terms end in 3–10 days. Only 2 of the pool are still training, so both are taken (last visit 7 and 14 days ago, in the renewal queue) and 3 absent members fill the rest (74–89 days away, in the near-expiry reengagement queue). |
+| Recent joiner churning early | ~5 | **5** | 8 | Tenure 16–21 days. **All five have never checked in**, and one is on auto-renew. |
+| Long-tenured active cancelling anyway | ~3 | **3** | 26 | Tenure 442–503 days, last visit 14–33 days ago. All three are on auto-renew. |
 
-- **14 auto-renewers in total:** the 12 absent members, plus one recent joiner and one long-tenured member.
+- **16 auto-renewers in total:** the 12 absent members, plus one recent joiner and three long-tenured members.
 - **Both rules hold for all 25, checked against the raw check-ins by a guard:**
   - no check-in in the 7 days before 2026-09-12;
   - no more than 8 check-ins in the last 28 days;
   - every request falls after the member's last visit and before the dataset's date.
 - **Shortfalls in the pool:**
-  - The recent-joiner pool was exactly 5. That means requiring 14–90 days of tenure and no visit in the last week. So that shape is fully determined, and four of them read as "signed up and never came", not "came, then stopped".
-  - The near-expiry pool was 6, because most renewal-window members train more than twice a week.
+  - The recent-joiner pool is 8. Requiring 14–90 days of tenure leaves only the new joiners at 14–21 days, since the generator has nobody between 21 and 90 days. All five picked read as "signed up and never came", not "came, then stopped".
+  - Only 2 near-expiry members are still training without a visit this week or more than twice a week, because most renewal-window members train hard. The generator takes both and fills the other three from absent members, so three of the five are in the near-expiry reengagement queue rather than the renewal queue.
 
   A larger synthetic population would give both shapes more choice.
 
@@ -218,7 +219,7 @@ Every number is computed by pure functions in `lib/gymHealth.ts`, called from `c
 | Guard | What it pins |
 |---|---|
 | `health-numbers-match-a-hand-count` | Five members small enough to count by hand. Active 4, of whom 1 auto-renews. MRR $290, ARPM $72.50. Fixed terms ending 1/1/2. August: 5 at the start, 1 lost, 20% churn. 90-day retention 4/5. Revenue at risk $80 renewal, $100 reengagement, $70 winback. |
-| `health-segments-use-the-routers-thresholds` | The segment edges fall where the router's do (28 days and 1.0 visits a week). All 20 settled-habit reengagement members in the dataset are "inactive, had a habit". |
+| `health-segments-use-the-routers-thresholds` | The segment edges fall where the router's do (28 days and 1.0 visits a week). All 17 settled-habit reengagement members in the dataset are "inactive, had a habit". |
 | `checkin-summary-matches-the-dataset` | `data/checkin_activity.json` equals `summariseCheckins` over `pipeline/data/checkins.csv`. |
 | `intelligence-renders-with-no-calls-and-few-reasons` | The real page view renders with zero calls (health plus the empty state). With five reasons it says the summary needs 10, hides a stored summary and keeps the breakdown. With twelve it shows the summary. |
 | `themed-summary-counts-are-counted-not-trusted` | Invented, duplicate and out-of-range statement numbers aren't counted, and one-member themes are dropped. A multi-line or over-long theme name refuses the whole summary. Nine statements return "insufficient" without a model call. `reasonDetails` counts only completed calls that reached the member. |
@@ -266,9 +267,11 @@ Every metric in item 1 is computed from data already in the pipeline. None neede
 
 - **Churn, retention and 90-day retention** are measured from each member's current contract end date. That is the only term the synthetic dataset has, and uploaded data reduces to the same thing through `currentContract`. A member who left before an export's history begins can't be counted by anyone.
 - **The synthetic generator shapes the trends:**
-  - Lapsed members exist only in the three winback windows (20–45, 75–105 and 165–195 days ago). So monthly churn alternates between about 7% and nearly 0%: March 7.8%, April 0.0%, May 0.3%, June 7.0%, July 1.0%, August 6.7%.
-  - Every lapsed member was generated with at least 120 days of tenure, so **90-day retention is 100% by construction**.
-  - Check-in hours are drawn uniformly between 6am and 8pm, so the busy-hours grid is nearly flat.
+  - **Fixed after pass one.** The first generator parked lapsed members only in the three winback windows, gave every one of them at least 120 days of tenure, and drew check-in hours uniformly from 6am to 8pm. Monthly churn alternated 7.8%, 0.0%, 0.3%, 7.0%, 1.0%, 6.7%; 90-day retention was 100% (354 of 354) by construction; the busy-hours grid was flat (every open cell 50–89 visits).
+  - Lapsed members now lapse evenly across the last 195 days (95 of them), plus 25 further back (196–420 days). Monthly churn March–August reads 4.6%, 4.4%, 3.9%, 4.1%, 4.2%, 4.6%. The winback windows still hold 13, 15 and 15.
+  - Half of lapsed members leave before their 120-day mark, so 90-day retention reads 86.0% (308 of 358). A fixed term ending that early is a term terminated early; the data has no separate cancellation event for it.
+  - Check-ins follow a weekday and weekend profile: weekdays peak 6–8am and hardest 5–7pm with a midday lull; weekends peak later in the morning (8–11am) and stay quiet in the evening; Monday to Wednesday are busiest, Sunday quietest. The five busiest cells are Mon 6pm, Tue 6pm, Mon 5pm, Tue 7am and Tue 5pm.
+  - The trends are still shaped by the generator, just no longer in ways that read as bugs. Monthly churn is smoother than a real gym's.
 
   The same functions on real uploaded data will say something real.
 - **"Still paying at day 120"** means the membership term was still running. A missed direct debit isn't in the data.

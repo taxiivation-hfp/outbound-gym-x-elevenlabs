@@ -21,13 +21,14 @@ npm run dev              # http://localhost:3000
 npm run build / start    # production build / serve
 npm run lint
 
-npm run evals             # 73 guards + 15 simulated ElevenLabs calls
+npm run evals             # 80 guards + 31 simulated ElevenLabs calls
 npm run evals:guards      # guards only — no network, no model, instant
 npm run evals -- --only <scenario-name>   # single scenario/guard by name
 npm run evals:extraction  # adversarial price list through the real extraction model (needs ANTHROPIC_API_KEY)
 
 npm run agents:sync       # push agents/prompts + scripts/agentConfig.mjs to ElevenLabs
-npm run agents:diff       # dry-run of the above — shows what would change
+npm run agents:diff       # compares each agent against what ElevenLabs holds; writes nothing
+npx tsx scripts/snapshot-scenario-payloads.ts   # re-pin the scenario payloads after a deliberate change (a guard compares them)
 
 npm run data:build        # regenerate the synthetic dataset:
                           #   pipeline/generate_gym_data.py -> pipeline/build_scores.py
@@ -63,13 +64,21 @@ stale demo needs `npm run data:build`, not a wall-clock fix.
 
 **2. Call-time decisioning, TypeScript (`lib/`).** This is where product logic
 actually lives:
-- `callType.ts` — the router. Decides renewal/reengagement/winback/nothing for
-  a member, and returns a human-readable reason for every branch, including
-  refusals. The `auto_renew == true` → never-call rule is checked first, before
-  anything else, so nothing downstream can override it.
+- `callType.ts` — the router. Decides renewal/reengagement/winback/cancellation/
+  nothing for a member, and returns a human-readable reason for every branch,
+  including refusals. The `auto_renew == true` → never-call rule is checked
+  first, before anything else, so nothing downstream can override it. Its one
+  exception lives *inside* that branch: a member with `cancellation_requested`
+  set routes to `cancellation` and to nothing else (a flagged fixed-term member
+  gets the same call instead of a renewal pitch; once lapsed, nothing).
 - `eligibility.ts` — adds what only the database (call history) knows: do-not-
-  contact (permanent, holds across all three call types), a 3-call cap, and a
-  3-month cooldown after a call that changed nothing.
+  contact (permanent, holds across every call type), a 3-call cap, and a
+  3-month cooldown after a call that changed nothing. The cancellation call has
+  its own gates here: it needs the gym to have a freeze or a cheaper tier
+  (`nothing_to_offer` otherwise — the only gate that takes the gym, passed as
+  the fourth argument), it happens once (`cancellationConversations`), and
+  `evaluateOffers` explicitly exempts it from the offer schedule and the habit
+  guard.
 - `callHistory.ts` — summarizes Supabase call records into what `eligibility.ts`
   and `compileVariables.ts` need (attempt count, last outcome, prior reasons).
 - `compileVariables.ts` — turns raw facts + call history into the finished
@@ -89,11 +98,14 @@ actually lives:
 - `economics.ts` — cost/break-even math shown on the dashboard.
 - `intelligence.ts`, `queueView.ts`, `sortMembers.ts`, `labels.ts` — dashboard-
   facing view models built from the same primitives above.
-- Gym config is **typed data, not prose**. `gymConfig.ts` defines the eleven
-  fields and parses/validates them (`textSafety.ts` holds the free-text rules);
-  `incentives.ts` compiles the `incentives` block from a fixed sentence
-  registry; `validateIncentives.ts` independently re-derives what a block may
-  say from the config and rejects anything else. `compileVariables` runs both on
+- Gym config is **typed data, not prose**. `gymConfig.ts` defines the fields
+  (facts, the offers, the cheaper tier, the freeze — `freeze_max_weeks` and
+  `freeze_weekly_fee`, both or neither, where a fee of 0 is a free freeze and
+  null is no freeze) and parses/validates them (`textSafety.ts` holds the
+  free-text rules); `incentives.ts` compiles the `incentives` block from a
+  fixed sentence registry, one block per call type; `validateIncentives.ts`
+  independently re-derives what a block may say from the config and rejects
+  anything else. `compileVariables` runs both on
   every compile and throws `GymConfigError` / `IncentivesValidationError` before
   a payload exists. `gyms.ts` is the seed (`data/gyms.json`); `gymStore.ts`
   reads the `gyms` table, falling back to the seed only when the table doesn't
@@ -121,18 +133,20 @@ Server components in `app/` and the API routes in `app/api/` both call these
 same `lib/` functions directly — the dashboard and the endpoint cannot disagree
 about who is due a call.
 
-**3. Agents (`agents/prompts/`, `scripts/`).** Three separate ElevenLabs agents
-(renewal, reengagement, winback) rather than one prompt with a `call_type`
-branch — kept narrow deliberately, see the README section "Three narrow agents,
-not one with a `call_type` branch" for why. Personality/Tone/Guardrails/Tools
-are shared and stored **once** in `agents/prompts/shared/`, assembled per-agent
-at sync time by `scripts/sync-agents.mjs`, which is the only thing allowed to
-write agent config — anything edited directly in the ElevenLabs dashboard is
-overwritten on the next sync, on purpose. `scripts/agentConfig.mjs` is the
-source of truth for prompts, model settings, the eleven data-collection fields,
-and the three evaluation criteria. When editing a shared guardrail, edit the
-file in `agents/prompts/shared/`, never a per-agent copy — `sync-agents.mjs`
-fails loudly if per-agent drift appears.
+**3. Agents (`agents/prompts/`, `scripts/`).** Four separate ElevenLabs agents
+(renewal, reengagement, winback, cancellation) rather than one prompt with a
+`call_type` branch — kept narrow deliberately, see the README section "Four
+narrow agents, not one with a `call_type` branch" for why. Personality/Tone/
+Guardrails/Tools are shared and stored **once** in `agents/prompts/shared/`,
+assembled per-agent at sync time by `scripts/sync-agents.mjs`, which is the
+only thing allowed to write agent config — anything edited directly in the
+ElevenLabs dashboard is overwritten on the next sync, on purpose.
+`scripts/agentConfig.mjs` is the source of truth for prompts, model settings,
+the eleven data-collection fields, and the three evaluation criteria. When
+editing a shared guardrail, edit the file in `agents/prompts/shared/`, never a
+per-agent copy — `sync-agents.mjs` fails loudly if per-agent drift appears.
+`agents:diff` fetches each existing agent and compares every value the payload
+sets, so "unchanged" means a sync would be a no-op for that agent.
 
 **4. Back again (`app/api/webhook`).** Verifies the ElevenLabs post-call HMAC
 signature, writes the eleven extracted fields + three evaluation criteria +
@@ -146,11 +160,17 @@ Two suites in one runner (`evals/run.ts`), full rationale in `evals/README.md`:
   above. No network, no model. `guards.ts` holds the original 20 (19 routing, plus one that pins
   the transcript assertion patterns) and
   `runGuards`, which also runs `configGuards.ts` (21: gym config, the validator,
-  extraction sanitising, the adversarial document in `evals/documents/`) and
+  extraction sanitising, the adversarial document in `evals/documents/`),
   `memberGuards.ts` (12: contracts-per-term, CSV import, dial-time recheck, the
-  nightly recompute). Run these after any router/eligibility/config change.
-- **Scenarios** (`scenarios.ts`) — 15 simulated conversations against the real
-  ElevenLabs agents. Each scenario builds a fixture, routes it with the real
+  nightly recompute), the pass-one files (`healthGuards.tsx`, `offerGuards.ts`,
+  `otherOfferGuards.ts`, `gymEditGuards.ts`) and `cancellationGuards.ts` (10:
+  the narrow flip, the four gym combinations, the cap of one, the schedule and
+  habit-guard exemption, the block terms, the freeze parser, the payload pin
+  against `evals/payloads/scenarios.json`, and the cancellation patterns).
+  Run these after any router/eligibility/config change.
+- **Scenarios** (`scenarios.ts`) — 31 simulated conversations against the real
+  ElevenLabs agents (15 for the first three agents, 16 for the cancellation
+  agent). Each scenario builds a fixture, routes it with the real
   `routeMember`, compiles variables with the real `compileVariables`, and
   checks both a local regex condition (for anything about ordering — regexes
   settle ordering exactly, judges don't) and one judge condition (for genuine
@@ -180,7 +200,14 @@ a regression signal on its own; the guards are the stable half.
   Personality/Tone/Guardrails/Tools edit into a single agent's prompt file.
 - **The auto-renew exclusion is load-bearing and tested.** Any change touching
   `callType.ts` should keep the auto-renew branch first and keep its guard
-  assertions passing.
+  assertions passing. The cancellation exception belongs *inside* that branch
+  as a narrow rule, never before it as a competing one; `cancellation-flip-is-
+  narrow` pins that a flagged member is callable on `cancellation` and nothing
+  else, and that every other auto-renewer is refused exactly as before.
+- **The cancellation agent never obstructs the cancellation.** At most two
+  offers, the second only when the first was found unsuitable rather than
+  refused; "just cancel it" ends every offer. Don't relax a cancellation
+  scenario's assertion to make a live run pass.
 - **`CALL_OVERRIDE_NUMBER` must stay respected.** The 500 synthetic phone
   numbers are Faker output belonging to nobody; don't add a code path that
   dials `member.mobile` directly without going through `dialSafety.ts`.

@@ -44,7 +44,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
 
   let counts: MemberDataCounts | null = null;
   let dataError: string | null = null;
-  let routing: { renewal: number; reengagement: number; winback: number; autoRenew: number; notDue: number; unrouted: number } | null = null;
+  let routing: { renewal: number; reengagement: number; winback: number; cancellation: number; autoRenew: number; notDue: number; unrouted: number } | null = null;
 
   // Started now, read below: it never rejects, and it doesn't wait on the counts.
   const lastRunRead = uploadsAvailable ? latestRun(gymId) : null;
@@ -54,7 +54,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
       counts = await memberDataCounts(gymId);
       if (counts.members > 0) {
         const loaded = await loadGymMembers(gymId, asOf);
-        const tally = { renewal: 0, reengagement: 0, winback: 0, autoRenew: 0, notDue: 0, unrouted: loaded.unrouted.length };
+        const tally = { renewal: 0, reengagement: 0, winback: 0, cancellation: 0, autoRenew: 0, notDue: 0, unrouted: loaded.unrouted.length };
         for (const member of loaded.members) {
           const r = routeMember(member, asOf);
           if (r.auto_renew_excluded) tally.autoRenew += 1;
@@ -167,6 +167,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
                       ["Renewal", routing.renewal],
                       ["Reengagement", routing.reengagement],
                       ["Winback", routing.winback],
+                      ["Cancellation — asked to cancel", routing.cancellation],
                       ["Never called — auto-renews", routing.autoRenew],
                       ["Nothing due", routing.notDue],
                       ["No contract on file", routing.unrouted],

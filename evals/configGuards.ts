@@ -83,14 +83,18 @@ export const configGuards: Guard[] = [
       "conversation suite was validated against these blocks; if they drift, its results stop being evidence.",
     run: () => {
       const drifted: string[] = [];
+      let compared = 0;
       for (const [gymId, blocks] of Object.entries(SIGNED_OFF)) {
-        for (const callType of CALL_TYPES) {
+        // The three call types that carried hand-written text. The cancellation
+        // block never did; its seed-gym text is pinned in cancellationGuards.ts.
+        for (const callType of Object.keys(blocks) as CallType[]) {
+          compared += 1;
           if (compileIncentives(getGym(gymId), callType).text !== blocks[callType]) drifted.push(`${gymId}/${callType}`);
         }
       }
       return {
-        passed: drifted.length === 0,
-        detail: drifted.length === 0 ? "all six blocks byte-identical" : `drifted: ${drifted.join(", ")}`,
+        passed: drifted.length === 0 && compared === 6,
+        detail: drifted.length === 0 ? `all ${compared} blocks byte-identical` : `drifted: ${drifted.join(", ")}`,
       };
     },
   },

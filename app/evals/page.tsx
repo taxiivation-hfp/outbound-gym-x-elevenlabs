@@ -16,6 +16,7 @@ interface Assertion {
   name: string;
   passed: boolean;
   detail: string;
+  inconclusive?: boolean;
 }
 
 interface Turn {
@@ -31,6 +32,8 @@ interface ScenarioResult {
   gym_id: string;
   why: string;
   passed: boolean;
+  /** Absent on runs written before the field existed. */
+  inconclusive?: boolean;
   local: Assertion[];
   llm: { conditions: string[]; result: string | null; rationale: string | null; passed: boolean };
   turns: Turn[];
@@ -65,10 +68,11 @@ export default function EvalsPage() {
       <header>
         <h1 className="text-3xl font-black uppercase tracking-tight sm:text-4xl">Evals</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">
-          Two suites. Nineteen deterministic assertions over the routing rules — no model, no
-          network — and fifteen simulated calls against the real agents, each with regex
-          conditions checked here and one plain-English condition handed to a judge. A
-          scenario passes only if both halves do.
+          Two suites. {guards.total} deterministic assertions over the routing rules, the gym
+          config and the compiled prompt text — no model, no network — and {conversations.total}{" "}
+          simulated calls against the real agents, each with regex conditions checked here and
+          one plain-English condition handed to a judge. A scenario passes only if both halves
+          do.
         </p>
         <p className="mt-2 text-xs text-zinc-600">
           Run {new Date(run.run_at).toLocaleString()}
@@ -165,16 +169,20 @@ function Score({ label, passed, total }: { label: string; passed: number; total:
   );
 }
 
-function Verdict({ passed }: { passed: boolean }) {
+function Verdict({ passed, inconclusive = false }: { passed: boolean; inconclusive?: boolean }) {
+  // Inconclusive: the platform cut the call off before it could be judged. Not
+  // a pass, but not the agent's failure either, and it reads differently.
   return (
     <span
       className={`inline-block rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
         passed
           ? "bg-[#D6FF3D] text-black"
-          : "border border-red-700 bg-red-950/40 text-red-300"
+          : inconclusive
+            ? "border border-amber-700 bg-amber-950/40 text-amber-300"
+            : "border border-red-700 bg-red-950/40 text-red-300"
       }`}
     >
-      {passed ? "pass" : "fail"}
+      {passed ? "pass" : inconclusive ? "inconclusive" : "fail"}
     </span>
   );
 }
@@ -186,7 +194,7 @@ function ScenarioCard({ result }: { result: ScenarioResult }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Verdict passed={result.passed} />
+              <Verdict passed={result.passed} inconclusive={result.inconclusive} />
               <h3 className="text-base font-bold text-white">{result.name}</h3>
             </div>
             <p className="mt-1.5 text-xs text-zinc-600">
@@ -208,7 +216,7 @@ function ScenarioCard({ result }: { result: ScenarioResult }) {
           <ul className="mt-2 space-y-2">
             {result.local.map((l) => (
               <li key={l.name} className="flex items-start gap-2">
-                <Verdict passed={l.passed} />
+                <Verdict passed={l.passed} inconclusive={l.inconclusive} />
                 <span className="min-w-0 text-xs leading-relaxed">
                   <span className="text-zinc-200">{l.name}</span>
                   <span className="block font-mono text-[11px] text-zinc-600">{l.detail}</span>

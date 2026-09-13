@@ -19,6 +19,13 @@ export interface AssertionResult {
   name: string;
   passed: boolean;
   detail: string;
+  /**
+   * The transcript can't settle it: the conversation was cut off before the
+   * agent's turn the assertion needed. Not a pass — a truncated call is no
+   * evidence — but reported as inconclusive rather than as a failure of the
+   * agent's behaviour.
+   */
+  inconclusive?: boolean;
 }
 
 export type Assertion = (turns: Turn[]) => AssertionResult;
@@ -47,6 +54,40 @@ export function mustSay(name: string, pattern: RegExp): Assertion {
       passed: Boolean(hit),
       detail: hit ? `said: "${quote(hit.message)}"` : `never matched ${pattern}`,
     };
+  };
+}
+
+/**
+ * A conversation that ends on the member's turn was cut off before the agent
+ * could reply — the platform's "timed out waiting for the agent to produce its
+ * next turn". The agent always closes a call, so this is the shape truncation
+ * leaves behind.
+ */
+export function endsOnTheMember(turns: Turn[]): boolean {
+  const last = turns[turns.length - 1];
+  return Boolean(last) && last.role === "user";
+}
+
+/**
+ * The agent must say something matching this — unless the conversation was
+ * cut off before it could. Then the result is inconclusive, not a failure:
+ * the first live run failed the "someone will call to arrange it" check on a
+ * transcript that ended the moment the member said "can someone call me?",
+ * which says nothing about what the agent would have said next.
+ */
+export function mustSayUnlessTruncated(name: string, pattern: RegExp): Assertion {
+  return (turns) => {
+    const hit = agentTurns(turns).find((t) => pattern.test(t.message));
+    if (hit) return { name, passed: true, detail: `said: "${quote(hit.message)}"` };
+    if (endsOnTheMember(turns)) {
+      return {
+        name,
+        passed: false,
+        inconclusive: true,
+        detail: `inconclusive — the conversation ended on the member's turn ("${quote(turns[turns.length - 1].message, 80)}"), so the agent never got to say it`,
+      };
+    }
+    return { name, passed: false, detail: `never matched ${pattern}` };
   };
 }
 
@@ -173,6 +214,116 @@ export function atMostTurns(name: string, max: number): Assertion {
   };
 }
 
+/** Where the agent first says something matching `pattern`: turn index and offset within it, or null. */
+function firstAgentPosition(turns: Turn[], pattern: RegExp): { turn: number; offset: number; text: string } | null {
+  for (let i = 0; i < turns.length; i += 1) {
+    if (turns[i].role !== "agent") continue;
+    const m = new RegExp(pattern.source, pattern.flags.replace("g", "")).exec(turns[i].message);
+    if (m) return { turn: i, offset: m.index, text: turns[i].message };
+  }
+  return null;
+}
+
+/**
+ * The agent must say `first` before it says `second` — an ordering between two
+ * things the agent says, rather than between the member and the agent. Judged
+ * by position, so both in one turn counts only if `first` comes earlier in it.
+ * `second` need not be said at all.
+ */
+export function saysBefore(name: string, first: RegExp, second: RegExp): Assertion {
+  return (turns) => {
+    const a = firstAgentPosition(turns, first);
+    const b = firstAgentPosition(turns, second);
+    if (!a) return { name, passed: false, detail: `never said anything matching ${first}` };
+    if (!b) return { name, passed: true, detail: `said it: "${quote(a.text)}" — and never said the other thing` };
+    const ordered = a.turn < b.turn || (a.turn === b.turn && a.offset < b.offset);
+    return {
+      name,
+      passed: ordered,
+      detail: ordered ? `said it first: "${quote(a.text)}"` : `said the other thing first: "${quote(b.text)}"`,
+    };
+  };
+}
+
+/**
+ * The first agent turn that puts anything on the table (`any`) must be the
+ * offer `want`. How "match the first offer to the reason" is checked: not that
+ * the wrong offer never appears, which a ladder may legitimately reach later,
+ * but that it is not the one led with.
+ */
+export function firstOfferIs(name: string, any: RegExp, want: RegExp): Assertion {
+  return (turns) => {
+    const first = agentTurns(turns).find((t) => any.test(t.message));
+    if (!first) return { name, passed: false, detail: `the agent never put anything on the table (nothing matched ${any})` };
+    return {
+      name,
+      passed: want.test(first.message),
+      detail: `first offer: "${quote(first.message)}"`,
+    };
+  };
+}
+
+const NUMBER_WORDS = new Set([
+  "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+  "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred",
+]);
+
+/** Every number in a text, digits or words, with compounds ("thirty nine", "thirty-nine") joined. */
+export function numbersIn(text: string): string[] {
+  const out: string[] = [];
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9.$-]+/g, " ")
+    .split(" ")
+    .map((t) => t.replace(/^\.+|\.+$/g, ""))
+    .filter(Boolean);
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length) out.push(run.join(" "));
+    run = [];
+  };
+  for (const token of tokens) {
+    const parts = token.split("-");
+    if (parts.every((p) => NUMBER_WORDS.has(p))) {
+      run.push(...parts);
+      continue;
+    }
+    flush();
+    const digits = /^\$?(\d+(?:\.\d+)?)$/.exec(token);
+    if (digits) out.push(digits[1]);
+  }
+  flush();
+  return out;
+}
+
+/**
+ * In every agent sentence that talks about an offer (`scope`), the only
+ * numbers — as digits or as words — are the ones the config set. How "the
+ * terms match the config exactly, fail on any other number" is settled without
+ * a judge: the agent's turns are split into sentences, the sentences about the
+ * offer are the ones checked, and a number outside `allowed` fails.
+ */
+export function onlyNumbersNear(name: string, scope: RegExp, allowed: string[]): Assertion {
+  const ok = new Set(allowed.map((a) => a.toLowerCase().replace(/-/g, " ")));
+  return (turns) => {
+    const strays: string[] = [];
+    for (const turn of agentTurns(turns)) {
+      for (const sentence of turn.message.split(/(?<=[.!?])\s+/)) {
+        if (!scope.test(sentence)) continue;
+        for (const n of numbersIn(sentence)) {
+          if (!ok.has(n)) strays.push(`"${n}" in "${quote(sentence, 90)}"`);
+        }
+      }
+    }
+    return {
+      name,
+      passed: strays.length === 0,
+      detail: strays.length === 0 ? `every number stated about the offers is one of: ${allowed.join(", ")}` : strays.join(" | "),
+    };
+  };
+}
+
 // --- shared patterns --------------------------------------------------------
 
 export const PATTERNS = {
@@ -255,4 +406,47 @@ export const PATTERNS = {
   /** Medical or recovery advice, which must never appear. */
   givesInjuryAdvice:
     /\b(ice|icing|rest it|stretch(es|ing)?|physio exercises?|heat pack|anti-?inflammator|painkiller|you should (rest|ice|stretch|see))\b/i,
+
+  // --- the cancellation agent ---------------------------------------------
+  // Written before the agent had produced a transcript, so these are pinned to
+  // lines the prompt asks for and lines it forbids, not yet to lines a real
+  // run produced. The guard `cancellation-assertion-patterns-classify-expected-lines`
+  // holds them to those; a live run that exposes a false positive is reported,
+  // not papered over by relaxing the pattern.
+
+  /** The cancellation is in hand: received, being processed, going ahead. */
+  processing:
+    /\b(being processed|been processed|is processed|gets? processed|processing|going (ahead|through)|go(es)? (ahead|through)|(has|had|'s|'d) (come|gone) through|came through|(been|was|is) received|received (your|the) (request|cancellation)|got your (request|cancellation|message)|(is|'s) (in hand|underway|in the works|all sorted|sorted|being (sorted|actioned|taken care of))|will go (ahead|through)|(is|'s) going ahead)\b/i,
+  /**
+   * A question about the member's reason for leaving. Requires a question in
+   * the same sentence, and steps around "why I'm calling", which is the
+   * agent's stated purpose rather than an ask.
+   */
+  asksWhy:
+    /\b(why|what)\b(?!\s+i'?m\s+(calling|ringing|phoning))[^.?!]{0,70}\b(leav|cancel|decid|decision|stopp|stop|behind|prompt|reason|brought|led|made you)\w*[^.?!]{0,50}\?|\bmind (me |if i )?ask(ing)?\b|\b(can|could|may) i ask\b|\bis it (uni|work|money|time|the (cost|price|money))\b|\b(is|was) there (something|anything|a (particular |specific )?reason)\b(?![^.?!]*\b(else|help|i can do|we can do)\b)[^.?!]{0,40}\?|\banything (in particular|specific)\b[^.?!]{0,40}\?/i,
+  /** Asking the member to defend the decision, or trying to talk them out of it. */
+  demandsJustification:
+    /\bare you sure\b|\bwhat would (it take|change your mind)\b|\bwhat can (i|we) do to (keep|change|make)\b|\bconvince\b|\breconsider\b|\bbefore you (go|decide|make (up )?your mind|do that)\b|\byou'?ll regret\b|\bthink (it over|about it) (first|again|a bit more)\b|\b(give|have) (it|us) (another|one more) (go|shot|chance|try)\b|\bdon'?t you want\b|\bwouldn'?t you rather\b|\bwhy not (stay|keep)\b|\bjustify\b|\bsure you don'?t want\b/i,
+  /**
+   * Making the cancellation harder: telling the member to do something for it
+   * to proceed, or implying it might not.
+   *
+   * The first live run flagged "I wanted to check in before it goes ahead
+   * rather than let you go without a word" — the Goal's own scripted line —
+   * on the "(before|until) it goes ahead" alternative. "Check in before" is
+   * the call's stated purpose, not a condition on the cancellation, so that
+   * alternative now steps around it.
+   */
+  obstructs:
+    /\b(you'?ll|you will|you'?d|you would|you) (need|have) to (call|ring|phone|come in|pop in|drop in|confirm|email|sign|fill|speak)\b|\b(call|ring|phone) (us |the gym |the front desk |them |back )?(back )?(to|and) (confirm|cancel|finalis|complete)\w*|\b(might|may|could) not go (through|ahead)\b|\b(won'?t|will not|can'?t|cannot|isn'?t going to) go (through|ahead)\b|\bcan'?t (guarantee|promise|confirm) (it|that|the cancellation|your cancellation)\b|\b(i|we)('?ll| will| need to| have to| just| should| can| might)* (check|verify|double[- ]check|look into) (whether|if|that|on|with)\b|\b(hasn'?t|not) (yet )?(been )?(processed|actioned|confirmed|gone through) yet\b|\bstill (pending|outstanding)\b|\bstill needs? (to be )?(processed|approved|confirmed|actioned)\b|(?<!\bcheck(?:ing)? in )\b(before|until) (it|that|the cancellation|your cancellation) (can )?(go|goes) (through|ahead)\b|\bput (it|that|the cancellation) on hold\b|\bhold off (on )?(the |your )?cancel\w*/i,
+  /** Someone from the gym will call to arrange it — how a freeze is delivered. */
+  arrangesCallback:
+    /\b(someone|one of (the|our) (team|staff|crew)|the (front desk|team|gym|guys))( from the gym)? (will|'ll|can|is going to|are going to|going to) (call|ring|give you a (call|ring|bell)|get in touch|be in touch|reach out)\b|\b(get|have) (someone|the team|the front desk) (to )?(call|ring|get in touch)\b/i,
+  /** Any mention of a freeze, pause or hold. */
+  mentionsFreeze: /\bfreez\w*|\bfroze\w*|\bpaus\w*|\bon hold\b|\bsuspen\w*|\bon ice\b/i,
+  /** "I'll pass it on" — what the agent says when it has nothing for the reason given. */
+  passesItOn: /\bpass (it|that|this|the feedback|your feedback) (on|along)\b|\blet (them|the team|the gym|the manager|the owner) know\b|\bfeed (it|that|this) back\b/i,
+  /** A manager, owner or someone senior will call. */
+  managerCallback:
+    /\b(manager|owner|someone (senior|from the gym|who runs))\b[^.?!]{0,50}\b(call|ring|give you a (call|ring|bell)|get in touch|reach out|follow up|be in touch|hear (it|this|that|about))\b|\b(call|ring|get in touch|reach out|follow up)\b[^.?!]{0,30}\b(manager|owner)\b/i,
 };
