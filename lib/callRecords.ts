@@ -147,7 +147,10 @@ export async function gymOfRecentCall(
     if (typeof gymId !== "string" || gymId.trim() === "") {
       return { ok: false, error: "no call placed to this member in the last 30 minutes records a gym" };
     }
-    const callType = row?.call_type === "renewal" || row?.call_type === "reengagement" || row?.call_type === "winback" ? row.call_type : null;
+    const callType =
+      row?.call_type === "renewal" || row?.call_type === "reengagement" || row?.call_type === "winback" || row?.call_type === "cancellation"
+        ? row.call_type
+        : null;
     const offersAvailable = Array.isArray(row?.offers_available) ? (row.offers_available as unknown[]).filter((o): o is string => typeof o === "string") : null;
     return { ok: true, gymId, callType, offersAvailable };
   } catch (err) {

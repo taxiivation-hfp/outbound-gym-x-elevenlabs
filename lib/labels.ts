@@ -50,6 +50,7 @@ export const callTypeLabel: Record<CallType, string> = {
   renewal: "Renewal",
   reengagement: "Reengagement",
   winback: "Winback",
+  cancellation: "Cancellation",
 };
 
 /** One line each, for the column headers — what this call is actually for. */
@@ -57,12 +58,14 @@ export const callTypeBlurb: Record<CallType, string> = {
   renewal: "Still training, fixed term about to lapse. Make sure they know it won't renew itself.",
   reengagement: "Membership still live, stopped coming. Get them back in the door once.",
   winback: "Membership already ended. Find out why they stopped.",
+  cancellation: "Asked to cancel. One call, one alternative on the table, and the cancellation goes ahead.",
 };
 
 export const callTypeStyle: Record<CallType, string> = {
   renewal: "border-[#D6FF3D]/40 bg-[#D6FF3D]/10 text-[#D6FF3D]",
   reengagement: "border-cyan-700/50 bg-cyan-950/40 text-cyan-300",
   winback: "border-violet-700/50 bg-violet-950/40 text-violet-300",
+  cancellation: "border-amber-700/50 bg-amber-950/40 text-amber-300",
 };
 
 export const cohortLabel: Record<Cohort, string> = {
@@ -91,6 +94,7 @@ export const blockedLabel: Record<string, string> = {
   cooldown: "Cooling off",
   max_attempts: "Attempt limit reached",
   not_due: "Nothing due today",
+  nothing_to_offer: "Asked to cancel — nothing to offer",
 };
 
 export function outcomeText(outcome: string | null | undefined): string {

@@ -184,6 +184,8 @@ const NOT_A_TIER_NAME: RegExp[] = [
   /\b(join\w*|fees?|first|intro\w*)\b/i,
   /\boff\b(?![- ]?peak)/i,
   /\b(and|or|plus|with|but|then|also|including|includes)\b/i,
+  // A freeze has its own typed fields, and its words would read as a second offer.
+  /\b(freez\w*|froze\w*|paus\w*|suspen\w*|hold)\b/i,
 ];
 
 /**
@@ -202,6 +204,7 @@ const NOT_AN_OFFER_LABEL: RegExp[] = [
   /\boff\b/i,
   /\b(and|or|plus|with|but|then|also|including|includes)\b/i,
   /\b(quiet\w*|busy|crowd\w*)\b/i,
+  /\b(freez\w*|froze\w*|paus\w*|suspen\w*|hold)\b/i,
 ];
 
 /** A tier name ends in the noun that says what it is. */

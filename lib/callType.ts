@@ -2,7 +2,7 @@ import { daysUntil, today } from "@/lib/clock";
 import type { Member } from "@/lib/types";
 
 /**
- * Which of the three agents this member is due for, or nothing.
+ * Which of the four agents this member is due for, or nothing.
  *
  * Rule-based and interpretable on purpose. A front-desk manager has to be able
  * to see why a member was called, so every decision here reduces to a sentence
@@ -11,10 +11,12 @@ import type { Member } from "@/lib/types";
  * black-box propensity score.
  *
  * This function is pure: member facts plus a reference date. Gates that need
- * the database — do-not-contact, attempt count, cooldown — sit on top of it in
- * `lib/eligibility.ts`, so this stays testable and renderable on the client.
+ * the database — do-not-contact, attempt count, cooldown — and the one that
+ * needs the gym's config (a cancellation call with nothing to offer) sit on top
+ * of it in `lib/eligibility.ts`, so this stays testable and renderable on the
+ * client.
  */
-export type CallType = "renewal" | "reengagement" | "winback";
+export type CallType = "renewal" | "reengagement" | "winback" | "cancellation";
 
 /** Which winback moment, in months after expiry. */
 export type WinbackWindow = 1 | 3 | 6;
@@ -78,6 +80,18 @@ function daysLeft(days: number): string {
   return `ends in ${days} days`;
 }
 
+/** "24 September" — a date as it reads on the card. */
+function formatDay(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  return `${d.getUTCDate()} ${d.toLocaleString("en-AU", { month: "long", timeZone: "UTC" })}`;
+}
+
+/** Days since the member asked to cancel, from the request's local date. */
+export function daysSinceCancellationRequest(member: Member, asOf: Date): number | null {
+  if (!member.cancellation_requested) return null;
+  return -daysUntil(member.cancellation_requested.slice(0, 10), asOf);
+}
+
 export function routeMember(member: Member, asOf: Date = today()): Routing {
   const daysToExpiry = daysUntil(member.expiry_date, asOf);
   const daysSinceExpiry = -daysToExpiry;
@@ -92,10 +106,26 @@ export function routeMember(member: Member, asOf: Date = today()): Routing {
     days_to_expiry: daysToExpiry,
   } satisfies Routing;
 
+  const requested = daysSinceCancellationRequest(member, asOf);
+
   // The one hard exclusion, and the whole product. An auto-renewing membership
   // keeps billing whether or not they turn up; the call is the only thing that
   // can end it. Checked before anything else so no later branch can undo it.
   if (member.auto_renew) {
+    // The single exception, and it lives inside the exclusion rather than
+    // before it: a member who has asked to cancel has already ended the
+    // membership themselves, so the call is no longer the thing that could.
+    // That is the only thing that lifts the rule, and it lifts it for one call
+    // type only — never renewal, reengagement or winback.
+    if (requested !== null) {
+      return {
+        ...base,
+        call_type: "cancellation",
+        trigger:
+          `Asked to cancel ${daysAgo(requested)}. The one call an auto-renewing member ever gets: ` +
+          "the request is what ends the membership now, not this call. One conversation, at most two offers.",
+      };
+    }
     return {
       ...base,
       auto_renew_excluded: true,
@@ -106,6 +136,28 @@ export function routeMember(member: Member, asOf: Date = today()): Routing {
   }
 
   const lapsed = member.contract_status === "expired" || daysToExpiry < 0;
+
+  // A fixed-term member who has asked to cancel gets the same single call, not
+  // a renewal pitch or a reengagement nudge: they have said they are leaving.
+  // Once the term has actually ended there is nothing left to cancel, and
+  // someone who chose to leave is not rung with a winback either.
+  if (requested !== null) {
+    if (lapsed) {
+      return {
+        ...base,
+        excluded_reason:
+          `Asked to cancel ${daysAgo(requested)} and the membership has since ended. Nothing left to cancel, ` +
+          "and a member who chose to leave is not called back with a winback.",
+      };
+    }
+    return {
+      ...base,
+      call_type: "cancellation",
+      trigger:
+        `Asked to cancel ${daysAgo(requested)} rather than let the term run to ${formatDay(member.expiry_date)}. ` +
+        "Not a renewal call: one conversation, at most two offers, and the cancellation goes ahead.",
+    };
+  }
 
   if (lapsed) {
     const match = WINBACK_WINDOWS.find(

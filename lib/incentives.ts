@@ -1,5 +1,5 @@
 import type { CallType } from "@/lib/callType";
-import { hasCheaperTier, type GymFields } from "@/lib/gymConfig";
+import { hasCheaperTier, hasFreeze, type GymFields } from "@/lib/gymConfig";
 
 /**
  * The incentives blocks, compiled from typed gym config.
@@ -38,6 +38,8 @@ export type OfferKind =
   | "free_session"
   | "free_pt_session"
   | "cheaper_tier"
+  /** A membership pause instead of an exit. Only the cancellation call carries it. */
+  | "freeze"
   /** The gym's own long-tail offer, named by `*_other_label` for the call type. */
   | "other";
 
@@ -57,9 +59,12 @@ export type SentenceRole =
   /** The last sentence. Closes the door on everything not granted. */
   | "close";
 
-export type Slot = "discount_percent" | "tier_name" | "tier_price" | "reengagement_label" | "winback_label";
+export type Slot = "discount_percent" | "tier_name" | "tier_price" | "reengagement_label" | "winback_label" | "freeze_weeks" | "freeze_fee";
 
-export const SLOTS: Slot[] = ["discount_percent", "tier_name", "tier_price", "reengagement_label", "winback_label"];
+export const SLOTS: Slot[] = ["discount_percent", "tier_name", "tier_price", "reengagement_label", "winback_label", "freeze_weeks", "freeze_fee"];
+
+/** The `{slot}` placeholders a sentence may carry. Shared with the validator so both parse the same registry. */
+export const SLOT_PATTERN = /\{(discount_percent|tier_name|tier_price|reengagement_label|winback_label|freeze_weeks|freeze_fee)\}/g;
 
 export interface SentenceTemplate {
   id: string;
@@ -394,6 +399,118 @@ export const SENTENCES: SentenceTemplate[] = [
     forbids: true,
     text: "Do not invent anything else and do not offer to ask a manager.",
   },
+
+  // --- cancellation ------------------------------------------------------------
+  // The member has asked to cancel. At most two things can be on the table — a
+  // freeze and a cheaper tier — and a gym with neither never places this call,
+  // so the "nothing" block below is compiled for the preview and never dialled.
+  {
+    id: "cancellation.grant.freeze",
+    callType: "cancellation",
+    role: "grant",
+    grants: "freeze",
+    text: "You have a freeze you can offer: their membership pauses for up to {freeze_weeks} at {freeze_fee} a week instead of ending.",
+  },
+  {
+    id: "cancellation.grant.freeze_free",
+    callType: "cancellation",
+    role: "grant",
+    grants: "freeze",
+    text: "You have a freeze you can offer: their membership pauses for up to {freeze_weeks}, free, instead of ending.",
+  },
+  {
+    id: "cancellation.delivery.freeze_callback",
+    needs: "freeze",
+    callType: "cancellation",
+    role: "delivery",
+    delivery: "booking",
+    text: "A freeze needs arranging, so don't text anything — say someone from the gym will call to set it up.",
+  },
+  {
+    id: "cancellation.grant.cheaper_tier",
+    callType: "cancellation",
+    role: "grant",
+    grants: "cheaper_tier",
+    text: "You have a cheaper option you can offer: the {tier_name} at {tier_price} a month.",
+  },
+  {
+    id: "cancellation.handling.money_paid_freeze",
+    needs: "freeze",
+    excludes: ["cheaper_tier"],
+    callType: "cancellation",
+    role: "handling",
+    text: "If money is the reason they're leaving, the freeze is not an answer to that — it costs money — so say you understand, you'll pass it on, and leave it there.",
+  },
+  {
+    id: "cancellation.handling.money_free_freeze",
+    needs: "freeze",
+    excludes: ["cheaper_tier"],
+    callType: "cancellation",
+    role: "handling",
+    // One sentence, like every template: the validator splits a block at full stops.
+    text: "If money is the reason they're leaving, you have no cheaper plan, so say you understand and you'll pass it on — the freeze is free, so you may still mention it once.",
+  },
+  {
+    id: "cancellation.handling.no_freeze",
+    needs: "cheaper_tier",
+    excludes: ["freeze"],
+    callType: "cancellation",
+    role: "handling",
+    text: "You have no freeze or pause to offer, so whatever the reason they give, the {tier_name} is the one thing you can put on the table.",
+  },
+  {
+    id: "cancellation.limit.two",
+    callType: "cancellation",
+    role: "limit",
+    counts: 2,
+    text: "Those two things are everything you have.",
+  },
+  {
+    id: "cancellation.limit.freeze",
+    needs: "freeze",
+    callType: "cancellation",
+    role: "limit",
+    counts: 1,
+    text: "That freeze is the only thing you have.",
+  },
+  {
+    id: "cancellation.limit.cheaper_tier",
+    needs: "cheaper_tier",
+    callType: "cancellation",
+    role: "limit",
+    counts: 1,
+    text: "That {tier_name} is the only thing you have.",
+  },
+  {
+    id: "cancellation.close.goes_ahead",
+    needs: "any",
+    excludes: ["renewal_discount"],
+    callType: "cancellation",
+    role: "close",
+    text: "There is no discount and no free month, you cannot ask a manager for more, and the cancellation goes ahead unless they take up what you offered.",
+  },
+  {
+    id: "cancellation.none.nothing",
+    excludes: "all",
+    callType: "cancellation",
+    role: "deny",
+    text: "You have nothing to offer — no freeze, no cheaper plan, no discount.",
+  },
+  {
+    id: "cancellation.none.handling",
+    excludes: "all",
+    callType: "cancellation",
+    role: "handling",
+    text: "Whatever the reason they give, say you understand and you'll pass it on.",
+  },
+  {
+    id: "cancellation.none.close",
+    excludes: "all",
+    callType: "cancellation",
+    role: "close",
+    forbids: true,
+    text: "Do not mention freezes, pauses, discounts, cheaper plans or alternative prices, and do not offer to ask a manager.",
+  },
 ];
 
 const BY_ID = new Map(SENTENCES.map((s) => [s.id, s]));
@@ -411,6 +528,11 @@ export function formatMoney(amount: number): string {
   return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;
 }
 
+/** "8 weeks", "1 week" — a freeze's longest pause as the sentence says it. */
+export function formatWeeks(weeks: number): string {
+  return `${weeks} week${weeks === 1 ? "" : "s"}`;
+}
+
 /** The only values from config that can appear inside an incentives sentence. */
 export function slotValues(gym: GymFields): Record<Slot, string | null> {
   return {
@@ -420,11 +542,15 @@ export function slotValues(gym: GymFields): Record<Slot, string | null> {
     tier_price: typeof gym.cheaper_tier_price === "number" ? formatMoney(gym.cheaper_tier_price) : null,
     reengagement_label: typeof gym.reengagement_other_label === "string" ? gym.reengagement_other_label : null,
     winback_label: typeof gym.winback_other_label === "string" ? gym.winback_other_label : null,
+    // "8 weeks" / "1 week": the unit rides with the number so the sentence reads aloud either way.
+    freeze_weeks: typeof gym.freeze_max_weeks === "number" ? formatWeeks(gym.freeze_max_weeks) : null,
+    // A free freeze has no fee to say, and its sentence carries no fee slot.
+    freeze_fee: typeof gym.freeze_weekly_fee === "number" && gym.freeze_weekly_fee > 0 ? formatMoney(gym.freeze_weekly_fee) : null,
   };
 }
 
 function fill(template: SentenceTemplate, slots: Record<Slot, string | null>): string {
-  return template.text.replace(/\{(discount_percent|tier_name|tier_price|reengagement_label|winback_label)\}/g, (_, slot: Slot) => {
+  return template.text.replace(SLOT_PATTERN, (_, slot: Slot) => {
     const value = slots[slot];
     if (value === null) {
       throw new Error(`sentence ${template.id} needs ${slot}, which this gym has not set`);
@@ -489,6 +615,33 @@ export function incentiveSentenceIds(gym: GymFields, callType: CallType): string
   }
 
   const tier = hasCheaperTier(gym);
+
+  if (callType === "cancellation") {
+    // What a member who has asked to cancel may be offered: a freeze, a
+    // cheaper tier, both, or neither. The order is the ladder's — the freeze
+    // first, because it answers "busy, injured or away", and the cheaper tier
+    // answers "money" — but which is offered first on a call is the prompt's
+    // decision from the reason the member gives, not this block's.
+    const freeze = hasFreeze(gym);
+    const freezeGrant = gym.freeze_weekly_fee === 0 ? "cancellation.grant.freeze_free" : "cancellation.grant.freeze";
+    if (freeze && tier) {
+      return [freezeGrant, "cancellation.delivery.freeze_callback", "cancellation.grant.cheaper_tier", "cancellation.limit.two", "cancellation.close.goes_ahead"];
+    }
+    if (freeze) {
+      return [
+        freezeGrant,
+        "cancellation.delivery.freeze_callback",
+        gym.freeze_weekly_fee === 0 ? "cancellation.handling.money_free_freeze" : "cancellation.handling.money_paid_freeze",
+        "cancellation.limit.freeze",
+        "cancellation.close.goes_ahead",
+      ];
+    }
+    if (tier) {
+      return ["cancellation.grant.cheaper_tier", "cancellation.handling.no_freeze", "cancellation.limit.cheaper_tier", "cancellation.close.goes_ahead"];
+    }
+    return ["cancellation.none.nothing", "cancellation.none.handling", "cancellation.none.close"];
+  }
+
   switch (gym.winback_offer) {
     case "free_pt_session":
       return tier
@@ -562,4 +715,4 @@ export function grantedOffers(compiled: CompiledIncentives): OfferKind[] {
     .filter((g): g is OfferKind => g !== undefined);
 }
 
-export const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];
+export const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback", "cancellation"];

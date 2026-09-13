@@ -18,6 +18,12 @@ import { SCHEDULABLE_OFFERS, type SchedulableOffer } from "@/lib/gymConfig";
 export interface CallHistory {
   /** Which conversation the next call will be. Dials that reached nobody don't count. */
   attemptNumber: number;
+  /**
+   * Conversations that were cancellation calls. The cap on that call is one,
+   * and it is counted on its own: a reengagement chat months ago doesn't spend
+   * the one conversation a member gets about leaving.
+   */
+  cancellationConversations: number;
   /** Permanent. Any single call where the member asked to stop blocks all future calls. */
   doNotContact: boolean;
   /** Total dials, including the ones nobody answered. */
@@ -42,6 +48,7 @@ export interface CallHistory {
 
 export const NO_HISTORY: CallHistory = {
   attemptNumber: 1,
+  cancellationConversations: 0,
   doNotContact: false,
   dialCount: 0,
   lastCallAt: null,
@@ -87,6 +94,9 @@ const OFFERS_BY_CALL_TYPE: Record<string, SchedulableOffer[]> = {
   renewal: ["renewal_discount"],
   reengagement: ["guest_pass", "free_session", "reengagement_other"],
   winback: ["free_pt_session", "guest_pass", "cheaper_tier", "winback_other"],
+  // The freeze isn't scheduled; the cheaper tier offered here spends the
+  // tier's cooldown for a later winback, as any offer of it would.
+  cancellation: ["cheaper_tier"],
 };
 
 /**
@@ -129,6 +139,7 @@ export function summarise(rows: RawRow[]): CallHistory {
   return {
     // The next call is one past however many conversations have happened.
     attemptNumber: conversations.length + 1,
+    cancellationConversations: conversations.filter((r) => r.call_type === "cancellation").length,
     doNotContact: sorted.some(
       (r) => r.do_not_contact === true || r.outcome === "do_not_contact"
     ),

@@ -4,6 +4,8 @@ import { loadCheckinActivity } from "@/lib/checkinActivity";
 import { today } from "@/lib/clock";
 import { ASSUMPTIONS, campaignEconomics, tenureBand } from "@/lib/economics";
 import { evaluateEligibility } from "@/lib/eligibility";
+import type { GymFields } from "@/lib/gymConfig";
+import { listGyms } from "@/lib/gymStore";
 import {
   attendanceTrend,
   busyness,
@@ -92,6 +94,8 @@ export interface IntelligenceInput {
   themes: StoredReasonThemes | null;
   themes_ran_at: string | null;
   themes_notice: string | null;
+  /** The gym a cancellation call would speak for; without it that call's offer gate isn't applied to the counts. */
+  gym?: GymFields | null;
 }
 
 export type Intelligence = ReturnType<typeof composeIntelligence>;
@@ -175,7 +179,7 @@ export function composeIntelligence(input: IntelligenceInput) {
   // one — before a single call has been placed.
   const evaluated = members.map((member) => ({
     member,
-    eligibility: evaluateEligibility(member, history.get(member.member_id) ?? NO_HISTORY, asOf),
+    eligibility: evaluateEligibility(member, history.get(member.member_id) ?? NO_HISTORY, asOf, input.gym ?? null),
   }));
   const queue = evaluated.filter((e) => e.eligibility.allowed).map((e) => e.member);
 
@@ -253,7 +257,7 @@ export async function buildIntelligence(): Promise<Intelligence> {
     membersError = err instanceof Error ? err.message : String(err);
   }
 
-  const [calls, historyRead, activityRead, themesRead] = await Promise.all([
+  const [calls, historyRead, activityRead, themesRead, gymListing] = await Promise.all([
     readAllCallRows<CallRow>(),
     getAllCallHistory().then(
       (history) => ({ history, error: null as string | null }),
@@ -261,6 +265,8 @@ export async function buildIntelligence(): Promise<Intelligence> {
     ),
     source ? loadCheckinActivity(source, asOf) : Promise.resolve({ activity: null, notice: null }),
     source ? latestReasonThemes(source) : Promise.resolve({ themes: null, ran_at: null, notice: null }),
+    // The same default gym the queue judges a cancellation call against.
+    listGyms(),
   ]);
 
   return composeIntelligence({
@@ -276,5 +282,6 @@ export async function buildIntelligence(): Promise<Intelligence> {
     themes: themesRead.themes,
     themes_ran_at: themesRead.ran_at,
     themes_notice: themesRead.notice,
+    gym: gymListing.gyms.find((g) => g.gym_id === gymListing.default_gym_id) ?? null,
   });
 }

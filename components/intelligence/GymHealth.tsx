@@ -5,6 +5,7 @@
  * which the page and /api/intelligence share.
  */
 import type { Intelligence } from "@/lib/intelligence";
+import { callTypeLabel } from "@/lib/labels";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -103,14 +104,14 @@ export function MembershipAndMoney({ health }: { health: Intelligence["health"] 
       <h3 className="mt-5 text-sm font-semibold text-zinc-300">Revenue in each call queue</h3>
       <p className="text-xs text-zinc-500">
         Monthly fees of the members due each call today, by the same eligibility the queue uses. Winback is what lapsed members
-        used to pay.
+        used to pay; cancellation is what members who have asked to cancel still pay until they don&apos;t.
       </p>
       {health.history_error && <Note>Call history couldn&apos;t be read, so do-not-contact and cooldowns aren&apos;t applied to these: {health.history_error}</Note>}
-      <div className="mt-2 grid grid-cols-3 gap-3 sm:max-w-xl">
-        {(["renewal", "reengagement", "winback"] as const).map((type) => (
+      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-3xl">
+        {(["renewal", "reengagement", "winback", "cancellation"] as const).map((type) => (
           <Stat
             key={type}
-            label={type === "renewal" ? "Renewal" : type === "reengagement" ? "Reengagement" : "Winback"}
+            label={callTypeLabel[type]}
             value={`${money(health.revenue_at_risk[type].monthly_fees)}/mo`}
             note={`${health.revenue_at_risk[type].members} members`}
           />

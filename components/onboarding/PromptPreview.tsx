@@ -21,6 +21,7 @@ const AUDIENCE: Record<string, string> = {
   renewal: "members due to renew",
   reengagement: "members who've stopped coming",
   winback: "members whose membership has ended",
+  cancellation: "members who have asked to cancel",
 };
 
 const FACT_ROWS: Array<{ key: keyof Preview["facts"]; label: string }> = [
@@ -89,7 +90,7 @@ export default function PromptPreview({
         answers — none of it is typed by a person or written by AI — and checked before it can be used.
       </p>
 
-      {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete) && (
+      {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete || preview.freezeIncomplete) && (
         <ul className="mt-4 space-y-1 text-xs leading-relaxed text-amber-200">
           {preview.excluded.length > 0 && (
             <li>
@@ -101,6 +102,12 @@ export default function PromptPreview({
             <li>
               <span className="font-semibold text-amber-300">Check this:</span> the cheaper membership needs both a name
               and a monthly price before Charlie can mention it.
+            </li>
+          )}
+          {preview.freezeIncomplete && (
+            <li>
+              <span className="font-semibold text-amber-300">Check this:</span> the freeze needs both its longest pause
+              and a weekly fee (0 if it&apos;s free) before Charlie can offer it.
             </li>
           )}
         </ul>
@@ -147,9 +154,11 @@ export default function PromptPreview({
                         ? `${discount}% off the renewal`
                         : o === "cheaper_tier" && tierName && tierPrice !== null
                           ? `the ${tierName} at ${formatMoney(tierPrice)} a month`
-                          : o === "other"
-                            ? "an offer of the gym's own"
-                            : `a ${OFFER_LABEL[o]}`
+                          : o === "freeze" && preview.fields.freeze_max_weeks !== null && preview.fields.freeze_weekly_fee !== null
+                            ? `a freeze of up to ${preview.fields.freeze_max_weeks} weeks${preview.fields.freeze_weekly_fee > 0 ? ` at ${formatMoney(preview.fields.freeze_weekly_fee)} a week` : ", free"}`
+                            : o === "other"
+                              ? "an offer of the gym's own"
+                              : `a ${OFFER_LABEL[o]}`
                     )
                     .join(" and ")}
                   , then tells Charlie that&apos;s everything he has.

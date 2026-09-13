@@ -45,6 +45,8 @@ function suggestionLabel(key: GymFieldKey, value: unknown): string | null {
   if (typeof value === "boolean") return value ? "“yes”" : "“no”";
   if (key === "renewal_discount_percent" && typeof value === "number") return `${value}%`;
   if (key === "cheaper_tier_price" && typeof value === "number") return `${formatMoney(value)} a month`;
+  if (key === "freeze_max_weeks" && typeof value === "number") return `${value} weeks`;
+  if (key === "freeze_weekly_fee" && typeof value === "number") return `${formatMoney(value)} a week`;
   if (Array.isArray(value)) return value.map((v) => `“${v}”`).join(", ");
   if (spec.kind === "enum" && typeof value === "string") {
     return `“${(spec.optionLabels?.[value] ?? value).replace(/ \(.*\)$/, "")}”`;
@@ -430,6 +432,38 @@ export default function GymForm({
                 onBlur={() => touch("cheaper_tier_price")}
                 prefix="$"
                 suffix="a month"
+                inputMode="decimal"
+              />
+            </div>
+          </fieldset>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-semibold text-white">
+              Membership freeze<span className="ml-1.5 text-xs font-normal text-zinc-400">optional</span>
+            </legend>
+            <p className="-mt-1 text-xs leading-relaxed text-zinc-400">
+              Offered only to a member who has asked to cancel: the membership pauses instead of ending. Someone from the
+              gym calls to arrange it. It needs both the longest pause and the weekly fee — enter 0 if the freeze is free.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_12rem]">
+              <AffixField
+                name="freeze_max_weeks"
+                labelOverride="Longest pause"
+                chrome={chrome("freeze_max_weeks")}
+                value={draft.freeze_max_weeks}
+                onChange={(v) => onChange("freeze_max_weeks", v)}
+                onBlur={() => touch("freeze_max_weeks")}
+                suffix="weeks"
+                inputMode="numeric"
+              />
+              <AffixField
+                name="freeze_weekly_fee"
+                labelOverride="Fee"
+                chrome={chrome("freeze_weekly_fee", { blankNote: null })}
+                value={draft.freeze_weekly_fee}
+                onChange={(v) => onChange("freeze_weekly_fee", v)}
+                onBlur={() => touch("freeze_weekly_fee")}
+                prefix="$"
+                suffix="a week"
                 inputMode="decimal"
               />
             </div>

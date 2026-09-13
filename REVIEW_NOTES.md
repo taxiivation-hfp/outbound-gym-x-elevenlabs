@@ -86,6 +86,29 @@ by pull request, so `main`'s production deploy carries them. Status:
 
 ---
 
+## 0b. Pass two — the fourth agent and the exclusion flip
+
+The `pass-two` branch; the report is [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
+A member who has asked to cancel is now called once, on `charlie-cancellation`,
+with a freeze or a cheaper tier to offer, and the cancellation goes ahead
+regardless. Status:
+
+1. **Apply `supabase/migrations/20260915040000_freeze_and_cancellation_call.sql`
+   to the Supabase project.** It adds the two freeze columns to `gyms` and lets
+   `queue_run_entries` record a `cancellation` call. Idempotent; `npm run
+   db:verify` applies it twice locally. Until it is applied, a gym saved with a
+   freeze is refused with the migration's name, and the nightly recompute's
+   entries fail on a cancellation row.
+2. **`ELEVENLABS_AGENT_ID_CANCELLATION` on Vercel.** `agents:sync` printed the
+   id and it is in `.env.local`; `/api/call` refuses a cancellation call with a
+   500 naming the variable until the deployment has it.
+3. **Give Southbank a freeze if you want the ladder on the live URL.** The seed
+   is unchanged (Southbank has only the cheaper tier, so its flagged members get
+   that one offer); the eval scenarios add the freeze through a config override.
+   Edit the gym at `/onboarding/southbank/edit` once `ONBOARDING_WRITES` is on.
+
+---
+
 ## 1. Things only you can do
 
 > **The order of 1a and 1b matters.** The repository is currently private and has
@@ -146,6 +169,7 @@ gitignored, so here they are:
 ELEVENLABS_AGENT_ID_RENEWAL=agent_2501m2b7vj32eewtgj7nxcecx061
 ELEVENLABS_AGENT_ID_REENGAGEMENT=agent_6101m2b7vkzmed1bstqatsc98gaf
 ELEVENLABS_AGENT_ID_WINBACK=agent_3701m2b7vnvse2z8yzte3w00hkxh
+ELEVENLABS_AGENT_ID_CANCELLATION=<printed by agents:sync in pass two — see .env.local>
 PUBLIC_BASE_URL=https://retention-router.vercel.app
 CALL_OVERRIDE_NUMBER=<the verified handset — see .env.local>
 TWILIO_ACCOUNT_SID=<from .env.local, after you have rotated it>

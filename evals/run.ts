@@ -59,6 +59,7 @@ const AGENT_IDS: Record<string, string | undefined> = {
   renewal: process.env.ELEVENLABS_AGENT_ID_RENEWAL,
   reengagement: process.env.ELEVENLABS_AGENT_ID_REENGAGEMENT,
   winback: process.env.ELEVENLABS_AGENT_ID_WINBACK,
+  cancellation: process.env.ELEVENLABS_AGENT_ID_CANCELLATION,
 };
 
 // --- args -------------------------------------------------------------------
@@ -90,6 +91,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // --- tests ------------------------------------------------------------------
 
 const TEST_NAME_PREFIX = "charlie-eval";
+const INVOCATION_TIMEOUT_MINUTES = 20;
 
 function testName(scenario: Scenario): string {
   return `${TEST_NAME_PREFIX}/${scenario.id}`;
@@ -176,7 +178,9 @@ async function runAgentTests(agentId: string, testIds: string[]): Promise<Invoca
     tests: testIds.map((test_id) => ({ test_id })),
   });
 
-  const deadline = Date.now() + 10 * 60 * 1000;
+  // The cancellation agent carries the largest group (sixteen scenarios), and
+  // the platform runs an invocation's tests with limited concurrency.
+  const deadline = Date.now() + INVOCATION_TIMEOUT_MINUTES * 60 * 1000;
   let current = invocation;
   while (Date.now() < deadline) {
     const pending = current.test_runs.filter((r) => r.status === "pending").length;
@@ -185,7 +189,7 @@ async function runAgentTests(agentId: string, testIds: string[]): Promise<Invoca
     await sleep(5000);
     current = await call<Invocation>("GET", `/convai/test-invocations/${current.id}`);
   }
-  throw new Error(`invocation ${current.id} did not finish within ten minutes`);
+  throw new Error(`invocation ${current.id} did not finish within ${INVOCATION_TIMEOUT_MINUTES} minutes`);
 }
 
 function toTurns(run: TestRun): Turn[] {

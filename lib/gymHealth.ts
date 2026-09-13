@@ -184,6 +184,8 @@ export function revenueAtRisk(evaluated: Array<{ member: Member; eligibility: El
     renewal: { members: 0, monthly_fees: 0 },
     reengagement: { members: 0, monthly_fees: 0 },
     winback: { members: 0, monthly_fees: 0 },
+    // What the members who have asked to cancel still pay, until they don't.
+    cancellation: { members: 0, monthly_fees: 0 },
   };
   for (const { member, eligibility } of evaluated) {
     const type = eligibility.allowed ? eligibility.routing.call_type : null;

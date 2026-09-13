@@ -1,5 +1,8 @@
 import type { CallType } from "@/lib/callType";
 import {
+  FREEZE_FEE_MAX,
+  FREEZE_WEEKS_MAX,
+  FREEZE_WEEKS_MIN,
   OTHER_OFFER_DELIVERIES,
   OTHER_OFFER_LABEL_MAX,
   RENEWAL_DISCOUNT_MAX,
@@ -11,7 +14,9 @@ import {
 } from "@/lib/gymConfig";
 import {
   SENTENCES,
+  SLOT_PATTERN,
   formatMoney,
+  formatWeeks,
   type OfferKind,
   type SentenceTemplate,
   type Slot,
@@ -39,7 +44,9 @@ import { checkText, looksLikeInstruction, normaliseText } from "@/lib/textSafety
  *   session is booked by a person;
  * - quiet times are only offered by a gym that told us its quiet times;
  * - an "other" offer's label appears only in the sentences that grant and limit
- *   that offer, on the call type it was configured for, and nowhere else.
+ *   that offer, on the call type it was configured for, and nowhere else;
+ * - a cancellation block names the configured freeze's weeks and fee and the
+ *   cheaper tier's name and price, and no other number, price or offer.
  *
  * The config is re-checked here as `unknown` rather than trusted as `GymFields`,
  * because a malformed config — a string where extraction should have returned a
@@ -105,6 +112,9 @@ interface CheckedConfig {
   winback: string | null;
   tierName: string | null;
   tierPrice: number | null;
+  /** Both or neither, like the tier. A fee of 0 is a free freeze. */
+  freezeWeeks: number | null;
+  freezeFee: number | null;
   quietHoursKnown: boolean;
   /** An "other" offer's label and delivery, per call type — set only when that choice is "other" and both are valid. */
   other: Record<"reengagement" | "winback", { label: string; delivery: "link" | "booking" } | null>;
@@ -178,6 +188,34 @@ function checkConfig(config: unknown, violations: IncentivesViolation[]): Checke
     bad("cheaper_tier_name and cheaper_tier_price must be set together or both left blank");
   }
 
+  let freezeWeeks: number | null = null;
+  const weeks = raw.freeze_max_weeks;
+  if (weeks !== null && weeks !== undefined) {
+    if (typeof weeks !== "number" || !Number.isInteger(weeks)) {
+      bad(`freeze_max_weeks must be a whole number or null, got ${JSON.stringify(weeks)}`);
+    } else if (weeks < FREEZE_WEEKS_MIN || weeks > FREEZE_WEEKS_MAX) {
+      bad(`freeze_max_weeks must be ${FREEZE_WEEKS_MIN}–${FREEZE_WEEKS_MAX}, got ${weeks}`);
+    } else {
+      freezeWeeks = weeks;
+    }
+  }
+  let freezeFee: number | null = null;
+  const fee = raw.freeze_weekly_fee;
+  if (fee !== null && fee !== undefined) {
+    if (typeof fee !== "number" || !Number.isFinite(fee)) {
+      bad(`freeze_weekly_fee must be a number or null, got ${JSON.stringify(fee)}`);
+    } else if (fee < 0 || fee > FREEZE_FEE_MAX || !hasAtMostTwoDecimals(fee)) {
+      bad(`freeze_weekly_fee must be $0 to $${FREEZE_FEE_MAX} with at most two decimals, got ${fee}`);
+    } else {
+      freezeFee = fee;
+    }
+  }
+  const weeksGiven = weeks !== null && weeks !== undefined;
+  const feeGiven = fee !== null && fee !== undefined;
+  if (weeksGiven !== feeGiven) {
+    bad("freeze_max_weeks and freeze_weekly_fee must be set together or both left blank");
+  }
+
   const q = raw.quiet_hours;
   if (q !== null && q !== undefined && typeof q !== "string") {
     bad(`quiet_hours must be text or null, got ${JSON.stringify(q)}`);
@@ -224,9 +262,11 @@ function checkConfig(config: unknown, violations: IncentivesViolation[]): Checke
     discount,
     perk,
     winback,
-    // A half-set tier is no tier at all.
+    // A half-set tier is no tier at all, and a half-set freeze is no freeze.
     tierName: tierName !== null && tierPrice !== null ? tierName : null,
     tierPrice: tierName !== null && tierPrice !== null ? tierPrice : null,
+    freezeWeeks: freezeWeeks !== null && freezeFee !== null ? freezeWeeks : null,
+    freezeFee: freezeWeeks !== null && freezeFee !== null ? freezeFee : null,
     quietHoursKnown: typeof q === "string" && q.trim().length > 0,
     other,
     labels,
@@ -242,6 +282,11 @@ function expectedGrants(config: CheckedConfig, callType: CallType): Set<OfferKin
     if (config.perk === "guest_pass") out.add("guest_pass");
     if (config.perk === "free_session") out.add("free_session");
     if (config.other.reengagement) out.add("other");
+  } else if (callType === "cancellation") {
+    // Exactly the two things a member who has asked to cancel may be offered.
+    // Neither the reengagement perk nor the winback offer belongs here.
+    if (config.freezeWeeks !== null) out.add("freeze");
+    if (config.tierName !== null) out.add("cheaper_tier");
   } else {
     if (config.winback === "free_pt_session") out.add("free_pt_session");
     if (config.winback === "guest_pass") out.add("guest_pass");
@@ -257,12 +302,14 @@ const DELIVERY_FOR: Record<Exclude<OfferKind, "other">, "link" | "booking" | nul
   free_session: "booking",
   free_pt_session: "booking",
   cheaper_tier: null,
+  // A freeze is arranged by a person, never texted.
+  freeze: "booking",
 };
 
 /** An "other" offer is delivered the way the gym said; every other offer the way its type is. */
 function deliveryFor(offer: OfferKind, config: CheckedConfig, callType: CallType): "link" | "booking" | null {
   if (offer !== "other") return DELIVERY_FOR[offer];
-  return callType === "renewal" ? null : (config.other[callType]?.delivery ?? null);
+  return callType === "renewal" || callType === "cancellation" ? null : (config.other[callType]?.delivery ?? null);
 }
 
 // --- Sentences ---------------------------------------------------------------------
@@ -270,8 +317,6 @@ function deliveryFor(offer: OfferKind, config: CheckedConfig, callType: CallType
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
-const SLOT_PATTERN = /\{(discount_percent|tier_name|tier_price|reengagement_label|winback_label)\}/g;
 
 function templateRegExp(template: SentenceTemplate): { re: RegExp; slots: Slot[] } {
   const slots: Slot[] = [];
@@ -315,6 +360,9 @@ function expectedSlotValues(config: CheckedConfig): Record<Slot, string | null> 
     tier_price: config.tierPrice !== null ? formatMoney(config.tierPrice) : null,
     reengagement_label: config.other.reengagement?.label ?? null,
     winback_label: config.other.winback?.label ?? null,
+    freeze_weeks: config.freezeWeeks !== null ? formatWeeks(config.freezeWeeks) : null,
+    // A free freeze's sentence has no fee slot, so there is no value for one.
+    freeze_fee: config.freezeFee !== null && config.freezeFee > 0 ? formatMoney(config.freezeFee) : null,
   };
 }
 
@@ -327,7 +375,10 @@ const OFFER_WORDS: Array<[OfferKind, RegExp]> = [
   ["guest_pass", /\bguest pass/i],
   ["free_session", /\bfree session\b/i],
   ["free_pt_session", /\bfree PT session\b|\bpersonal training\b/i],
-  ["cheaper_tier", /\bcheaper\b|\boff-?peak\b|\$\s?\d|\bconcession\b|\bstudent (rate|membership)\b/i],
+  // "$39 a month" is a tier's price; "$5 a week" is a freeze's fee. Every
+  // dollar amount is still checked against the config below, whichever it is.
+  ["cheaper_tier", /\bcheaper\b|\boff-?peak\b|\$\s?\d[\d.]* a month\b|\bconcession\b|\bstudent (rate|membership)\b/i],
+  ["freeze", /\bfreez\w*|\bfroze\w*|\bpaus\w*|\bon hold\b|\bsuspen\w*/i],
 ];
 
 const NEGATIVE_ROLES = new Set(["deny", "close", "handling"]);
@@ -464,11 +515,21 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
     allowedNumbers.add(String(checked.tierPrice));
     allowedNumbers.add(checked.tierPrice.toFixed(2));
   }
+  // A freeze's terms are the only other numbers a block may carry, and only
+  // the cancellation block may carry them.
+  const freezeNumbers = new Set<string>();
+  if (callType === "cancellation" && checked.freezeWeeks !== null && checked.freezeFee !== null) {
+    freezeNumbers.add(String(checked.freezeWeeks));
+    if (checked.freezeFee > 0) {
+      freezeNumbers.add(String(checked.freezeFee));
+      freezeNumbers.add(checked.freezeFee.toFixed(2));
+    }
+  }
   // Tier names cannot contain digits (lib/textSafety.ts), so no number is
   // allowed in on a name's account.
   const blockText = texts.join(" ");
   for (const number of new Set(blockText.match(/\d+(?:\.\d+)?/g) ?? [])) {
-    if (!allowedNumbers.has(number)) {
+    if (!allowedNumbers.has(number) && !freezeNumbers.has(number)) {
       violations.push({ rule: "number_not_in_config", message: `The number ${number} appears in the block but nowhere in the config.` });
     }
   }
@@ -477,9 +538,20 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
       violations.push({ rule: "number_not_in_config", message: `"${m[0]}" is not this gym's renewal discount.` });
     }
   }
+  const allowedPrices = new Set<string>();
+  if (checked.tierPrice !== null) allowedPrices.add(formatMoney(checked.tierPrice));
+  if (callType === "cancellation" && checked.freezeFee !== null && checked.freezeFee > 0) allowedPrices.add(formatMoney(checked.freezeFee));
   for (const m of blockText.matchAll(/\$\s?(\d+(?:\.\d+)?)/g)) {
-    if (checked.tierPrice === null || `$${m[1]}` !== formatMoney(checked.tierPrice)) {
-      violations.push({ rule: "number_not_in_config", message: `"${m[0]}" is not this gym's cheaper-tier price.` });
+    if (!allowedPrices.has(`$${m[1]}`)) {
+      violations.push({ rule: "number_not_in_config", message: `"${m[0]}" is not this gym's cheaper-tier price or freeze fee.` });
+    }
+  }
+  // "a week" belongs to the freeze fee alone; "a month" to the tier's price.
+  for (const m of blockText.matchAll(/\$\s?(\d+(?:\.\d+)?) a (week|month)\b/g)) {
+    const isFee = callType === "cancellation" && checked.freezeFee !== null && checked.freezeFee > 0 && `$${m[1]}` === formatMoney(checked.freezeFee);
+    const isPrice = checked.tierPrice !== null && `$${m[1]}` === formatMoney(checked.tierPrice);
+    if ((m[2] === "week" && !isFee) || (m[2] === "month" && !isPrice)) {
+      violations.push({ rule: "number_not_in_config", message: `"${m[0]}" is not the ${m[2] === "week" ? "freeze fee" : "cheaper-tier price"} this gym set.` });
     }
   }
 
@@ -499,7 +571,7 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
     }
     for (const { text, template } of matched) {
       if (template && (template.role === "deny" || template.forbids)) continue;
-      if (/\bdiscount|\bcheaper\b|\boff-?peak\b|\bguest pass|\bfree (PT )?session\b/i.test(text)) {
+      if (/\bdiscount|\bcheaper\b|\boff-?peak\b|\bguest pass|\bfree (PT )?session\b|\bfreez\w*|\bpaus\w*/i.test(text)) {
         violations.push({
           rule: "nothing_block_has_offer_language",
           sentence: text,
@@ -588,7 +660,7 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
   // offer, and then only inside the sentences written around that label. It
   // can't turn up anywhere the compiler didn't put it — on another call type's
   // block, or in a sentence whose own words don't carry the slot.
-  const ownOther = callType === "renewal" ? null : checked.other[callType];
+  const ownOther = callType === "renewal" || callType === "cancellation" ? null : checked.other[callType];
   if (ownOther && expected.has("other") && !blockText.toLowerCase().includes(ownOther.label.toLowerCase())) {
     violations.push({ rule: "offer_missing", message: `The config's "other" offer is "${ownOther.label}", but the block never names it.` });
   }
@@ -596,7 +668,7 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
     const phrase = new RegExp(`(^|[^\\p{L}])${escapeRegExp(label)}([^\\p{L}]|$)`, "iu");
     for (const { text, template } of matched) {
       if (!phrase.test(text)) continue;
-      const slotHere = template !== null && callType !== "renewal" && template.text.includes(`{${callType}_label}`);
+      const slotHere = template !== null && ownOther !== null && template.text.includes(`{${callType}_label}`);
       const legitimate = slotHere && ownOther !== null && ownOther.label === label && expected.has("other");
       const compilerWords = template !== null && phrase.test(template.text);
       if (!legitimate && !compilerWords) {

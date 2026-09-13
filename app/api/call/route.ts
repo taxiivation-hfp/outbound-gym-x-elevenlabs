@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getCallHistory, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
+import { today } from "@/lib/clock";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
 import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
@@ -17,6 +18,7 @@ const AGENT_ID_ENV: Record<CallType, string> = {
   renewal: "ELEVENLABS_AGENT_ID_RENEWAL",
   reengagement: "ELEVENLABS_AGENT_ID_REENGAGEMENT",
   winback: "ELEVENLABS_AGENT_ID_WINBACK",
+  cancellation: "ELEVENLABS_AGENT_ID_CANCELLATION",
 };
 
 /**
@@ -103,6 +105,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: gymLookup.error, blocked_by: "gym_config" }, { status: gymLookup.status });
   }
   const gym = gymLookup.gym;
+
+  // The one gate that needs the gym rather than the member or the database: a
+  // cancellation call is placed only when this gym has a freeze or a cheaper
+  // tier to put on the table. Evaluated again with the gym in hand so the
+  // refusal comes from the same function the queue used, not a second rule.
+  const gated = evaluateEligibility(member, history, today(), gym);
+  const gateRefusal = callRefusal(gated);
+  if (gateRefusal) {
+    return NextResponse.json(gateRefusal.body, { status: gateRefusal.status });
+  }
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const agentId = process.env[AGENT_ID_ENV[callType]];

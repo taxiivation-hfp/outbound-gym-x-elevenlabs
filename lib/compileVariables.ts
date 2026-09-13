@@ -1,4 +1,4 @@
-import type { CallType, Routing } from "@/lib/callType";
+import { ROUTING_THRESHOLDS, type CallType, type Routing } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { parseGymConfig, type FieldErrors, type GymFields } from "@/lib/gymConfig";
 import { withholdOffers, type OfferEligibility } from "@/lib/eligibility";
@@ -158,6 +158,8 @@ export function compileTimeLeft(callType: CallType, daysToExpiry: number): strin
   if (callType === "winback") {
     return `${formatSpan(Math.max(1, -daysToExpiry))} ago`;
   }
+  // The cancellation prompt never reads it — the request, not the term, is what
+  // ends the membership — but every variable arrives with a value.
   return spelledDays(daysToExpiry);
 }
 
@@ -195,7 +197,10 @@ export function compileExpiryLine(daysToExpiry: number, timeLeft: string): strin
  *
  * `priorCall` is the closed loop: if a previous conversation already extracted
  * why they stopped, say so, so the agent does not ask a question it has the
- * answer to.
+ * answer to. A cancellation call carries none of it: its Goal asks, once, why
+ * they are leaving — which is not the same question as why they stopped coming
+ * — and its offers are fresh by design, so "do not re-pitch" would contradict
+ * the one call the member gets.
  */
 export interface PriorCallContext {
   reason_for_absence?: string | null;
@@ -215,6 +220,25 @@ export function compileContext(
   const habit = formatHabit(member.signals.old_rate);
   const awayFor = formatAbsence(member.signals.days_since_visit);
   const lastIn = formatLastVisit(member.signals.days_since_visit);
+
+  if (callType === "cancellation") {
+    // What makes this call different, as facts: when they asked, that the
+    // request stands on its own, and what kind of membership it ends. The
+    // date of the request is spoken as a day rather than a count, because
+    // "three days ago" would be one more number to get wrong out loud.
+    const asked = member.cancellation_requested ? `on ${formatDate(member.cancellation_requested.slice(0, 10))}` : "recently";
+    sentences.push(
+      `They asked to cancel their membership ${asked}.`,
+      "The request has been received and is being processed, and it goes ahead whether or not this call happens.",
+      member.auto_renew
+        ? "It is an auto-renewing membership, so the cancellation is what stops the billing."
+        : `It is a fixed-term membership that would otherwise have run until ${expiry}.`,
+      member.signals.days_since_visit >= ABSENCE_DAYS_FOR_CONTEXT
+        ? `They've not been in for ${awayFor}. Before that they came ${habit}.`
+        : `They're still coming in, ${habit}.`
+    );
+    return sentences.join(" ");
+  }
 
   if (callType === "renewal") {
     sentences.push(
@@ -238,6 +262,9 @@ export function compileContext(
   sentences.push(...priorCallSentences(priorCall));
   return sentences.join(" ");
 }
+
+/** The router's absence threshold, for the one context sentence that branches on it. */
+const ABSENCE_DAYS_FOR_CONTEXT = ROUTING_THRESHOLDS.ABSENCE_DAYS;
 
 const REASONS = new Set(["time", "money", "injury", "motivation", "moved", "gym_issue", "other"]);
 

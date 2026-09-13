@@ -341,8 +341,8 @@ export default function OnboardingFlow({
         <section aria-labelledby="by-hand" className="bg-black p-6">
           <SectionTitle id="by-hand">Fill it in by hand</SectionTitle>
           <p className="mt-2 max-w-[60ch] text-sm leading-relaxed text-zinc-400">
-            Eleven questions. Only the gym&apos;s name is required — every other answer can be left as not stated, and
-            the form says what Charlie does when it is.
+            A short questionnaire. Only the gym&apos;s name is required — every other answer can be left as not stated,
+            and the form says what Charlie does when it is.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Button variant={extractionAvailable ? "secondary" : "primary"} onClick={startManual}>

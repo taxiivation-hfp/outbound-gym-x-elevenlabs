@@ -65,10 +65,11 @@ export default function EvalsPage() {
       <header>
         <h1 className="text-3xl font-black uppercase tracking-tight sm:text-4xl">Evals</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">
-          Two suites. Nineteen deterministic assertions over the routing rules — no model, no
-          network — and fifteen simulated calls against the real agents, each with regex
-          conditions checked here and one plain-English condition handed to a judge. A
-          scenario passes only if both halves do.
+          Two suites. {guards.total} deterministic assertions over the routing rules, the gym
+          config and the compiled prompt text — no model, no network — and {conversations.total}{" "}
+          simulated calls against the real agents, each with regex conditions checked here and
+          one plain-English condition handed to a judge. A scenario passes only if both halves
+          do.
         </p>
         <p className="mt-2 text-xs text-zinc-600">
           Run {new Date(run.run_at).toLocaleString()}

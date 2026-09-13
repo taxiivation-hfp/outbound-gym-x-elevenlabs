@@ -109,14 +109,17 @@ async function readRows(filterGymId?: string): Promise<ReadResult> {
 }
 
 /** numeric columns can arrive as strings from some PostgREST configurations. */
+function numericColumn(value: unknown): unknown {
+  return typeof value === "string" && /^\d+(\.\d{1,2})?$/.test(value) ? Number(value) : value;
+}
+
 function normaliseRow(raw: Record<string, unknown>): Record<string, unknown> {
   const row = configColumns(raw);
-  const price = row.cheaper_tier_price;
-  return {
-    ...row,
-    cheaper_tier_price:
-      typeof price === "string" && /^\d+(\.\d{1,2})?$/.test(price) ? Number(price) : price,
-  };
+  const out: Record<string, unknown> = { ...row, cheaper_tier_price: numericColumn(row.cheaper_tier_price) };
+  // Absent on a database without the freeze migration: left absent, so the
+  // parser reads "not set" rather than a key the row never had.
+  if ("freeze_weekly_fee" in row) out.freeze_weekly_fee = numericColumn(row.freeze_weekly_fee);
+  return out;
 }
 
 function parseRows(rows: Record<string, unknown>[]) {
@@ -259,6 +262,10 @@ const LATER_COLUMNS: Array<{ keys: string[]; migration: string }> = [
   {
     keys: ["reengagement_other_label", "reengagement_other_delivery", "winback_other_label", "winback_other_delivery"],
     migration: "supabase/migrations/20260915020000_other_offers.sql",
+  },
+  {
+    keys: ["freeze_max_weeks", "freeze_weekly_fee"],
+    migration: "supabase/migrations/20260915040000_freeze_and_cancellation_call.sql",
   },
 ];
 

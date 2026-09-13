@@ -35,6 +35,7 @@ const MIGRATIONS = [
   "20260915010000_offer_schedule.sql",
   "20260915020000_other_offers.sql",
   "20260915030000_cancellation_requests.sql",
+  "20260915040000_freeze_and_cancellation_call.sql",
 ];
 
 let failures = 0;
@@ -136,6 +137,17 @@ async function main() {
   check("\"other\" without a delivery is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, created_via) values ('x10', 'X', 'other', 'towel', 'manual')"));
   check("a label with digits is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, winback_other_delivery, created_via) values ('x11', 'X', 'other', '50 percent', 'link', 'manual')"));
   check("an unknown delivery is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, winback_other_delivery, created_via) values ('x12', 'X', 'other', 'towel', 'post', 'manual')"));
+
+  console.log("\nMembership freeze");
+  const paidFreeze = await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, freeze_weekly_fee, created_via) values ('freeze-gym', 'Freeze Gym', 8, 5, 'manual')");
+  check("a freeze of 8 weeks at $5 a week is stored", !paidFreeze);
+  const freeFreeze = await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, freeze_weekly_fee, created_via) values ('free-freeze-gym', 'Free Freeze Gym', 4, 0, 'manual')");
+  check("a free freeze (fee 0) is stored — null and 0 are different answers", !freeFreeze);
+  check("weeks without a fee is refused", await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, created_via) values ('x13', 'X', 8, 'manual')"));
+  check("a fee without weeks is refused", await rejects(db, "insert into gyms (gym_id, gym_name, freeze_weekly_fee, created_via) values ('x14', 'X', 5, 'manual')"));
+  check("a 27-week freeze is refused", await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, freeze_weekly_fee, created_via) values ('x15', 'X', 27, 5, 'manual')"));
+  check("a $51-a-week freeze is refused", await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, freeze_weekly_fee, created_via) values ('x16', 'X', 8, 51, 'manual')"));
+  check("a 0-week freeze is refused", await rejects(db, "insert into gyms (gym_id, gym_name, freeze_max_weeks, freeze_weekly_fee, created_via) values ('x17', 'X', 0, 5, 'manual')"));
 
   console.log("\nMember data");
   check(
@@ -299,6 +311,10 @@ async function main() {
   check(
     "an unknown call type is refused",
     await rejects(db, `insert into queue_run_entries (run_id, member_id, call_type) values ('${run.id}', 'M1', 'upsell')`)
+  );
+  check(
+    "a cancellation call is a recorded call type",
+    !(await rejects(db, `insert into queue_run_entries (run_id, member_id, call_type) values ('${run.id}', 'M2', 'cancellation')`))
   );
 
   console.log(failures === 0 ? "\nAll migration checks passed." : `\n${failures} check${failures === 1 ? "" : "s"} failed.`);

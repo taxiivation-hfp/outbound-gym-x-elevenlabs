@@ -4,6 +4,7 @@ import {
   GYM_FIELD_KEYS,
   configuredOffers,
   hasCheaperTier,
+  hasFreeze,
   parseOfferSchedule,
   type OfferPeriod,
   type OfferSchedule,
@@ -45,6 +46,8 @@ export interface Draft {
   winback_offer: WinbackOffer | null;
   cheaper_tier_name: string;
   cheaper_tier_price: string;
+  freeze_max_weeks: string;
+  freeze_weekly_fee: string;
   reengagement_other_label: string;
   reengagement_other_delivery: OtherOfferDelivery | null;
   winback_other_label: string;
@@ -70,6 +73,8 @@ export function emptyDraft(): Draft {
     winback_offer: null,
     cheaper_tier_name: "",
     cheaper_tier_price: "",
+    freeze_max_weeks: "",
+    freeze_weekly_fee: "",
     reengagement_other_label: "",
     reengagement_other_delivery: null,
     winback_other_label: "",
@@ -103,6 +108,8 @@ export function draftToInput(draft: Draft): Record<GymFieldKey, unknown> {
     winback_offer: draft.winback_offer,
     cheaper_tier_name: draft.cheaper_tier_name,
     cheaper_tier_price: numberInput(draft.cheaper_tier_price),
+    freeze_max_weeks: numberInput(draft.freeze_max_weeks),
+    freeze_weekly_fee: numberInput(draft.freeze_weekly_fee),
     // An "other" offer's name and delivery are only asked while "Something
     // else" is the choice; switching away from it hides them, and they aren't
     // sent for a choice they don't belong to.
@@ -131,8 +138,10 @@ export function valueToDraft<K extends GymFieldKey>(key: K, value: unknown): Dra
     case "winback_other_delivery":
       return (typeof value === "string" ? value : null) as Draft[K];
     case "renewal_discount_percent":
+    case "freeze_max_weeks":
       return (typeof value === "number" ? String(value) : "") as Draft[K];
     case "cheaper_tier_price":
+    case "freeze_weekly_fee":
       return (typeof value === "number" ? priceText(value) : "") as Draft[K];
     default:
       return (typeof value === "string" ? value : "") as Draft[K];
@@ -206,6 +215,8 @@ export interface Preview {
   excluded: GymFieldKey[];
   /** A cheaper tier with only one half filled in, which compiles as no tier. */
   tierIncomplete: boolean;
+  /** A freeze with only its length or only its fee, which compiles as no freeze. */
+  freezeIncomplete: boolean;
   blocks: PreviewBlock[];
   facts: ReturnType<typeof compileGymFacts>;
   /** Whether the name is set; the facts use a stand-in until it is. */
@@ -233,7 +244,12 @@ export function previewDraft(draft: Draft): Preview {
   const named = typeof fields.gym_name === "string" && fields.gym_name.length > 0;
   const gym = { ...(fields as unknown as GymFields), gym_name: named ? (fields.gym_name as string) : "this gym" };
   const tierIncomplete = (gym.cheaper_tier_name === null) !== (gym.cheaper_tier_price === null);
-  const compileAs: GymFields = hasCheaperTier(gym) ? gym : { ...gym, cheaper_tier_name: null, cheaper_tier_price: null };
+  const freezeIncomplete = (gym.freeze_max_weeks === null) !== (gym.freeze_weekly_fee === null);
+  const compileAs: GymFields = {
+    ...gym,
+    ...(hasCheaperTier(gym) ? {} : { cheaper_tier_name: null, cheaper_tier_price: null }),
+    ...(hasFreeze(gym) ? {} : { freeze_max_weeks: null, freeze_weekly_fee: null }),
+  };
 
   const blocks = CALL_TYPES.map((callType) => {
     const compiled = compileIncentives(compileAs, callType);
@@ -245,7 +261,7 @@ export function previewDraft(draft: Draft): Preview {
     return { callType, text: compiled.text, sentences, offers, ok: result.ok, violations: result.violations };
   });
 
-  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
+  return { excluded, tierIncomplete, freezeIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
 }
 
 export const OFFER_LABEL: Record<OfferKind, string> = {
@@ -254,5 +270,6 @@ export const OFFER_LABEL: Record<OfferKind, string> = {
   free_session: "free session",
   free_pt_session: "free PT session",
   cheaper_tier: "cheaper membership",
+  freeze: "membership freeze",
   other: "offer of the gym's own",
 };

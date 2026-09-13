@@ -76,6 +76,20 @@ export const nearExpiryAbsentMember = () =>
     signals: { days_since_visit: 35, old_rate: 2.2, tenure_days: 400, visit_count_90d: 10 },
   });
 
+/**
+ * Auto-renewing, away two months after a settled habit, asked to cancel three
+ * days ago → cancellation. The exact member the exclusion used to refuse.
+ */
+export const cancellationMember = () =>
+  fixtureMember({
+    name: "Tom Reilly",
+    auto_renew: true,
+    contract_type: "month-to-month",
+    expiry_date: isoOffset(12),
+    cancellation_requested: `${isoOffset(-3)}T18:30:00`,
+    signals: { days_since_visit: 60, old_rate: 2.3, tenure_days: 500, visit_count_90d: 2 },
+  });
+
 /** Lapsed three weeks ago → winback, one-month window. */
 export const winbackMember = () =>
   fixtureMember({
