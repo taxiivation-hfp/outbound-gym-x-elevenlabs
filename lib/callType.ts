@@ -48,6 +48,18 @@ const WINBACK_WINDOWS: Array<{ window: WinbackWindow; from: number; to: number }
   { window: 6, from: 165, to: 195 },
 ];
 
+/**
+ * The thresholds above, read-only, for anything that has to describe members
+ * the way the router does — the gym-health segments and the offer habit gate —
+ * so a screen and the queue can't disagree about who is "inactive" or "a regular".
+ */
+export const ROUTING_THRESHOLDS = {
+  RENEWAL_DAYS_BEFORE_EXPIRY,
+  ABSENCE_DAYS,
+  RECENT_VISIT_DAYS,
+  HABIT_MIN_RATE,
+} as const;
+
 function weeks(days: number): string {
   const w = Math.round(days / 7);
   return `${w} week${w === 1 ? "" : "s"}`;

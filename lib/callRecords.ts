@@ -74,6 +74,24 @@ export async function updateCallRecordByConversation(conversationId: string, pat
   return { error: retry.error, degraded: true as const };
 }
 
+/**
+ * Every call record, newest first, as the intelligence page and the nightly
+ * recompute read them. `select("*")` for the same reason as call history: a
+ * column one migration behind shouldn't turn a report into an error.
+ */
+export async function readAllCallRows<T = Record<string, unknown>>(): Promise<{ rows: T[]; error: string | null }> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("call_records")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return { rows: [], error: error.message };
+    return { rows: (data ?? []) as T[], error: null };
+  } catch (err) {
+    return { rows: [], error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /** A call placed this long ago can no longer be the one asking to send a text. */
 const RECENT_CALL_WINDOW_MS = 30 * 60 * 1000;
 

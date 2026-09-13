@@ -328,7 +328,7 @@ async function main() {
   console.log(`Charlie evals — ${runAt}${LABEL ? ` (${LABEL})` : ""}\n`);
 
   console.log("Routing guards (no model, no network):");
-  const guards = runGuards();
+  const guards = await runGuards();
   for (const g of guards) {
     console.log(`  ${g.passed ? "pass" : "FAIL"}  ${g.name}`);
     if (!g.passed) console.log(`        ${g.detail}`);

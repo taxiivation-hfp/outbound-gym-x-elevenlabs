@@ -5,6 +5,7 @@ import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
 import { PATTERNS } from "./assertions";
 import { configGuards } from "./configGuards";
+import { healthGuards } from "./healthGuards";
 import { memberGuards } from "./memberGuards";
 import { fixtureMember, isoOffset } from "./fixtures";
 
@@ -34,7 +35,8 @@ export interface Guard {
   id: string;
   name: string;
   why: string;
-  run: () => { passed: boolean; detail: string };
+  /** Synchronous, except where the code under test is async (the nightly summary). */
+  run: () => { passed: boolean; detail: string } | Promise<{ passed: boolean; detail: string }>;
 }
 
 function record(iso: string, fields: Record<string, unknown> = {}) {
@@ -464,19 +466,24 @@ const guards: Guard[] = [
   },
 ];
 
-export function runGuards(): GuardResult[] {
-  return [...guards, ...configGuards, ...memberGuards].map((g) => {
-    try {
-      const { passed, detail } = g.run();
-      return { id: g.id, name: g.name, passed, detail, why: g.why };
-    } catch (err) {
-      return {
-        id: g.id,
-        name: g.name,
-        passed: false,
-        detail: `threw: ${err instanceof Error ? err.message : String(err)}`,
-        why: g.why,
-      };
-    }
-  });
+export async function runGuards(): Promise<GuardResult[]> {
+  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards];
+  const results: GuardResult[] = [];
+  for (const g of all) results.push(await runOne(g));
+  return results;
+}
+
+async function runOne(g: Guard): Promise<GuardResult> {
+  try {
+    const { passed, detail } = await g.run();
+    return { id: g.id, name: g.name, passed, detail, why: g.why };
+  } catch (err) {
+    return {
+      id: g.id,
+      name: g.name,
+      passed: false,
+      detail: `threw: ${err instanceof Error ? err.message : String(err)}`,
+      why: g.why,
+    };
+  }
 }

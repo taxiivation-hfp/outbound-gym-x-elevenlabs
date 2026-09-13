@@ -21,6 +21,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { normaliseHeader, parseCsv } from "../lib/csv";
+import { activityFromRows, summariseCheckins } from "../lib/gymHealth";
 import { countVisits } from "../lib/memberData";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -28,6 +29,7 @@ const MIGRATIONS = [
   "20260914000000_create_gyms.sql",
   "20260914010000_member_data.sql",
   "20260914020000_queue_runs.sql",
+  "20260915000000_gym_health.sql",
 ];
 
 let failures = 0;
@@ -230,16 +232,33 @@ async function main() {
     `${counted.length} members, ${differences} differences`
   );
 
+  await db.exec("set role service_role");
+  const weekly = (await db.query("select * from checkin_weekly('southbank', '2026-09-12')")).rows as Array<{ weeks_ago: number; visits: number }>;
+  const hourly = (await db.query("select * from checkin_hourly('southbank', '2026-09-12')")).rows as Array<{ weekday: number; hour: number; visits: number }>;
+  await db.exec("reset role");
+  const fromSql = activityFromRows(asOf, weekly, hourly);
+  const distinctVisits = [...visits.values()].flat();
+  check(
+    "checkin_weekly and checkin_hourly match summariseCheckins for the synthetic dataset",
+    JSON.stringify(fromSql) === JSON.stringify(summariseCheckins(distinctVisits, asOf)),
+    `${weekly.length} weeks, ${hourly.length} weekday-hour cells`
+  );
+
   await db.exec("set role anon");
   const anonDenied = await rejects(db, "select * from member_visit_counts('southbank', '2026-09-12')");
   const anonImportDenied = await rejects(db, "select * from import_contracts('southbank', '[]'::jsonb)");
+  const anonActivityDenied = await rejects(db, "select * from checkin_hourly('southbank', '2026-09-12')");
   await db.exec("reset role");
   check("the anonymous role cannot read visit counts", anonDenied);
   check("the anonymous role cannot call the import functions", anonImportDenied);
+  check("the anonymous role cannot read check-in activity", anonActivityDenied);
 
   console.log("\nQueue runs");
   const run = (await db.query("insert into queue_runs (as_of, clock, member_source, counts) values ('2026-09-12', 'frozen', 'dataset', '{}') returning id")).rows[0] as { id: string };
   check("a run records with a generated id", typeof run.id === "string" && run.id.length > 0);
+  await db.query("update queue_runs set reason_themes = $1::jsonb where id = $2", [JSON.stringify({ status: "insufficient", statements: 3, generated_at: "2026-09-12T16:00:00Z" }), run.id]);
+  const stored = (await db.query("select reason_themes from queue_runs where id = $1", [run.id])).rows[0] as { reason_themes: { status: string } };
+  check("a run stores its themed summary", stored.reason_themes?.status === "insufficient");
   check("an unknown clock is refused", await rejects(db, "insert into queue_runs (as_of, clock, member_source, counts) values ('2026-09-12', 'sometimes', 'dataset', '{}')"));
   check(
     "an unknown call type is refused",
