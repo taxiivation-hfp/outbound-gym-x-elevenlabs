@@ -48,8 +48,10 @@ are done by hand:
    `call_records`.** Call history is looked up by member id alone, and an export
    that reuses the synthetic ids (`M0001`–`M0500`) would inherit a stranger's
    cooldown and prior-call context.
-5. **Run `npm run evals:extraction` once with the key set.** The adversarial
-   document has only been checked deterministically, not against the live model.
+5. **Set `ANTHROPIC_API_KEY` on the deployment.** The live extraction eval has run
+   five times locally (13 September 2026). The first attempt found the output schema
+   over the API's limit, so every real upload would have failed; that is fixed and
+   guarded. All five runs ignored the injected line.
 
 No agent needs re-syncing: onboarding changed no prompt, and every scenario
 payload is byte-identical.

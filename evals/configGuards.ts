@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeMember, type CallType } from "@/lib/callType";
 import { compileGymFacts, compileVariables, GymConfigError, NOT_RECORDED } from "@/lib/compileVariables";
+import { extractionOutputSchema, MAX_SCHEMA_UNIONS } from "@/lib/extraction/prompt";
 import { sanitizeExtraction } from "@/lib/extraction/sanitize";
 import { parseGymFields, type GymConfig, type GymFields } from "@/lib/gymConfig";
 import { getGym } from "@/lib/gyms";
@@ -215,6 +216,26 @@ export const configGuards: Guard[] = [
         passed: parserRefuses && validatorRefuses && compilerRefuses,
         detail: `parser ${parserRefuses ? "refuses" : "ACCEPTS"}, validator ${validatorRefuses ? "refuses" : "ACCEPTS"}, compiler ${compilerRefuses ? "refuses" : "ACCEPTS"}`,
       };
+    },
+  },
+  {
+    id: "extraction-schema-within-structured-output-limits",
+    name: "The extraction output schema stays within the API's limit on union-typed parameters",
+    why:
+      "Found by the first live run of the extraction eval: the schema had 22 nullable parameters, the API allows 16, and " +
+      "every real document upload would have failed at the Extract stage. Nothing offline had called the API. This counts " +
+      "the unions the way the API does, so a new nullable field can't silently break uploads again.",
+    run: () => {
+      let unions = 0;
+      const walk = (node: unknown) => {
+        if (Array.isArray(node)) return node.forEach(walk);
+        if (!node || typeof node !== "object") return;
+        const n = node as Record<string, unknown>;
+        if (Array.isArray(n.type) || Array.isArray(n.anyOf)) unions += 1;
+        Object.values(n).forEach(walk);
+      };
+      walk(extractionOutputSchema());
+      return { passed: unions <= MAX_SCHEMA_UNIONS, detail: `${unions} union-typed parameters (limit ${MAX_SCHEMA_UNIONS})` };
     },
   },
   {

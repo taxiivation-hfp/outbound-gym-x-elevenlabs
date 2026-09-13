@@ -107,7 +107,7 @@ npm run dev                    # http://localhost:3000
 ```bash
 npm run agents:sync            # create/update the three ElevenLabs agents
 npm run agents:diff            # what a sync would change, without doing it
-npm run evals                  # 51 guards + 15 simulated calls
+npm run evals                  # 52 guards + 15 simulated calls
 npm run evals:guards           # just the deterministic half: no model, no network
 npm run evals:extraction       # the adversarial price list through the real extraction model
 npm run data:build             # regenerate the synthetic dataset
@@ -195,9 +195,9 @@ Two suites, one runner, both committed: [`evals/`](evals/README.md), rendered at
 
 **19 routing guards.** Deterministic assertions over the router, the eligibility gate, call-history summarising and the variable compiler. No model, no network, milliseconds. They cover the auto-renew rule, the three winback windows *and the silence between them*, do-not-contact holding across call types, a no-answer not counting as a conversation, and the gym switch changing what the agent may offer.
 
-**31 onboarding guards** run in the same runner, added with gym setup and member import. That makes 51 in all, with the original 20 unchanged.
+**32 onboarding guards** run in the same runner, added with gym setup and member import. That makes 52 in all, with the original 20 unchanged.
 
-- **Nineteen pin the config path.** The two seed gyms still compile to their signed-off text byte for byte, and every combination of offers compiles to a block the validator accepts. The validator refuses appended instructions, numbers or offers the config doesn't hold, and blocks that grant an offer and then deny it. Invisible combining marks, look-alike letters and offer synonyms can't get into a text field, and a tier name can't smuggle in an offer. A previous call's summary can't plant an instruction in the next call, and an "incentive" text carries only the offer the gym grants. A blank quiet-times field still produces an agent that admits it doesn't know, and the adversarial price list changes nothing the agent hears.
+- **Twenty pin the config path.** The extraction schema stays within the API's structured-output limits. The two seed gyms still compile to their signed-off text byte for byte, and every combination of offers compiles to a block the validator accepts. The validator refuses appended instructions, numbers or offers the config doesn't hold, and blocks that grant an offer and then deny it. Invisible combining marks, look-alike letters and offer synonyms can't get into a text field, and a tier name can't smuggle in an offer. A previous call's summary can't plant an instruction in the next call, and an "incentive" text carries only the offer the gym grants. A blank quiet-times field still produces an agent that admits it doesn't know, and the adversarial price list changes nothing the agent hears.
 - **Twelve pin the member data.** A renewal is a new contract row rather than a stale queue entry, and contract rows that disagree about auto-renew resolve to not calling. A blank auto-renew cell is refused rather than defaulted, and a missing renewal fee stays unknown. A queue entry made before the latest import can't produce a call, and an uploaded member can't be called under another gym's name. Uploaded members are never measured against the synthetic dataset's frozen date. A synthetic number is never dialled, whatever is set.
 
 **15 simulated conversations** against the real agents, via ElevenLabs' agent-testing API. Each is one of the brief's verification behaviours, with local regex conditions checked in this repo **and** one plain-English condition handed to a judge model. Both halves must pass. Ordering questions — *did it state the price before being asked*, *did it raise the expiry before they agreed to come in* — are never delegated to the judge, because a regex settles them exactly and for free.
@@ -206,7 +206,7 @@ Scenarios build their variables with `compileVariables`, the same compiler the l
 
 ### The numbers, and the runs that failed
 
-Nine runs, all committed with transcripts. Latest: **20/20 guards, 15/15 conversations.** That run predates onboarding; the guards are 51/51 now, and the fifteen scenario payloads are byte-identical to what that run sent.
+Nine runs, all committed with transcripts. Latest: **20/20 guards, 15/15 conversations.** That run predates onboarding; the guards are 52/52 now, and the fifteen scenario payloads are byte-identical to what that run sent.
 
 ```
 10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15
@@ -250,7 +250,7 @@ Written to be read by someone looking for the holes.
 ### What is not built
 
 - **No live connection to a gym-management platform.** Member data comes in through CSV upload — members, contracts, check-ins, the exports every platform produces — validated and imported whole or not at all. Mindbody, Glofox and PushPress are listed on the member data page as not built, with what each would need. See below for the field that makes that more than plumbing.
-- **Onboarding has not run against the live database or a live extraction model.** The three onboarding migrations are verified in in-process Postgres (`npm run db:verify`) but not applied to the project's Supabase, so on the current deployment saving a gym and uploading members are switched off and say so. The adversarial extraction eval (`npm run evals:extraction`) has not been run with a real Anthropic key; its guard runs the sanitiser against a worst-case extraction instead.
+- **Onboarding has not run against the live database or a live extraction model.** The three onboarding migrations are verified in in-process Postgres (`npm run db:verify`) but not applied to the project's Supabase, so on the current deployment saving a gym and uploading members are switched off and say so. The adversarial extraction eval (`npm run evals:extraction`) has run five times against the real model, and all five ignored the injected line. No real PDF or Word file has been through the document reader.
 - **Onboarding has no login**, like the rest of the app. Saving a gym and importing members are refused in code until a deployment sets `ONBOARDING_WRITES=enabled`, and the handover says to put Vercel's deployment protection (or real auth) in front before doing that. Once enabled, anyone who can reach the URL can write, so the protection is what makes it safe. Document extraction runs for anyone once `ANTHROPIC_API_KEY` is set. It writes nothing, but it spends the key.
 - **No voicemail detection or message.** A call that reaches an answering machine is recorded as a completed call with `reached_member = false` and nothing else happens. The ElevenLabs voicemail tool isn't configured.
 - **No automatic dialling.** A nightly job recomputes and records who is due, but a human presses "Call now", and the call route re-reads the member and re-checks eligibility at that moment. That keeps a person in the loop, which is right for a demo and arguably right for a first deployment, but it isn't automation, and calling-hours rules aren't enforced anywhere.
@@ -301,7 +301,7 @@ lib/             routing, eligibility, the variable compiler, economics
 lib/extraction/  document reading, the extraction call, the sanitiser that checks it
 agents/prompts/  the three system prompts; shared sections stored once
 scripts/         sync-agents.mjs pushes agent config; agentConfig.mjs is its source of truth
-evals/           51 guards, 15 simulated calls, the adversarial document, every run committed
+evals/           52 guards, 15 simulated calls, the adversarial document, every run committed
 app/             dashboard, intelligence, evals page, onboarding, API routes, texted-link landings
 supabase/        migrations for call_records, gyms, member data and queue runs
 docs/            architecture diagram

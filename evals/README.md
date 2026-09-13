@@ -3,7 +3,7 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # all 51 guards + all fifteen conversations
+npm run evals            # all 52 guards + all fifteen conversations
 npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
 npm run evals:extraction # the adversarial document through the real extraction model
@@ -18,8 +18,10 @@ winback windows fire where they should and stay quiet between, does a no-answer
 increment the attempt count, does do-not-contact hold across call types, does
 switching gym change what the agent may offer.
 
-**Config guards** (`configGuards.ts`) — 19, added with onboarding. They pin the
+**Config guards** (`configGuards.ts`) — 20, added with onboarding. They pin the
 safety model for gym setup:
+- the extraction output schema stays within the API's limit on union-typed
+  parameters (the first live run found it over the limit);
 - the seed gyms compile to their signed-off text byte for byte;
 - every combination of offers compiles to a block `validateIncentives` accepts;
 - the validator refuses an appended instruction, a number or an offer the config
@@ -54,7 +56,10 @@ safety model for gym setup:
 real extraction model and runs its answer through the sanitiser. It needs
 `ANTHROPIC_API_KEY`, prints `NOT RUN` without one, and writes
 `results/extraction-latest.json` when it runs. The config guard above is the
-deterministic half: it doesn't depend on what the model does.
+deterministic half: it doesn't depend on what the model does. The checks live in
+`extractionChecks.ts` so a saved run can be scored again without a model call.
+Five runs from 13 September 2026 are committed as
+`results/extraction-2026-09-13T*.json`; all five ignored the injected line.
 
 **Conversations** (`scenarios.ts`) — 15 simulated calls against the real
 ElevenLabs agents. Each is the brief's own verification list turned into a test:
