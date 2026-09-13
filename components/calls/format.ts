@@ -11,21 +11,29 @@ import type { QueueEntry } from "@/lib/queueView";
 
 const DAY_MS = 86_400_000;
 
+// Spelled out rather than left to Intl's "short" month style: the en-AU CLDR
+// abbreviation for September flips between "Sep" and "Sept" depending on the
+// ICU data version, so server and browser can disagree and break hydration.
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 /** "18 Sep" from an ISO date or timestamp, in UTC so server and browser agree. */
 export function shortDate(iso: string): string {
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]}`;
 }
 
 /** "18 Sep 2026". */
 export function longDate(iso: string): string {
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 /** "12 Sep, 18:22" — a call's timestamp in the viewer's own time. */
 export function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${d.getDate()} ${MONTH_ABBR[d.getMonth()]}, ${hh}:${mm}`;
 }
 
 /** Tenure in days as "2y 4m", "7m", "12d". */

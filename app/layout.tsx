@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo, Figtree } from "next/font/google";
+import Script from "next/script";
 import { THEME_STORAGE_KEY } from "@/components/shell/theme";
 import "./globals.css";
 
@@ -29,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning className={`${archivo.variable} ${figtree.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>{children}</body>
     </html>
