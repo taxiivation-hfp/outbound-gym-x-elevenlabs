@@ -5,6 +5,7 @@ import { evaluateEligibility } from "@/lib/eligibility";
 import { getGym } from "@/lib/gyms";
 import { PATTERNS } from "./assertions";
 import { configGuards } from "./configGuards";
+import { memberGuards } from "./memberGuards";
 import { fixtureMember, isoOffset } from "./fixtures";
 
 /**
@@ -464,7 +465,7 @@ const guards: Guard[] = [
 ];
 
 export function runGuards(): GuardResult[] {
-  return [...guards, ...configGuards].map((g) => {
+  return [...guards, ...configGuards, ...memberGuards].map((g) => {
     try {
       const { passed, detail } = g.run();
       return { id: g.id, name: g.name, passed, detail, why: g.why };

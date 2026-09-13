@@ -402,7 +402,7 @@ export function compileVariables(input: CompileInput): Record<string, string> {
     time_left: timeLeft,
     context: [compileContext(callType, member, priorCall), ...gymContextSentences(gym, callType)].join(" "),
     attempt_number: String(attemptNumber),
-    renewal_price: formatPrice(member.renewal_fee),
+    renewal_price: member.renewal_fee === null ? NOT_RECORDED : formatPrice(member.renewal_fee),
     expiry_line: compileExpiryLine(routing.days_to_expiry, timeLeft),
     ...compileGymFacts(gym),
     incentives,

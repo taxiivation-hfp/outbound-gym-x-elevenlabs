@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import membersData from "@/data/members_scored.json";
 import { firstName } from "@/lib/compileVariables";
 import { resolveDialTarget } from "@/lib/dialSafety";
 import { gymOfRecentCall } from "@/lib/callRecords";
 import { resolveGym } from "@/lib/gymStore";
+import { loadMember } from "@/lib/memberSource";
 import type { Member } from "@/lib/types";
-
-const members = membersData as Member[];
 
 /**
  * The endpoint behind the agent's `send_text` tool.
@@ -109,8 +107,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const member = members.find((m) => m.member_id === memberId);
-  if (!member) {
+  let member: Member | null = null;
+  try {
+    member = (await loadMember(memberId)).member;
+  } catch (err) {
+    console.error("send_text refused: member data unreadable", err);
+  }
+  if (!member || !member.phone.trim()) {
     // The agent is mid-call. Tell it something it can say out loud rather than
     // an error it will try to read: a tool failure should degrade into "someone
     // will follow up", never into dead air.

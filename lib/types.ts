@@ -33,14 +33,23 @@ export interface Member {
   reason: string;
   /** The hard exclusion. True → never called, at any point, however absent. */
   auto_renew: boolean;
-  contract_type: ContractType;
+  /**
+   * The plan's name. The synthetic dataset uses the three `ContractType`
+   * values; an uploaded export carries whatever the platform calls its plans.
+   * Nothing routes on it — routing reads `auto_renew` and the dates.
+   */
+  contract_type: ContractType | string;
   contract_status: ContractStatus;
   /** ISO `YYYY-MM-DD`. Present for every member — all three triggers date off it. */
   expiry_date: string;
   /** What they pay today. */
   monthly_fee: number;
-  /** What renewing costs them today, which is not always what they pay now. */
-  renewal_fee: number;
+  /**
+   * What renewing costs them today, which is not always what they pay now. Null
+   * when an uploaded export didn't say — the agent is then told it doesn't have
+   * the renewal price, rather than being handed the monthly fee as a guess.
+   */
+  renewal_fee: number | null;
   signals: Signals;
 }
 

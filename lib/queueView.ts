@@ -1,4 +1,3 @@
-import membersData from "@/data/members_scored.json";
 import { getAllCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { referenceDate } from "@/lib/compileVariables";
@@ -6,9 +5,8 @@ import { campaignEconomics, ASSUMPTIONS, type CampaignEconomics, type Assumption
 import { evaluateEligibility } from "@/lib/eligibility";
 import { listGyms, type GymSource } from "@/lib/gymStore";
 import { sortByPriority } from "@/lib/sortMembers";
+import { loadMembers } from "@/lib/memberSource";
 import type { Cohort, Member } from "@/lib/types";
-
-const members = membersData as Member[];
 
 /**
  * One description of the queue, used by both the dashboard page and
@@ -29,7 +27,7 @@ export interface QueueEntry {
   contract_type: string;
   expiry_date: string;
   monthly_fee: number;
-  renewal_fee: number;
+  renewal_fee: number | null;
   days_since_visit: number;
   old_rate: number;
   tenure_days: number;
@@ -115,6 +113,10 @@ export async function buildQueueView(): Promise<QueueView> {
   // `listGyms` never rejects — every failure comes back as a notice — so the
   // early start cannot leave an unhandled rejection behind.
   const gymListingRead = listGyms();
+  // The synthetic dataset by default, or a gym's uploaded members when
+  // MEMBER_SOURCE=supabase — derived fresh, so a renewal imported since the
+  // last render has already moved that member out of the queue.
+  const { members } = await loadMembers();
   let history = new Map<string, CallHistory>();
   let historyError: string | null = null;
   try {

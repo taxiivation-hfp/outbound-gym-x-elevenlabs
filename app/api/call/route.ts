@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import membersData from "@/data/members_scored.json";
 import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
@@ -9,9 +8,7 @@ import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
 import { insertCallRecord } from "@/lib/callRecords";
-import type { Member } from "@/lib/types";
-
-const members = membersData as Member[];
+import { loadMember } from "@/lib/memberSource";
 
 /** One agent per call type. Created by `scripts/sync-agents.mjs`. */
 const AGENT_ID_ENV: Record<CallType, string> = {
@@ -38,7 +35,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
 
-  const member = members.find((m) => m.member_id === memberId);
+  // Read the member now, not from whatever the queue showed. The queue was
+  // computed when the page rendered; since then a member can have renewed,
+  // switched to auto-renew or walked in, and an uploaded export is re-derived on
+  // every read. Eligibility below is decided on this read alone.
+  let member;
+  try {
+    const loaded = await loadMember(memberId);
+    member = loaded.member;
+    if (!member && loaded.unroutedReason) {
+      return NextResponse.json({ error: "Member can't be routed", reason: loaded.unroutedReason }, { status: 409 });
+    }
+  } catch (err) {
+    console.error("Refusing to call: member data unreadable", err);
+    return NextResponse.json(
+      { error: `Member data couldn't be read, so the call was not placed: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 503 }
+    );
+  }
   if (!member) {
     return NextResponse.json({ error: "Unknown member_id" }, { status: 404 });
   }
@@ -136,6 +150,12 @@ export async function POST(req: NextRequest) {
   // output — well-formed, and belonging to a stranger — so the route refuses to
   // dial it unless an override number is set or someone has deliberately opted
   // in. Nothing about the routing changes, only the last hop.
+  if (!member.phone.trim() && !process.env.CALL_OVERRIDE_NUMBER?.trim()) {
+    return NextResponse.json(
+      { error: "Refusing to dial", reason: "There is no mobile number on file for this member.", blocked_by: "no_number" },
+      { status: 409 }
+    );
+  }
   const dial = resolveDialTarget(member.phone);
   if (!dial.allowed || !dial.to) {
     return NextResponse.json(

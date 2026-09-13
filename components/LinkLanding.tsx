@@ -1,9 +1,6 @@
-import membersData from "@/data/members_scored.json";
 import { firstName, formatLocations } from "@/lib/compileVariables";
 import { resolveGym } from "@/lib/gymStore";
-import type { Member } from "@/lib/types";
-
-const members = membersData as Member[];
+import { loadMember } from "@/lib/memberSource";
 
 /**
  * Where a texted link lands.
@@ -66,7 +63,9 @@ export default async function LinkLanding({
   // back up.
   const gym = gymLookup.ok ? gymLookup.gym : null;
   const gymName = gym?.gym_name ?? "the gym";
-  const member = memberId ? members.find((m) => m.member_id === memberId) : undefined;
+  // The page still works without the member's name: a lookup that fails only
+  // drops the greeting, never the code the member was texted.
+  const member = memberId ? await loadMember(memberId).then((r) => r.member).catch(() => null) : null;
   const copy = COPY[kind];
 
   return (
