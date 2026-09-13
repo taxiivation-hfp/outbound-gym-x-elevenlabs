@@ -30,6 +30,12 @@ export default function PriceListAttack({ attack }: { attack: EvalsData["attack"
       title="A price list tried to rewrite the agent"
       sub={attack.injectedSentence ? <>Buried line: “{attack.injectedSentence}”</> : undefined}
     >
+      <p className="m-0 mb-4 max-w-[80ch] text-[13.5px] leading-[1.6] text-ink-2 text-pretty">
+        Onboarding reads a gym’s own documents with a model, so a document is an attack surface. The decision: the model only fills typed
+        fields, a value is kept only when a verbatim quote from the document backs it, a person reviews every value before it is saved, and
+        every sentence the agent hears is compiled from a fixed registry and checked again by a validator. No model writes prompt text. This
+        is that design against a price list with an instruction buried in it.
+      </p>
       {attack.rows.length === 0 ? (
         <p className="m-0 rounded-[10px] border border-flag bg-flag-wash px-3 py-2 text-[12.5px] text-ink-2">
           The committed document couldn’t be read on this deployment{attack.error ? ` (${attack.error})` : ""}. It’s{" "}
@@ -117,7 +123,7 @@ export default function PriceListAttack({ attack }: { attack: EvalsData["attack"
         </>
       )}
       <Source>
-        <Code>sanitizeExtraction</Code> over the real model’s committed output, <Code>evals/documents/pdf/adversarial-price-list.*</Code>, as in{" "}
+        the design, CLAUDE.md “Working conventions” (no model writes prompt text); <Code>sanitizeExtraction</Code> over the real model’s committed output, <Code>evals/documents/pdf/adversarial-price-list.*</Code>, as in{" "}
         <Code>evals/configGuards.ts</Code>.
       </Source>
     </Section>

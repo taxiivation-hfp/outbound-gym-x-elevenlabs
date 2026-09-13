@@ -1,27 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppShell from "@/components/shell/AppShell";
 import { isTypingTarget } from "@/components/shell/theme";
 import { latestResultsJson } from "@/components/evals/actions";
 import type { EvalsData } from "@/components/evals/data";
+import LadderFailure from "@/components/evals/LadderFailure";
 import LogicChecks from "@/components/evals/LogicChecks";
 import PriceListAttack from "@/components/evals/PriceListAttack";
 import ReasoningLeak from "@/components/evals/ReasoningLeak";
 import ScoreHistory from "@/components/evals/ScoreHistory";
 import StillBroken from "@/components/evals/StillBroken";
 import TestCalls from "@/components/evals/TestCalls";
-import { Code, Section, Source } from "@/components/evals/ui";
+import WithdrawnNumber from "@/components/evals/WithdrawnNumber";
+import { Code } from "@/components/evals/ui";
 
 /**
- * The evals screen. Everything it shows arrives from `loadEvalsData` on the
- * server; the browser only filters, expands rows, copies the run id and
- * downloads the committed results. It cannot run the suite: that costs real
- * ElevenLabs calls, so the toolbar shows the command instead of a button.
+ * The build journey. Written for someone judging how the product was built, not
+ * for the gym manager who uses it: the decisions and what broke come first, and
+ * the logic checks and test calls follow as the evidence for them.
+ *
+ * Everything it shows arrives from `loadEvalsData` on the server; the browser
+ * only filters, expands rows, copies the run id and downloads the committed
+ * results. It cannot run the suite: that costs real ElevenLabs calls, so the
+ * toolbar shows the command instead of a button.
  */
 
 type Transient = "idle" | "busy" | "done" | "failed";
+
+/** The story beats, in page order. Each id is the anchor its section sits under. */
+const CHAPTERS = [
+  { id: "leak", title: "It read its thinking out loud", decision: "the conversation model changed" },
+  { id: "ladder", title: "It kept offering after “no thanks”", decision: "the stop rule inverted" },
+  { id: "withdrawn", title: "We deleted our best number", decision: "structure, not accuracy" },
+  { id: "attack", title: "A price list tried to rewrite the agent", decision: "no model writes prompt text" },
+] as const;
 
 export default function EvalsView({ data }: { data: EvalsData }) {
   const [onlyFailures, setOnlyFailures] = useState(false);
@@ -94,11 +108,13 @@ export default function EvalsView({ data }: { data: EvalsData }) {
   const ghost =
     "h-7 whitespace-nowrap rounded-lg border border-control-line px-[11px] text-[11.5px] font-semibold text-muted transition-colors hover:border-line-strong hover:text-ink disabled:opacity-60";
 
+  const firstRun = data.history.runs[0];
+
   return (
     <AppShell
       current="evals"
       title="Retention Router"
-      eyebrow="Evals"
+      eyebrow="Build journey"
       headerActions={
         <Link
           href="/about"
@@ -111,13 +127,75 @@ export default function EvalsView({ data }: { data: EvalsData }) {
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="flex min-w-[620px] max-w-[1160px] flex-col gap-4">
           <div className="flex flex-col gap-[9px] px-0.5 pt-1">
-            <h2 className="m-0 font-display text-[30px] font-bold tracking-[-0.035em] text-balance">How we know it works</h2>
-            <p className="m-0 max-w-[80ch] text-[14.5px] leading-[1.55] text-muted text-pretty">
-              Every run, including the bad ones. The first scored{" "}
-              {data.history.runs[0] ? `${data.history.runs[0].passed}/${data.history.runs[0].total}` : "below full marks"}: three real
-              defects and two bad assertions of ours. Every run is committed, failures included — a suite that passed everything first
-              time would only prove its assertions too weak to catch anything. The full account, including what the suite can’t tell you, is in{" "}
-              <Code>evals/README.md</Code> in the repository.
+            <h2 className="m-0 font-display text-[30px] font-bold tracking-[-0.035em] text-balance">How it was built, and what broke</h2>
+            <p className="m-0 max-w-[80ch] text-[14.5px] leading-[1.55] text-ink-2 text-pretty">
+              <strong className="text-ink">This page is for judges, not gym managers.</strong> A gym manager never needs to open it: the call
+              queue and the configuration are the product. This is the record of how that product was built — the decisions, the things that
+              broke, and what each fix was measured against.
+            </p>
+            <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.55] text-muted text-pretty">
+              The first run scored {firstRun ? `${firstRun.passed}/${firstRun.total}` : "below full marks"}. Every run is committed, failures
+              included — a suite that passed everything first time would only prove its assertions too weak to catch anything. The{" "}
+              {data.guards.total} logic checks and {data.calls.total} test calls sit at the end, as the evidence for the story above them. The
+              full account is in <Code>evals/README.md</Code> and <Code>docs/build-log/</Code>.
+            </p>
+            <nav aria-label="On this page" className="mt-2">
+              <ol className="m-0 grid list-none gap-2 p-0" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+                {CHAPTERS.map((c, i) => (
+                  <li key={c.id}>
+                    <a
+                      href={`#${c.id}`}
+                      className="flex h-full flex-col gap-0.5 rounded-xl border border-line bg-surface px-3 py-2.5 no-underline transition-colors hover:border-accent-line"
+                    >
+                      <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-dim">
+                        {String(i + 1).padStart(2, "0")} · what broke
+                      </span>
+                      <span className="text-[13px] font-semibold leading-snug text-ink text-pretty">{c.title}</span>
+                      <span className="text-[12px] leading-snug text-muted">→ {c.decision}</span>
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <a
+                    href="#evidence"
+                    className="flex h-full flex-col gap-0.5 rounded-xl border border-dashed border-line-strong bg-canvas px-3 py-2.5 no-underline transition-colors hover:border-accent-line"
+                  >
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-dim">The evidence</span>
+                    <span className="text-[13px] font-semibold leading-snug text-ink text-pretty">
+                      {data.guards.total} logic checks, {data.calls.total} test calls
+                    </span>
+                    <span className="text-[12px] leading-snug text-muted">every transcript, every run</span>
+                  </a>
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <Chapter id="leak" index={1}>
+            <ReasoningLeak leak={data.leak} />
+          </Chapter>
+
+          <Chapter id="ladder" index={2}>
+            <LadderFailure ladder={data.ladder} />
+          </Chapter>
+
+          <Chapter id="withdrawn" index={3}>
+            <WithdrawnNumber />
+          </Chapter>
+
+          <Chapter id="attack" index={4}>
+            <PriceListAttack attack={data.attack} />
+          </Chapter>
+
+          <div id="evidence" className="mt-4 flex scroll-mt-4 flex-col gap-[7px] border-t border-line-strong px-0.5 pt-6">
+            <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-dim">The evidence</span>
+            <h2 className="m-0 font-display text-[24px] font-bold tracking-[-0.03em] text-balance">
+              {data.guards.total} logic checks and {data.calls.total} test calls
+            </h2>
+            <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.55] text-muted text-pretty">
+              What the story above rests on. The logic checks involve no model and give the same answer every time. The test calls are real
+              agents talking to simulated members; open any one to read the whole conversation, which is where the branching shows — what the
+              member said, and which way the agent went because of it.
             </p>
           </div>
 
@@ -167,8 +245,6 @@ export default function EvalsView({ data }: { data: EvalsData }) {
             </span>
           </div>
 
-          <LogicChecks passed={data.guards.passed} total={data.guards.total} groups={data.guards.groups} onlyFailures={onlyFailures} />
-
           <TestCalls
             calls={data.calls}
             agent={agent}
@@ -178,30 +254,27 @@ export default function EvalsView({ data }: { data: EvalsData }) {
             onToggle={(id) => setOpen((o) => ({ ...o, [id]: !o[id] }))}
           />
 
+          <LogicChecks passed={data.guards.passed} total={data.guards.total} groups={data.guards.groups} onlyFailures={onlyFailures} />
+
           <ScoreHistory runs={data.history.runs} error={data.history.error} />
 
-          <ReasoningLeak leak={data.leak} />
-
-          <div className="grid items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))" }}>
-            <PriceListAttack attack={data.attack} />
-            <div className="flex min-w-0 flex-col gap-4">
-              <Section title="We deleted our best number" sub="90.4% cohort accuracy, withdrawn.">
-                <span className="mb-4 font-display text-[38px] font-bold tracking-[-0.035em] text-dim line-through decoration-flag decoration-[3px]">
-                  90.4%
-                </span>
-                <p className="m-0 max-w-[70ch] text-[13.5px] leading-[1.6] text-ink-2 text-pretty">
-                  The answer key came from the same rules the router applies, so the comparison only measured whether two copies of one
-                  ruleset agree. Honest status: the router is validated in structure, not in accuracy.
-                </p>
-                <Source>README.md, “The withdrawn accuracy number”.</Source>
-              </Section>
-              <StillBroken rows={data.broken} onOpen={openCall} />
-            </div>
-          </div>
+          <StillBroken rows={data.broken} onOpen={openCall} />
 
           <div aria-hidden="true" className="h-1.5" />
         </div>
       </div>
     </AppShell>
+  );
+}
+
+/** One story beat: its number above the panel, and the anchor the index links to. */
+function Chapter({ id, index, children }: { id: string; index: number; children: ReactNode }) {
+  return (
+    <div id={id} className="flex scroll-mt-4 flex-col gap-2">
+      <span className="px-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-dim">
+        {String(index).padStart(2, "0")} · {CHAPTERS[index - 1].decision}
+      </span>
+      {children}
+    </div>
   );
 }

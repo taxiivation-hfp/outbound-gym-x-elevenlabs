@@ -151,7 +151,7 @@ function CallLine({ row, open, onToggle }: { row: CallRow; open: boolean; onTogg
             {row.turns.length === 0 ? (
               <p className="text-[13px] text-dim">No turns were recorded for this call.</p>
             ) : (
-              <div className="flex max-h-[340px] flex-col gap-2 overflow-auto pr-3">
+              <div className="flex flex-col gap-2 pr-3">
                 {row.turns.map((turn, i) => (
                   <div key={i} className="line-in grid grid-cols-[62px_minmax(0,1fr)] items-start gap-3" style={{ animationDelay: `${Math.min(i, 12) * 0.03}s` }}>
                     <span className={`pt-0.5 text-[11.5px] font-bold ${turn.role === "agent" ? "text-dim" : "text-accent-ink"}`}>
