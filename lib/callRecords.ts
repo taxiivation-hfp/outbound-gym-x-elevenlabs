@@ -42,9 +42,31 @@ function isUnknownColumn(error: { code?: string; message?: string } | null): boo
   return /column .* does not exist|could not find the .* column/i.test(error.message ?? "");
 }
 
+/**
+ * Columns added after the analysis migration. A deployment one migration behind
+ * loses only these, not the gym, call type and attempt number the analysis
+ * migration added.
+ */
+const LATER_COLUMNS = ["offers_available"];
+
+function stripLater(row: Row): Row {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !LATER_COLUMNS.includes(k)));
+}
+
 export async function insertCallRecord(row: Row) {
   const { error } = await supabaseAdmin.from("call_records").insert(row);
   if (!error || !isUnknownColumn(error)) return { error };
+
+  if (LATER_COLUMNS.some((k) => k in row)) {
+    const withoutLater = await supabaseAdmin.from("call_records").insert(stripLater(row));
+    if (!withoutLater.error || !isUnknownColumn(withoutLater.error)) {
+      console.warn(
+        "call_records has no offers_available column — apply supabase/migrations/20260915010000_offer_schedule.sql. " +
+          "This call's offers weren't recorded, so the next call's cooldowns count every offer its call type can carry."
+      );
+      return { error: withoutLater.error, degraded: true as const };
+    }
+  }
 
   console.warn(
     "call_records is missing the analysis columns — apply " +
@@ -105,26 +127,29 @@ const RECENT_CALL_WINDOW_MS = 30 * 60 * 1000;
  */
 export async function gymOfRecentCall(
   memberId: string
-): Promise<{ ok: true; gymId: string; callType: CallType | null } | { ok: false; error: string }> {
+): Promise<{ ok: true; gymId: string; callType: CallType | null; offersAvailable: string[] | null } | { ok: false; error: string }> {
   try {
     // Wall clock, not lib/clock.ts: call records are stamped with real time.
     const since = new Date(Date.now() - RECENT_CALL_WINDOW_MS).toISOString();
     const { data, error } = await supabaseAdmin
       .from("call_records")
-      .select("gym_id, call_type, created_at")
+      // Every column: offers_available arrives in a later migration, and naming
+      // it here would refuse every text on a deployment without it.
+      .select("*")
       .eq("member_id", memberId)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(1)
       .abortSignal(AbortSignal.timeout(3000));
     if (error) return { ok: false, error: `call record read failed: ${error.message}` };
-    const row = data?.[0] as { gym_id?: string | null; call_type?: string | null } | undefined;
+    const row = data?.[0] as { gym_id?: string | null; call_type?: string | null; offers_available?: unknown } | undefined;
     const gymId = row?.gym_id;
     if (typeof gymId !== "string" || gymId.trim() === "") {
       return { ok: false, error: "no call placed to this member in the last 30 minutes records a gym" };
     }
     const callType = row?.call_type === "renewal" || row?.call_type === "reengagement" || row?.call_type === "winback" ? row.call_type : null;
-    return { ok: true, gymId, callType };
+    const offersAvailable = Array.isArray(row?.offers_available) ? (row.offers_available as unknown[]).filter((o): o is string => typeof o === "string") : null;
+    return { ok: true, gymId, callType, offersAvailable };
   } catch (err) {
     return { ok: false, error: `call record read failed: ${err instanceof Error ? err.message : String(err)}` };
   }

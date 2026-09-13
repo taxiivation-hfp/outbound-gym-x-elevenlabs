@@ -26,10 +26,13 @@ import { countVisits } from "../lib/memberData";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS = [
+  "20260913000000_create_call_records.sql",
+  "20260913120000_call_records_analysis.sql",
   "20260914000000_create_gyms.sql",
   "20260914010000_member_data.sql",
   "20260914020000_queue_runs.sql",
   "20260915000000_gym_health.sql",
+  "20260915010000_offer_schedule.sql",
 ];
 
 let failures = 0;
@@ -113,6 +116,16 @@ async function main() {
     "a site list longer than one fact is refused",
     await rejects(db, "insert into gyms (gym_id, gym_name, other_locations, created_via) values ('x6', 'X', array[repeat('a', 60), repeat('b', 60), repeat('c', 60)], 'manual')")
   );
+
+  console.log("\nOffer schedule");
+  const scheduled = await rejects(db, `update gyms set offer_schedule = '{"guest_pass": "quarterly", "free_pt_session": "never"}' where gym_id = 'southbank'`);
+  check("a schedule of known offers and periods is stored", !scheduled);
+  check("an offer the schedule doesn't know is refused", await rejects(db, `update gyms set offer_schedule = '{"free_month": "yearly"}' where gym_id = 'southbank'`));
+  check("a period that isn't one of the choices is refused", await rejects(db, `update gyms set offer_schedule = '{"guest_pass": "fortnightly"}' where gym_id = 'southbank'`));
+  check("a schedule that isn't an object is refused", await rejects(db, `update gyms set offer_schedule = '["guest_pass"]' where gym_id = 'southbank'`));
+  const offersColumn = await rejects(db, "insert into call_records (id, member_id, status, offers_available) values (gen_random_uuid(), 'M1', 'initiated', array['guest_pass'])");
+  check("a call record stores the offers its block granted", !offersColumn);
+  await db.exec("update gyms set offer_schedule = null where gym_id = 'southbank'; delete from call_records;");
 
   console.log("\nMember data");
   check(

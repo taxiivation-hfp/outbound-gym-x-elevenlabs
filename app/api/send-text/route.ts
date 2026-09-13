@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
   // because what "incentive" means depends on the call the agent is on.
   let gymId: string | null = typeof body?.gym_id === "string" && body.gym_id.trim() ? body.gym_id : null;
   let callType: CallType | null = null;
+  let offersAvailable: string[] | null = null;
   if (!gymId || linkType === "incentive") {
     const recent = await gymOfRecentCall(memberId);
     if (!recent.ok) {
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
     }
     gymId = gymId ?? recent.gymId;
     callType = recent.callType;
+    offersAvailable = recent.offersAvailable;
   }
 
   // An uploaded member only ever hears from the gym they were uploaded for.
@@ -183,9 +185,15 @@ export async function POST(req: NextRequest) {
 
   // The incentive is the one offer this gym's incentives block told the agent to
   // text on this call — or there is no incentive text to send.
-  const offer = linkType === "incentive" ? textedOffer(gym, callType) : null;
+  // An offer withheld from this call (a cooldown, the habit gate) was never in
+  // the agent's block, and isn't texted either: the call record lists what the
+  // block granted.
+  const texted = linkType === "incentive" ? textedOffer(gym, callType) : null;
+  const offer = texted && (offersAvailable === null || offersAvailable.includes(texted.kind)) ? texted : null;
   if (linkType === "incentive" && !offer) {
-    const detail = callType
+    const detail = texted
+      ? `The ${texted.kind.replace(/_/g, " ")} was withheld from this call, so it isn't texted.`
+      : callType
       ? `${gym.gym_name}'s ${callType} incentives don't include anything texted as a link.`
       : "The call record doesn't say which kind of call this is, so there's no way to tell what the incentive is.";
     console.error("send_text refused: no texted incentive", detail, { memberId, linkType });

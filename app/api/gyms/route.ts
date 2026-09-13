@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compileGymFacts } from "@/lib/compileVariables";
-import { parseGymFields, slugifyGymName } from "@/lib/gymConfig";
+import { parseGymFields, parseOfferSchedule, slugifyGymName } from "@/lib/gymConfig";
 import { insertGym, listGyms, type CreatedVia } from "@/lib/gymStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { CALL_TYPES, compileIncentives } from "@/lib/incentives";
@@ -56,7 +56,13 @@ export async function POST(req: NextRequest) {
   }
 
   const fields = parsed.value;
-  const gym = { gym_id: slugifyGymName(fields.gym_name), ...fields };
+  // How often each offer may be made. Parsed against these fields, so a
+  // schedule can only name an offer this gym configures.
+  const schedule = parseOfferSchedule(body.offer_schedule, fields);
+  if (schedule.error) {
+    return NextResponse.json({ error: "Some answers need fixing before the gym can be saved.", errors: { offer_schedule: schedule.error } }, { status: 422 });
+  }
+  const gym = { gym_id: slugifyGymName(fields.gym_name), ...fields, ...(schedule.value ? { offer_schedule: schedule.value } : {}) };
 
   const incentives = {} as Record<(typeof CALL_TYPES)[number], string>;
   for (const callType of CALL_TYPES) {

@@ -5,8 +5,9 @@ import type { CallType } from "@/lib/callType";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
 import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
-import { evaluateEligibility } from "@/lib/eligibility";
+import { evaluateEligibility, evaluateOffers, withholdOffers } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
+import { compileIncentives, grantedOffers } from "@/lib/incentives";
 import { insertCallRecord } from "@/lib/callRecords";
 import { gymForMember, loadMember, type MemberSource } from "@/lib/memberSource";
 
@@ -123,7 +124,12 @@ export async function POST(req: NextRequest) {
   // The compiler re-validates the gym and the incentives block it writes on
   // every compile. A failure here means the agent would have been told
   // something the config doesn't back, so nothing is dialled.
+  // Which of the gym's offers this member may be given today: the habit gate
+  // and each offer's own cooldown, from the same call history as eligibility.
+  // A withheld offer is compiled as though the gym didn't have it.
+  const offers = evaluateOffers(member, history, gym.offer_schedule, callType);
   let dynamicVariables: Record<string, string>;
+  let offersAvailable: string[];
   try {
     dynamicVariables = compileVariables({
       member,
@@ -132,7 +138,11 @@ export async function POST(req: NextRequest) {
       callType,
       attemptNumber: eligibility.attemptNumber,
       priorCall: history.priorCall,
+      offers,
     });
+    // Recorded on the call so the next call's cooldowns know which offers this
+    // block carried, and so send_text only texts an offer the agent was given.
+    offersAvailable = grantedOffers(compileIncentives(withholdOffers(gym, offers), callType));
   } catch (err) {
     if (err instanceof IncentivesValidationError) {
       return NextResponse.json(
@@ -215,6 +225,7 @@ export async function POST(req: NextRequest) {
     call_type: callType,
     attempt_number: eligibility.attemptNumber,
     gym_id: gym.gym_id,
+    offers_available: offersAvailable,
     transcript: null,
     outcome: null,
     created_at: new Date().toISOString(),
@@ -228,6 +239,8 @@ export async function POST(req: NextRequest) {
     attempt_number: eligibility.attemptNumber,
     gym_id: gym.gym_id,
     dialled: dial.overridden ? "override number" : "member number",
+    offers_available: offersAvailable,
+    offers_withheld: offers.withheld,
     // Echoed back so the dashboard can show exactly what the agent was told.
     dynamic_variables: dynamicVariables,
   });

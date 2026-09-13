@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import type { GymConfig, GymFieldKey } from "@/lib/gymConfig";
+import type { GymConfig } from "@/lib/gymConfig";
 import { GYM_FIELD_KEYS, hasAtMostTwoDecimals } from "@/lib/gymConfig";
 import { callTypeLabel } from "@/lib/labels";
 import type { CallType } from "@/lib/callType";
@@ -72,7 +72,7 @@ export default function OnboardingFlow({
   const fileInput = useRef<HTMLInputElement>(null);
   const viewHeading = useRef<HTMLHeadingElement>(null);
 
-  const onChange = useCallback(<K extends GymFieldKey>(key: K, value: Draft[K]) => {
+  const onChange = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
     setSettled(false);
     setSaveState((s) => (s.kind === "error" ? { kind: "idle" } : s));
@@ -130,7 +130,11 @@ export default function OnboardingFlow({
       const res = await fetch("/api/gyms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: draftToInput(draft), created_via: read ? "document" : "manual" }),
+        body: JSON.stringify({
+          fields: draftToInput(draft),
+          offer_schedule: validation.ok ? validation.schedule : null,
+          created_via: read ? "document" : "manual",
+        }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
@@ -211,6 +215,7 @@ export default function OnboardingFlow({
               saveAvailable={saveAvailable}
               saveState={saveState}
               onSave={save}
+              configuredOffers={preview.configured}
             />
           </div>
         </div>

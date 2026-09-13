@@ -2,7 +2,12 @@ import type { CallType } from "@/lib/callType";
 import { compileGymFacts } from "@/lib/compileVariables";
 import {
   GYM_FIELD_KEYS,
+  configuredOffers,
   hasCheaperTier,
+  parseOfferSchedule,
+  type OfferPeriod,
+  type OfferSchedule,
+  type SchedulableOffer,
   parseGymField,
   parseGymFields,
   type FieldErrors,
@@ -39,6 +44,12 @@ export interface Draft {
   winback_offer: WinbackOffer | null;
   cheaper_tier_name: string;
   cheaper_tier_price: string;
+  /**
+   * "Every [period], allow the agent to offer [offer]", one row each. A row is
+   * in the form until it's removed, even half-filled, so a half-filled row
+   * blocks saving rather than being dropped.
+   */
+  offer_schedule: Array<{ offer: SchedulableOffer | ""; period: OfferPeriod | "" }>;
 }
 
 export function emptyDraft(): Draft {
@@ -54,6 +65,7 @@ export function emptyDraft(): Draft {
     winback_offer: null,
     cheaper_tier_name: "",
     cheaper_tier_price: "",
+    offer_schedule: [],
   };
 }
 
@@ -128,9 +140,36 @@ export function isDraftBlank(draft: Draft, key: GymFieldKey): boolean {
   return value === null;
 }
 
-export function validateDraft(draft: Draft): { ok: true; fields: GymFields } | { ok: false; errors: FieldErrors } {
+/** A stored schedule as form rows. */
+export function scheduleToDraft(schedule: OfferSchedule | null | undefined): Draft["offer_schedule"] {
+  return Object.entries(schedule ?? {}).map(([offer, period]) => ({ offer: offer as SchedulableOffer, period: period as OfferPeriod }));
+}
+
+/**
+ * The schedule the save route receives: complete rows for offers these fields
+ * still configure. A row for an offer the gym no longer has limits nothing, and
+ * the form says it will be ignored; an incomplete row is an error, never a guess.
+ */
+export function draftSchedule(draft: Draft, fields: GymFields): { schedule: OfferSchedule | null; error?: string } {
+  const configured = new Set(configuredOffers(fields));
+  const out: OfferSchedule = {};
+  for (const row of draft.offer_schedule) {
+    if (!row.offer || !row.period) return { schedule: null, error: "Choose an offer and how often for every row, or remove the row." };
+    if (row.offer in out) return { schedule: null, error: "Each offer can only have one limit. Remove the second row." };
+    if (configured.has(row.offer)) out[row.offer] = row.period;
+  }
+  const parsed = parseOfferSchedule(out, fields);
+  return parsed.error ? { schedule: null, error: parsed.error } : { schedule: parsed.value };
+}
+
+export function validateDraft(
+  draft: Draft
+): { ok: true; fields: GymFields; schedule: OfferSchedule | null } | { ok: false; errors: FieldErrors } {
   const parsed = parseGymFields(draftToInput(draft));
-  return parsed.ok ? { ok: true, fields: parsed.value } : { ok: false, errors: parsed.errors };
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  const schedule = draftSchedule(draft, parsed.value);
+  if (schedule.error) return { ok: false, errors: { offer_schedule: schedule.error } };
+  return { ok: true, fields: parsed.value, schedule: schedule.schedule };
 }
 
 // --- The preview ---------------------------------------------------------------------
@@ -153,6 +192,8 @@ export interface Preview {
   facts: ReturnType<typeof compileGymFacts>;
   /** Whether the name is set; the facts use a stand-in until it is. */
   named: boolean;
+  /** The offers the previewed config grants, which are the ones a schedule may name. */
+  configured: SchedulableOffer[];
 }
 
 /**
@@ -184,7 +225,7 @@ export function previewDraft(draft: Draft): Preview {
     return { callType, text: compiled.text, sentences, offers, ok: result.ok, violations: result.violations };
   });
 
-  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named };
+  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs) };
 }
 
 export const OFFER_LABEL: Record<OfferKind, string> = {

@@ -54,6 +54,99 @@ export interface GymFields {
 export interface GymConfig extends GymFields {
   /** URL-safe identifier. Not something a gym fills in; derived from the name. */
   gym_id: string;
+  /**
+   * How often each offer may be made to the same member. Absent when the gym
+   * set no schedule — every offer then behaves as it always has. Never reaches a
+   * prompt: it decides, in `lib/eligibility.ts`, whether an offer is compiled
+   * into the block at all.
+   */
+  offer_schedule?: OfferSchedule;
+}
+
+// --- Offer schedule --------------------------------------------------------------
+
+/**
+ * The offers a gym can schedule. One per offer *type*, not per call: a guest
+ * pass given on a reengagement call spends the guest pass on a winback call too.
+ */
+export const SCHEDULABLE_OFFERS = ["renewal_discount", "guest_pass", "free_session", "free_pt_session", "cheaper_tier"] as const;
+export type SchedulableOffer = (typeof SCHEDULABLE_OFFERS)[number];
+
+/**
+ * "Every [period], allow the agent to offer [offer]". `never` switches the offer
+ * off without removing it from the gym's config. There is no lifetime cap: the
+ * period is the whole rule.
+ */
+export const OFFER_PERIODS = ["monthly", "quarterly", "twice_yearly", "yearly", "never"] as const;
+export type OfferPeriod = (typeof OFFER_PERIODS)[number];
+
+export const OFFER_PERIOD_DAYS: Record<Exclude<OfferPeriod, "never">, number> = {
+  monthly: 30,
+  quarterly: 91,
+  twice_yearly: 182,
+  yearly: 365,
+};
+
+export const OFFER_PERIOD_LABEL: Record<OfferPeriod, string> = {
+  monthly: "month",
+  quarterly: "quarter",
+  twice_yearly: "six months",
+  yearly: "year",
+  never: "never",
+};
+
+export const SCHEDULABLE_OFFER_LABEL: Record<SchedulableOffer, string> = {
+  renewal_discount: "renewal discount",
+  guest_pass: "guest pass",
+  free_session: "free session",
+  free_pt_session: "free PT session",
+  cheaper_tier: "cheaper membership",
+};
+
+export type OfferSchedule = Partial<Record<SchedulableOffer, OfferPeriod>>;
+
+/**
+ * The offers this gym's own config grants on some call. The schedule's offer
+ * dropdown is built from this, and a schedule naming anything else is refused:
+ * a gym cannot schedule something it never configured.
+ */
+export function configuredOffers(gym: GymFields): SchedulableOffer[] {
+  const out: SchedulableOffer[] = [];
+  if (gym.renewal_discount_percent !== null) out.push("renewal_discount");
+  if (gym.reengagement_perk === "guest_pass" || gym.winback_offer === "guest_pass") out.push("guest_pass");
+  if (gym.reengagement_perk === "free_session") out.push("free_session");
+  if (gym.winback_offer === "free_pt_session") out.push("free_pt_session");
+  if (hasCheaperTier(gym)) out.push("cheaper_tier");
+  return out;
+}
+
+/**
+ * Parses a schedule against the fields it schedules. Null, undefined and an
+ * empty object are all "no schedule". Refused, with the reason: anything but an
+ * object, an unknown offer, an offer this gym doesn't configure, or a period
+ * that isn't one of the fixed choices.
+ */
+export function parseOfferSchedule(value: unknown, gym: GymFields): FieldParse<OfferSchedule> {
+  if (value === undefined || value === null) return { value: null };
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return { value: null, error: "The offer schedule needs to be a set of offers and how often each may be made." };
+  }
+  const configured = new Set(configuredOffers(gym));
+  const out: OfferSchedule = {};
+  for (const [offer, period] of Object.entries(value as Record<string, unknown>)) {
+    if (!(SCHEDULABLE_OFFERS as readonly string[]).includes(offer)) {
+      return { value: null, error: `"${offer}" isn't an offer that can be scheduled.` };
+    }
+    const key = offer as SchedulableOffer;
+    if (!configured.has(key)) {
+      return { value: null, error: `This gym doesn't offer a ${SCHEDULABLE_OFFER_LABEL[key]}, so there's nothing to schedule. Remove it from the schedule.` };
+    }
+    if (typeof period !== "string" || !(OFFER_PERIODS as readonly string[]).includes(period)) {
+      return { value: null, error: `Choose how often the ${SCHEDULABLE_OFFER_LABEL[key]} may be offered: monthly, quarterly, twice yearly, yearly or never.` };
+    }
+    out[key] = period as OfferPeriod;
+  }
+  return { value: Object.keys(out).length > 0 ? out : null };
 }
 
 export type GymFieldKey = keyof GymFields;
@@ -257,7 +350,7 @@ export function fieldSpec(key: GymFieldKey): FieldSpec {
 
 // --- Parsing ------------------------------------------------------------------
 
-export type FieldErrors = Partial<Record<GymFieldKey | "gym_id" | "_form", string>>;
+export type FieldErrors = Partial<Record<GymFieldKey | "gym_id" | "offer_schedule" | "_form", string>>;
 
 export type ParseResult<T> =
   | { ok: true; value: T }
@@ -473,7 +566,7 @@ export function parseGymConfig(
   input: unknown,
   { allowKeys = [] }: { allowKeys?: string[] } = {}
 ): ParseResult<GymConfig> {
-  const fields = parseGymFields(input, { allowKeys: ["gym_id", ...allowKeys] });
+  const fields = parseGymFields(input, { allowKeys: ["gym_id", "offer_schedule", ...allowKeys] });
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const gymId = raw.gym_id;
   const idError =
@@ -485,7 +578,14 @@ export function parseGymConfig(
     return { ok: false, errors: idError ? { ...fields.errors, gym_id: idError } : fields.errors };
   }
   if (idError) return { ok: false, errors: { gym_id: idError } };
-  return { ok: true, value: { gym_id: gymId as string, ...fields.value } };
+  const schedule = parseOfferSchedule(raw.offer_schedule, fields.value);
+  if (schedule.error) return { ok: false, errors: { offer_schedule: schedule.error } };
+  // The key is present only when a schedule is: a gym without one parses to
+  // exactly the object it did before schedules existed.
+  return {
+    ok: true,
+    value: { gym_id: gymId as string, ...fields.value, ...(schedule.value ? { offer_schedule: schedule.value } : {}) },
+  };
 }
 
 /** "Southbank Strength & Conditioning" → "southbank-strength-conditioning". */

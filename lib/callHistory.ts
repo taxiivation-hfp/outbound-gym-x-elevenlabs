@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { PriorCallContext } from "@/lib/compileVariables";
+import { SCHEDULABLE_OFFERS, type SchedulableOffer } from "@/lib/gymConfig";
 
 /**
  * What previous calls to a member mean for the next one.
@@ -31,6 +32,12 @@ export interface CallHistory {
   cameBackAfterCall: boolean;
   /** What the last real conversation established, folded into the next `context`. */
   priorCall: PriorCallContext | null;
+  /**
+   * When each type of offer was last made to this member, from conversations
+   * where the analysis says an offer was made. What the offer schedule's
+   * cooldowns are measured from.
+   */
+  offersLastMade: Partial<Record<SchedulableOffer, string>>;
 }
 
 export const NO_HISTORY: CallHistory = {
@@ -42,6 +49,7 @@ export const NO_HISTORY: CallHistory = {
   lastOutcome: null,
   cameBackAfterCall: false,
   priorCall: null,
+  offersLastMade: {},
 };
 
 interface RawRow {
@@ -56,6 +64,8 @@ interface RawRow {
   committed_day?: string | null;
   offer_made?: boolean | null;
   transcript?: string | null;
+  call_type?: string | null;
+  offers_available?: string[] | null;
 }
 
 /**
@@ -66,6 +76,31 @@ interface RawRow {
 function reachedMember(row: RawRow): boolean {
   if (typeof row.reached_member === "boolean") return row.reached_member;
   return row.status === "completed" && Boolean(row.transcript);
+}
+
+/**
+ * What a call type's block can grant, for a record that predates
+ * `offers_available`. Every offer the call type could have carried counts as
+ * made, so an old record can only make a cooldown longer, never skip one.
+ */
+const OFFERS_BY_CALL_TYPE: Record<string, SchedulableOffer[]> = {
+  renewal: ["renewal_discount"],
+  reengagement: ["guest_pass", "free_session"],
+  winback: ["free_pt_session", "guest_pass", "cheaper_tier"],
+};
+
+/**
+ * The offers a conversation made. `offers_available` is what the compiled block
+ * granted, recorded by `/api/call` before dialling; when the agent made an
+ * offer on a block with two (a winback PT session and a cheaper tier), both are
+ * spent, because the analysis doesn't say which one it was.
+ */
+export function offersMade(row: RawRow): SchedulableOffer[] {
+  if (row.offer_made !== true) return [];
+  if (Array.isArray(row.offers_available)) {
+    return row.offers_available.filter((o): o is SchedulableOffer => (SCHEDULABLE_OFFERS as readonly string[]).includes(o));
+  }
+  return OFFERS_BY_CALL_TYPE[row.call_type ?? ""] ?? [...SCHEDULABLE_OFFERS];
 }
 
 /** Outcomes that mean the call worked: they came in, or committed to. */
@@ -105,7 +140,18 @@ export function summarise(rows: RawRow[]): CallHistory {
       CAME_BACK_OUTCOMES.has(r.outcome ?? "")
     ),
     priorCall,
+    offersLastMade: lastMade(conversations),
   };
+}
+
+function lastMade(conversations: RawRow[]): Partial<Record<SchedulableOffer, string>> {
+  const out: Partial<Record<SchedulableOffer, string>> = {};
+  // Newest first, so the first time an offer is seen is the latest.
+  for (const row of conversations) {
+    if (!row.created_at) continue;
+    for (const offer of offersMade(row)) out[offer] ??= row.created_at;
+  }
+  return out;
 }
 
 export async function getCallHistory(memberId: string): Promise<CallHistory> {

@@ -1,5 +1,5 @@
 import { DEFAULT_GYM_ID, gyms as seedGyms } from "@/lib/gyms";
-import { parseGymConfig, type GymConfig } from "@/lib/gymConfig";
+import { GYM_FIELD_KEYS, parseGymConfig, type GymConfig } from "@/lib/gymConfig";
 import { memberSource } from "@/lib/memberSource";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -25,9 +25,17 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type GymSource = "supabase" | "seed";
 
-const COLUMNS =
-  "gym_id, gym_name, opening_hours, quiet_hours, other_locations, has_online, books_classes, " +
-  "renewal_discount_percent, reengagement_perk, winback_offer, cheaper_tier_name, cheaper_tier_price";
+/**
+ * Rows are read with every column and narrowed to the config's own keys here,
+ * so a column added by a later migration (the offer schedule, for one) that
+ * hasn't been applied yet reads as "not set" instead of failing every read —
+ * and a gym read is on the path of every live call.
+ */
+const CONFIG_KEYS = ["gym_id", ...GYM_FIELD_KEYS, "offer_schedule"];
+
+function configColumns(row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(CONFIG_KEYS.filter((k) => row[k] !== undefined).map((k) => [k, row[k]]));
+}
 
 const MIGRATION = "supabase/migrations/20260914000000_create_gyms.sql";
 
@@ -82,7 +90,7 @@ async function readRows(filterGymId?: string): Promise<ReadResult> {
   try {
     let query = supabaseAdmin
       .from("gyms")
-      .select(COLUMNS)
+      .select("*")
       .order("created_at", { ascending: true })
       .abortSignal(AbortSignal.timeout(READ_TIMEOUT_MS));
     if (filterGymId) query = query.eq("gym_id", filterGymId);
@@ -100,7 +108,8 @@ async function readRows(filterGymId?: string): Promise<ReadResult> {
 }
 
 /** numeric columns can arrive as strings from some PostgREST configurations. */
-function normaliseRow(row: Record<string, unknown>): Record<string, unknown> {
+function normaliseRow(raw: Record<string, unknown>): Record<string, unknown> {
+  const row = configColumns(raw);
   const price = row.cheaper_tier_price;
   return {
     ...row,
@@ -238,6 +247,18 @@ export async function resolveGym(gymId: string | null | undefined): Promise<GymL
 
 export type CreatedVia = "manual" | "document";
 
+/**
+ * A config as a row. `offer_schedule` is written only when the gym set one, so
+ * a gym without a schedule still saves on a database that doesn't have the
+ * column yet; one with a schedule fails there and says which migration to apply.
+ */
+function gymRow(gym: GymConfig): Record<string, unknown> {
+  const { offer_schedule, ...rest } = gym;
+  return offer_schedule ? { ...rest, offer_schedule } : rest;
+}
+
+const SCHEDULE_MIGRATION = "supabase/migrations/20260915010000_offer_schedule.sql";
+
 export type InsertResult =
   | { ok: true; gym: GymConfig }
   | { ok: false; status: 409 | 503 | 500; error: string };
@@ -253,7 +274,7 @@ export async function insertGym(gym: GymConfig, createdVia: CreatedVia): Promise
   try {
     ({ error } = await supabaseAdmin
       .from("gyms")
-      .insert({ ...gym, created_via: createdVia })
+      .insert({ ...gymRow(gym), created_via: createdVia })
       .abortSignal(AbortSignal.timeout(READ_TIMEOUT_MS * 2)));
   } catch (err) {
     return {
@@ -264,6 +285,9 @@ export async function insertGym(gym: GymConfig, createdVia: CreatedVia): Promise
   }
   if (!error) return { ok: true, gym };
   if (isMissingTable(error)) return { ok: false, status: 503, error: SEED_NOTICE_NO_TABLE };
+  if (/offer_schedule/.test(error.message)) {
+    return { ok: false, status: 503, error: `This gym has an offer schedule, and the gyms table can't store one yet. Apply ${SCHEDULE_MIGRATION}.` };
+  }
   if (error.code === "23505") {
     return {
       ok: false,

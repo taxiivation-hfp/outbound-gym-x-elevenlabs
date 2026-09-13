@@ -503,4 +503,11 @@ export function compileIncentives(gym: GymFields, callType: CallType): CompiledI
   return { callType, sentences, text: sentences.map((s) => s.text).join(" ") };
 }
 
+/** The offers a compiled block grants, read from its sentences' registry metadata. */
+export function grantedOffers(compiled: CompiledIncentives): OfferKind[] {
+  return compiled.sentences
+    .map((s) => sentenceTemplate(s.id).grants)
+    .filter((g): g is OfferKind => g !== undefined);
+}
+
 export const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];
