@@ -2,12 +2,18 @@ import type { CallType } from "@/lib/callType";
 import { compileGymFacts } from "@/lib/compileVariables";
 import {
   GYM_FIELD_KEYS,
+  configuredOffers,
   hasCheaperTier,
+  parseOfferSchedule,
+  type OfferPeriod,
+  type OfferSchedule,
+  type SchedulableOffer,
   parseGymField,
   parseGymFields,
   type FieldErrors,
   type GymFieldKey,
   type GymFields,
+  type OtherOfferDelivery,
   type ReengagementPerk,
   type WinbackOffer,
 } from "@/lib/gymConfig";
@@ -39,6 +45,16 @@ export interface Draft {
   winback_offer: WinbackOffer | null;
   cheaper_tier_name: string;
   cheaper_tier_price: string;
+  reengagement_other_label: string;
+  reengagement_other_delivery: OtherOfferDelivery | null;
+  winback_other_label: string;
+  winback_other_delivery: OtherOfferDelivery | null;
+  /**
+   * "Every [period], allow the agent to offer [offer]", one row each. A row is
+   * in the form until it's removed, even half-filled, so a half-filled row
+   * blocks saving rather than being dropped.
+   */
+  offer_schedule: Array<{ offer: SchedulableOffer | ""; period: OfferPeriod | "" }>;
 }
 
 export function emptyDraft(): Draft {
@@ -54,6 +70,11 @@ export function emptyDraft(): Draft {
     winback_offer: null,
     cheaper_tier_name: "",
     cheaper_tier_price: "",
+    reengagement_other_label: "",
+    reengagement_other_delivery: null,
+    winback_other_label: "",
+    winback_other_delivery: null,
+    offer_schedule: [],
   };
 }
 
@@ -82,6 +103,13 @@ export function draftToInput(draft: Draft): Record<GymFieldKey, unknown> {
     winback_offer: draft.winback_offer,
     cheaper_tier_name: draft.cheaper_tier_name,
     cheaper_tier_price: numberInput(draft.cheaper_tier_price),
+    // An "other" offer's name and delivery are only asked while "Something
+    // else" is the choice; switching away from it hides them, and they aren't
+    // sent for a choice they don't belong to.
+    reengagement_other_label: draft.reengagement_perk === "other" ? draft.reengagement_other_label : null,
+    reengagement_other_delivery: draft.reengagement_perk === "other" ? draft.reengagement_other_delivery : null,
+    winback_other_label: draft.winback_offer === "other" ? draft.winback_other_label : null,
+    winback_other_delivery: draft.winback_offer === "other" ? draft.winback_other_delivery : null,
   };
 }
 
@@ -99,6 +127,8 @@ export function valueToDraft<K extends GymFieldKey>(key: K, value: unknown): Dra
       return (typeof value === "boolean" ? value : null) as Draft[K];
     case "reengagement_perk":
     case "winback_offer":
+    case "reengagement_other_delivery":
+    case "winback_other_delivery":
       return (typeof value === "string" ? value : null) as Draft[K];
     case "renewal_discount_percent":
       return (typeof value === "number" ? String(value) : "") as Draft[K];
@@ -128,9 +158,36 @@ export function isDraftBlank(draft: Draft, key: GymFieldKey): boolean {
   return value === null;
 }
 
-export function validateDraft(draft: Draft): { ok: true; fields: GymFields } | { ok: false; errors: FieldErrors } {
+/** A stored schedule as form rows. */
+export function scheduleToDraft(schedule: OfferSchedule | null | undefined): Draft["offer_schedule"] {
+  return Object.entries(schedule ?? {}).map(([offer, period]) => ({ offer: offer as SchedulableOffer, period: period as OfferPeriod }));
+}
+
+/**
+ * The schedule the save route receives: complete rows for offers these fields
+ * still configure. A row for an offer the gym no longer has limits nothing, and
+ * the form says it will be ignored; an incomplete row is an error, never a guess.
+ */
+export function draftSchedule(draft: Draft, fields: GymFields): { schedule: OfferSchedule | null; error?: string } {
+  const configured = new Set(configuredOffers(fields));
+  const out: OfferSchedule = {};
+  for (const row of draft.offer_schedule) {
+    if (!row.offer || !row.period) return { schedule: null, error: "Choose an offer and how often for every row, or remove the row." };
+    if (row.offer in out) return { schedule: null, error: "Each offer can only have one limit. Remove the second row." };
+    if (configured.has(row.offer)) out[row.offer] = row.period;
+  }
+  const parsed = parseOfferSchedule(out, fields);
+  return parsed.error ? { schedule: null, error: parsed.error } : { schedule: parsed.value };
+}
+
+export function validateDraft(
+  draft: Draft
+): { ok: true; fields: GymFields; schedule: OfferSchedule | null } | { ok: false; errors: FieldErrors } {
   const parsed = parseGymFields(draftToInput(draft));
-  return parsed.ok ? { ok: true, fields: parsed.value } : { ok: false, errors: parsed.errors };
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  const schedule = draftSchedule(draft, parsed.value);
+  if (schedule.error) return { ok: false, errors: { offer_schedule: schedule.error } };
+  return { ok: true, fields: parsed.value, schedule: schedule.schedule };
 }
 
 // --- The preview ---------------------------------------------------------------------
@@ -153,6 +210,10 @@ export interface Preview {
   facts: ReturnType<typeof compileGymFacts>;
   /** Whether the name is set; the facts use a stand-in until it is. */
   named: boolean;
+  /** The offers the previewed config grants, which are the ones a schedule may name. */
+  configured: SchedulableOffer[];
+  /** The config the preview compiled. */
+  fields: GymFields;
 }
 
 /**
@@ -184,7 +245,7 @@ export function previewDraft(draft: Draft): Preview {
     return { callType, text: compiled.text, sentences, offers, ok: result.ok, violations: result.violations };
   });
 
-  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named };
+  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
 }
 
 export const OFFER_LABEL: Record<OfferKind, string> = {
@@ -193,4 +254,5 @@ export const OFFER_LABEL: Record<OfferKind, string> = {
   free_session: "free session",
   free_pt_session: "free PT session",
   cheaper_tier: "cheaper membership",
+  other: "offer of the gym's own",
 };

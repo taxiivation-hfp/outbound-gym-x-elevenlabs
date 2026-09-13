@@ -23,7 +23,7 @@ import type { Guard } from "./guards";
  * run with the rest of the guards — no database, no network.
  */
 
-const sarah: MemberRecord = { member_id: "S0001", name: "Sarah Whitlock", mobile: "+61400000000", join_date: isoOffset(-420) };
+const sarah: MemberRecord = { member_id: "S0001", name: "Sarah Whitlock", mobile: "+61400000000", join_date: isoOffset(-420), cancellation_requested: null };
 
 /** Visits every two or three days up to yesterday: someone still training. */
 function recentVisits(days = 60): string[] {

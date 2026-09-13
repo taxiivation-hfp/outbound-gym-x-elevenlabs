@@ -21,7 +21,7 @@ npm run dev              # http://localhost:3000
 npm run build / start    # production build / serve
 npm run lint
 
-npm run evals             # 53 guards + 15 simulated ElevenLabs calls
+npm run evals             # 73 guards + 15 simulated ElevenLabs calls
 npm run evals:guards      # guards only — no network, no model, instant
 npm run evals -- --only <scenario-name>   # single scenario/guard by name
 npm run evals:extraction  # adversarial price list through the real extraction model (needs ANTHROPIC_API_KEY)

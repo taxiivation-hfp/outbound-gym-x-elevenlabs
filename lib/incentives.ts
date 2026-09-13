@@ -37,7 +37,9 @@ export type OfferKind =
   | "guest_pass"
   | "free_session"
   | "free_pt_session"
-  | "cheaper_tier";
+  | "cheaper_tier"
+  /** The gym's own long-tail offer, named by `*_other_label` for the call type. */
+  | "other";
 
 export type SentenceRole =
   /** Puts one offer on the table. */
@@ -55,7 +57,9 @@ export type SentenceRole =
   /** The last sentence. Closes the door on everything not granted. */
   | "close";
 
-export type Slot = "discount_percent" | "tier_name" | "tier_price";
+export type Slot = "discount_percent" | "tier_name" | "tier_price" | "reengagement_label" | "winback_label";
+
+export const SLOTS: Slot[] = ["discount_percent", "tier_name", "tier_price", "reengagement_label", "winback_label"];
 
 export interface SentenceTemplate {
   id: string;
@@ -152,6 +156,13 @@ export const SENTENCES: SentenceTemplate[] = [
     text: "You are calling with something to give them: a free session with one of the trainers.",
   },
   {
+    id: "reengagement.grant.other",
+    callType: "reengagement",
+    role: "grant",
+    grants: "other",
+    text: "You are calling with something to give them from the gym: {reengagement_label}.",
+  },
+  {
     id: "reengagement.frame.lead",
     needs: "any",
     callType: "reengagement",
@@ -187,6 +198,14 @@ export const SENTENCES: SentenceTemplate[] = [
     role: "limit",
     counts: 1,
     text: "That free session is the only thing you have.",
+  },
+  {
+    id: "reengagement.limit.other",
+    needs: "other",
+    callType: "reengagement",
+    role: "limit",
+    counts: 1,
+    text: "The {reengagement_label} is the only thing you have.",
   },
   {
     id: "reengagement.close.nothing_else",
@@ -237,6 +256,13 @@ export const SENTENCES: SentenceTemplate[] = [
     text: "If they lost momentum, you can offer a guest pass so they can come back in with a mate.",
   },
   {
+    id: "winback.grant.other",
+    callType: "winback",
+    role: "grant",
+    grants: "other",
+    text: "If they lost momentum, you can offer them something from the gym: {winback_label}.",
+  },
+  {
     id: "winback.delivery.booking",
     callType: "winback",
     role: "delivery",
@@ -266,7 +292,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.handling.momentum",
-    excludes: ["free_pt_session", "guest_pass"],
+    excludes: ["free_pt_session", "guest_pass", "other"],
     callType: "winback",
     role: "handling",
     text: "If they lost momentum, say you understand and that the door's open.",
@@ -293,6 +319,14 @@ export const SENTENCES: SentenceTemplate[] = [
     role: "limit",
     counts: 1,
     text: "That guest pass is the only thing you have.",
+  },
+  {
+    id: "winback.limit.other",
+    needs: "other",
+    callType: "winback",
+    role: "limit",
+    counts: 1,
+    text: "The {winback_label} is the only thing you have.",
   },
   {
     id: "winback.limit.cheaper_tier",
@@ -384,11 +418,13 @@ export function slotValues(gym: GymFields): Record<Slot, string | null> {
       typeof gym.renewal_discount_percent === "number" ? String(gym.renewal_discount_percent) : null,
     tier_name: typeof gym.cheaper_tier_name === "string" ? gym.cheaper_tier_name : null,
     tier_price: typeof gym.cheaper_tier_price === "number" ? formatMoney(gym.cheaper_tier_price) : null,
+    reengagement_label: typeof gym.reengagement_other_label === "string" ? gym.reengagement_other_label : null,
+    winback_label: typeof gym.winback_other_label === "string" ? gym.winback_other_label : null,
   };
 }
 
 function fill(template: SentenceTemplate, slots: Record<Slot, string | null>): string {
-  return template.text.replace(/\{(discount_percent|tier_name|tier_price)\}/g, (_, slot: Slot) => {
+  return template.text.replace(/\{(discount_percent|tier_name|tier_price|reengagement_label|winback_label)\}/g, (_, slot: Slot) => {
     const value = slots[slot];
     if (value === null) {
       throw new Error(`sentence ${template.id} needs ${slot}, which this gym has not set`);
@@ -437,6 +473,16 @@ export function incentiveSentenceIds(gym: GymFields, callType: CallType): string
           "reengagement.limit.free_session",
           "reengagement.close.nothing_else",
         ];
+      case "other":
+        // Delivery is the gym's choice for its own offer; the sentence for it
+        // is the same one a guest pass or a free session gets.
+        return [
+          "reengagement.grant.other",
+          "reengagement.frame.lead",
+          gym.reengagement_other_delivery === "booking" ? "reengagement.delivery.booking" : "reengagement.delivery.link",
+          "reengagement.limit.other",
+          "reengagement.close.nothing_else",
+        ];
       default:
         return ["reengagement.none.nothing", "reengagement.none.frame", "reengagement.none.close"];
     }
@@ -474,6 +520,12 @@ export function incentiveSentenceIds(gym: GymFields, callType: CallType): string
             "winback.limit.guest_pass",
             "winback.close.no_discount_no_tier",
           ];
+    case "other": {
+      const delivery = gym.winback_other_delivery === "booking" ? "winback.delivery.booking" : "winback.delivery.link";
+      return tier
+        ? ["winback.grant.other", delivery, "winback.grant.cheaper_tier", "winback.close.two_things"]
+        : ["winback.grant.other", delivery, "winback.handling.money", "winback.limit.other", "winback.close.no_discount_no_tier"];
+    }
     default:
       return tier
         ? [
@@ -501,6 +553,13 @@ export function compileIncentives(gym: GymFields, callType: CallType): CompiledI
     text: fill(sentenceTemplate(id), slots),
   }));
   return { callType, sentences, text: sentences.map((s) => s.text).join(" ") };
+}
+
+/** The offers a compiled block grants, read from its sentences' registry metadata. */
+export function grantedOffers(compiled: CompiledIncentives): OfferKind[] {
+  return compiled.sentences
+    .map((s) => sentenceTemplate(s.id).grants)
+    .filter((g): g is OfferKind => g !== undefined);
 }
 
 export const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];

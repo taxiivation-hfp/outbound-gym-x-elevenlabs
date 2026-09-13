@@ -59,6 +59,33 @@ payload is byte-identical.
 
 ---
 
+## 0a. Pass one — merged to `main` from the `pass-one` branch
+
+Business-side features from `PASS_ONE.md`; the report is
+[`PASS_ONE_REPORT.md`](PASS_ONE_REPORT.md). Five commits, one per item, merged
+by pull request, so `main`'s production deploy carries them. Status:
+
+1. **Done on 13 September 2026:** the four migrations were applied to the
+   Supabase project through the Management API, in order:
+   `20260915000000_gym_health.sql`, `20260915010000_offer_schedule.sql`,
+   `20260915020000_other_offers.sql`, `20260915030000_cancellation_requests.sql`.
+   The new columns, constraints, functions and grants were read back. A
+   check block then saved an "other" offer with a schedule, confirmed a stray
+   label and a bad period were refused, imported a cancellation request and
+   counted a check-in by hour — and rolled back, leaving no rows. For another
+   project, apply them in order; each is idempotent (`npm run db:verify`).
+2. **`ONBOARDING_WRITES=enabled` on Vercel, Production and Preview.** Not done:
+   there is no Vercel CLI or token in this environment. The unauthenticated-
+   write risk is accepted for the demo and written up in the README's
+   LIMITATIONS.
+3. **`ANTHROPIC_API_KEY` and `CRON_SECRET` on Vercel** if not already set: the
+   nightly recompute now also writes the themed summary of why members left,
+   and without the key it records that the summary couldn't run.
+4. **No agent sync.** No prompt changed; all 15 scenario payloads are
+   byte-identical.
+
+---
+
 ## 1. Things only you can do
 
 > **The order of 1a and 1b matters.** The repository is currently private and has

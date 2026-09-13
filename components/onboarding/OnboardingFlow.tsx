@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import type { GymConfig, GymFieldKey } from "@/lib/gymConfig";
+import type { GymConfig } from "@/lib/gymConfig";
 import { GYM_FIELD_KEYS, hasAtMostTwoDecimals } from "@/lib/gymConfig";
 import { callTypeLabel } from "@/lib/labels";
 import type { CallType } from "@/lib/callType";
@@ -11,6 +11,7 @@ import {
   draftToInput,
   emptyDraft,
   isDraftBlank,
+  scheduleToDraft,
   previewDraft,
   validateDraft,
   type Draft,
@@ -53,15 +54,23 @@ export default function OnboardingFlow({
   extractionAvailable,
   extractionAdminDetail,
   existingGyms,
+  editing = null,
 }: {
+  /**
+   * Editing an existing gym: the form opens prefilled with its current values
+   * and saves with PATCH. The same review screen, compiler and validator.
+   */
+  editing?: GymConfig | null;
   saveAvailable: boolean;
   saveAdminDetail: string | null;
   extractionAvailable: boolean;
   extractionAdminDetail: string | null;
   existingGyms: Array<{ gym_id: string; gym_name: string }>;
 }) {
-  const [step, setStep] = useState<Step>({ kind: "start" });
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [step, setStep] = useState<Step>(editing ? { kind: "review" } : { kind: "start" });
+  const [draft, setDraft] = useState<Draft>(() =>
+    editing ? { ...draftFromValues(editing), offer_schedule: scheduleToDraft(editing.offer_schedule) } : emptyDraft()
+  );
   const [read, setRead] = useState<ReadResult | null>(null);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
@@ -72,7 +81,7 @@ export default function OnboardingFlow({
   const fileInput = useRef<HTMLInputElement>(null);
   const viewHeading = useRef<HTMLHeadingElement>(null);
 
-  const onChange = useCallback(<K extends GymFieldKey>(key: K, value: Draft[K]) => {
+  const onChange = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
     setSettled(false);
     setSaveState((s) => (s.kind === "error" ? { kind: "idle" } : s));
@@ -127,11 +136,18 @@ export default function OnboardingFlow({
   const save = async () => {
     setSaveState({ kind: "saving" });
     try {
-      const res = await fetch("/api/gyms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: draftToInput(draft), created_via: read ? "document" : "manual" }),
-      });
+      const schedule = validation.ok ? validation.schedule : null;
+      const res = editing
+        ? await fetch(`/api/gyms/${encodeURIComponent(editing.gym_id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: draftToInput(draft), offer_schedule: schedule }),
+          })
+        : await fetch("/api/gyms", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: draftToInput(draft), offer_schedule: schedule, created_via: read ? "document" : "manual" }),
+          });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setSaveState({
@@ -156,7 +172,7 @@ export default function OnboardingFlow({
   })();
 
   if (step.kind === "saved") {
-    return <Saved gym={step.gym} incentives={step.incentives} headingRef={viewHeading} />;
+    return <Saved gym={step.gym} incentives={step.incentives} headingRef={viewHeading} edited={Boolean(editing)} />;
   }
 
   if (step.kind === "reading") {
@@ -183,10 +199,19 @@ export default function OnboardingFlow({
           </h2>
           <div className="mb-8 space-y-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Button variant="quiet" onClick={startAgain} aria-expanded={confirmingDiscard}>
-                <span aria-hidden="true">←</span> Start again
-              </Button>
-              {!read && <p className="text-sm text-zinc-400">Filling in by hand. Only the name is required.</p>}
+              {editing ? (
+                <p className="text-sm text-zinc-400">
+                  Editing <Literal>{editing.gym_id}</Literal>. Saving checks every answer again and replaces this gym&apos;s config;
+                  its id stays the same. <Link href="/onboarding" className="underline">Leave without saving</Link>
+                </p>
+              ) : (
+                <>
+                  <Button variant="quiet" onClick={startAgain} aria-expanded={confirmingDiscard}>
+                    <span aria-hidden="true">←</span> Start again
+                  </Button>
+                  {!read && <p className="text-sm text-zinc-400">Filling in by hand. Only the name is required.</p>}
+                </>
+              )}
             </div>
             {confirmingDiscard && (
               <div role="group" aria-label="Discard answers?" className="flex flex-wrap items-center gap-3 text-sm text-zinc-300">
@@ -211,6 +236,8 @@ export default function OnboardingFlow({
               saveAvailable={saveAvailable}
               saveState={saveState}
               onSave={save}
+              configuredOffers={preview.configured}
+              validationFields={preview.fields}
             />
           </div>
         </div>
@@ -341,6 +368,9 @@ export default function OnboardingFlow({
                 <span className="text-sm text-zinc-200">
                   {g.gym_name} <Literal className="ml-1 text-xs text-zinc-400">{g.gym_id}</Literal>
                 </span>
+                <Link href={`/onboarding/${g.gym_id}/edit`} className={`rounded-sm text-sm text-zinc-400 underline ${focusRing}`}>
+                  Edit<span className="sr-only"> {g.gym_name}</span>
+                </Link>
                 <Link
                   href={`/onboarding/${g.gym_id}/members`}
                   className={`rounded-sm text-sm font-semibold text-zinc-200 underline decoration-zinc-600 underline-offset-4 transition-[color,text-decoration-color] hover:text-white hover:decoration-zinc-300 ${focusRing}`}
@@ -360,7 +390,9 @@ function Saved({
   gym,
   incentives,
   headingRef,
+  edited,
 }: {
+  edited: boolean;
   gym: GymConfig;
   incentives: Record<CallType, string>;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
@@ -369,7 +401,7 @@ function Saved({
   return (
     <section aria-labelledby="saved-title" className="max-w-4xl">
       <h2 ref={headingRef} id="saved-title" tabIndex={-1} className="outline-none">
-        <span className="block text-sm font-semibold text-signal">Saved</span>
+        <span className="block text-sm font-semibold text-signal">{edited ? "Changes saved" : "Saved"}</span>
         <span className="mt-1 block text-2xl font-black uppercase tracking-tight text-white wrap-anywhere">{gym.gym_name}</span>
       </h2>
       <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-zinc-400">

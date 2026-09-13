@@ -17,11 +17,18 @@ import { checkText, normaliseText, type TextKind } from "@/lib/textSafety";
  * record.
  */
 
-export const REENGAGEMENT_PERKS = ["guest_pass", "free_session", "none"] as const;
-export const WINBACK_OFFERS = ["free_pt_session", "guest_pass", "none"] as const;
+/**
+ * `other` is the long tail: a protein shake, a towel, a smoothie. The gym
+ * supplies a short noun (`*_other_label`, held to `textSafety`'s "offer_label"
+ * rules) and how it's delivered; the compiler still writes every sentence.
+ */
+export const REENGAGEMENT_PERKS = ["guest_pass", "free_session", "other", "none"] as const;
+export const WINBACK_OFFERS = ["free_pt_session", "guest_pass", "other", "none"] as const;
+export const OTHER_OFFER_DELIVERIES = ["link", "booking"] as const;
 
 export type ReengagementPerk = (typeof REENGAGEMENT_PERKS)[number];
 export type WinbackOffer = (typeof WINBACK_OFFERS)[number];
+export type OtherOfferDelivery = (typeof OTHER_OFFER_DELIVERIES)[number];
 
 export interface GymFields {
   gym_name: string;
@@ -49,14 +56,140 @@ export interface GymFields {
   cheaper_tier_name: string | null;
   /** Dollars a month, up to two decimal places. */
   cheaper_tier_price: number | null;
+  /** Set exactly when `reengagement_perk` is "other": what the offer is, as a short noun ("protein shake"). */
+  reengagement_other_label: string | null;
+  /** Set exactly when `reengagement_perk` is "other": texted as a link, or booked by a person. */
+  reengagement_other_delivery: OtherOfferDelivery | null;
+  /** Set exactly when `winback_offer` is "other". */
+  winback_other_label: string | null;
+  /** Set exactly when `winback_offer` is "other". */
+  winback_other_delivery: OtherOfferDelivery | null;
 }
 
 export interface GymConfig extends GymFields {
   /** URL-safe identifier. Not something a gym fills in; derived from the name. */
   gym_id: string;
+  /**
+   * How often each offer may be made to the same member. Absent when the gym
+   * set no schedule — every offer then behaves as it always has. Never reaches a
+   * prompt: it decides, in `lib/eligibility.ts`, whether an offer is compiled
+   * into the block at all.
+   */
+  offer_schedule?: OfferSchedule;
+}
+
+// --- Offer schedule --------------------------------------------------------------
+
+/**
+ * The offers a gym can schedule. One per offer *type*, not per call: a guest
+ * pass given on a reengagement call spends the guest pass on a winback call too.
+ */
+export const SCHEDULABLE_OFFERS = [
+  "renewal_discount",
+  "guest_pass",
+  "free_session",
+  "free_pt_session",
+  "cheaper_tier",
+  "reengagement_other",
+  "winback_other",
+] as const;
+export type SchedulableOffer = (typeof SCHEDULABLE_OFFERS)[number];
+
+/**
+ * "Every [period], allow the agent to offer [offer]". `never` switches the offer
+ * off without removing it from the gym's config. There is no lifetime cap: the
+ * period is the whole rule.
+ */
+export const OFFER_PERIODS = ["monthly", "quarterly", "twice_yearly", "yearly", "never"] as const;
+export type OfferPeriod = (typeof OFFER_PERIODS)[number];
+
+export const OFFER_PERIOD_DAYS: Record<Exclude<OfferPeriod, "never">, number> = {
+  monthly: 30,
+  quarterly: 91,
+  twice_yearly: 182,
+  yearly: 365,
+};
+
+export const OFFER_PERIOD_LABEL: Record<OfferPeriod, string> = {
+  monthly: "month",
+  quarterly: "quarter",
+  twice_yearly: "six months",
+  yearly: "year",
+  never: "never",
+};
+
+export const SCHEDULABLE_OFFER_LABEL: Record<SchedulableOffer, string> = {
+  renewal_discount: "renewal discount",
+  guest_pass: "guest pass",
+  free_session: "free session",
+  free_pt_session: "free PT session",
+  cheaper_tier: "cheaper membership",
+  reengagement_other: "other perk",
+  winback_other: "other winback offer",
+};
+
+/** The schedule's name for an offer, with the gym's own label for an "other". */
+export function scheduledOfferLabel(offer: SchedulableOffer, gym: GymFields | null): string {
+  if (offer === "reengagement_other" && gym?.reengagement_other_label) return gym.reengagement_other_label;
+  if (offer === "winback_other" && gym?.winback_other_label) return gym.winback_other_label;
+  return SCHEDULABLE_OFFER_LABEL[offer];
+}
+
+export type OfferSchedule = Partial<Record<SchedulableOffer, OfferPeriod>>;
+
+/**
+ * The offers this gym's own config grants on some call. The schedule's offer
+ * dropdown is built from this, and a schedule naming anything else is refused:
+ * a gym cannot schedule something it never configured.
+ */
+export function configuredOffers(gym: GymFields): SchedulableOffer[] {
+  const out: SchedulableOffer[] = [];
+  if (gym.renewal_discount_percent !== null) out.push("renewal_discount");
+  if (gym.reengagement_perk === "guest_pass" || gym.winback_offer === "guest_pass") out.push("guest_pass");
+  if (gym.reengagement_perk === "free_session") out.push("free_session");
+  if (gym.winback_offer === "free_pt_session") out.push("free_pt_session");
+  if (hasCheaperTier(gym)) out.push("cheaper_tier");
+  if (gym.reengagement_perk === "other") out.push("reengagement_other");
+  if (gym.winback_offer === "other") out.push("winback_other");
+  return out;
+}
+
+/**
+ * Parses a schedule against the fields it schedules. Null, undefined and an
+ * empty object are all "no schedule". Refused, with the reason: anything but an
+ * object, an unknown offer, an offer this gym doesn't configure, or a period
+ * that isn't one of the fixed choices.
+ */
+export function parseOfferSchedule(value: unknown, gym: GymFields): FieldParse<OfferSchedule> {
+  if (value === undefined || value === null) return { value: null };
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return { value: null, error: "The offer schedule needs to be a set of offers and how often each may be made." };
+  }
+  const configured = new Set(configuredOffers(gym));
+  const out: OfferSchedule = {};
+  for (const [offer, period] of Object.entries(value as Record<string, unknown>)) {
+    if (!(SCHEDULABLE_OFFERS as readonly string[]).includes(offer)) {
+      return { value: null, error: `"${offer}" isn't an offer that can be scheduled.` };
+    }
+    const key = offer as SchedulableOffer;
+    if (!configured.has(key)) {
+      return { value: null, error: `This gym doesn't offer a ${SCHEDULABLE_OFFER_LABEL[key]}, so there's nothing to schedule. Remove it from the schedule.` };
+    }
+    if (typeof period !== "string" || !(OFFER_PERIODS as readonly string[]).includes(period)) {
+      return { value: null, error: `Choose how often the ${SCHEDULABLE_OFFER_LABEL[key]} may be offered: monthly, quarterly, twice yearly, yearly or never.` };
+    }
+    out[key] = period as OfferPeriod;
+  }
+  return { value: Object.keys(out).length > 0 ? out : null };
 }
 
 export type GymFieldKey = keyof GymFields;
+
+/** The fields a document can fill: everything but an "other" offer's name and delivery, which a person types. */
+export type ExtractableFieldKey = Exclude<
+  GymFieldKey,
+  "reengagement_other_label" | "reengagement_other_delivery" | "winback_other_label" | "winback_other_delivery"
+>;
 
 export const GYM_FIELD_KEYS: GymFieldKey[] = [
   "gym_name",
@@ -70,6 +203,10 @@ export const GYM_FIELD_KEYS: GymFieldKey[] = [
   "winback_offer",
   "cheaper_tier_name",
   "cheaper_tier_price",
+  "reengagement_other_label",
+  "reengagement_other_delivery",
+  "winback_other_label",
+  "winback_other_delivery",
 ];
 
 export const RENEWAL_DISCOUNT_MIN = 1;
@@ -87,7 +224,10 @@ const LIMITS = {
   fact: 120,
   location: 60,
   tier_name: 40,
+  offer_label: 40,
 } as const;
+
+export const OTHER_OFFER_LABEL_MAX = LIMITS.offer_label;
 
 // --- Field descriptions ------------------------------------------------------
 
@@ -117,6 +257,13 @@ export interface FieldSpec {
   example?: string;
   /** What counts as the document stating this, for the extraction model. */
   extraction: string;
+  /**
+   * False for the fields a document never fills: an "other" offer's label and
+   * delivery are named by a person on the form. Omitted means extracted.
+   */
+  extract?: false;
+  /** Enum values the extraction model may return, when narrower than `options`. */
+  extractionOptions?: readonly string[];
 }
 
 export const FIELD_SPECS: FieldSpec[] = [
@@ -201,9 +348,11 @@ export const FIELD_SPECS: FieldSpec[] = [
     kind: "enum",
     required: false,
     options: REENGAGEMENT_PERKS,
+    extractionOptions: ["guest_pass", "free_session", "none"],
     optionLabels: {
       guest_pass: "Guest pass (texted as a link)",
       free_session: "Free session (someone calls to book it)",
+      other: "Something else",
       none: "Nothing",
     },
     whenBlank: "Charlie calls with nothing to give — he checks in and offers nothing.",
@@ -217,9 +366,11 @@ export const FIELD_SPECS: FieldSpec[] = [
     kind: "enum",
     required: false,
     options: WINBACK_OFFERS,
+    extractionOptions: ["free_pt_session", "guest_pass", "none"],
     optionLabels: {
       free_pt_session: "Free PT session (someone calls to book it)",
       guest_pass: "Guest pass (texted as a link)",
+      other: "Something else",
       none: "Nothing",
     },
     whenBlank: "Charlie has no free session or guest pass for someone whose membership has ended.",
@@ -247,7 +398,56 @@ export const FIELD_SPECS: FieldSpec[] = [
     extraction:
       "The monthly price in dollars of that cheaper option, as a number (39 for \"$39 a month\"). If the document only gives a weekly or fortnightly price, return null — do not convert it.",
   },
+  {
+    key: "reengagement_other_label",
+    label: "What the something else is",
+    shortLabel: "other perk",
+    kind: "text",
+    required: false,
+    whenBlank: null,
+    example: "protein shake",
+    extraction: "",
+    extract: false,
+  },
+  {
+    key: "reengagement_other_delivery",
+    label: "How it reaches them",
+    shortLabel: "other perk delivery",
+    kind: "enum",
+    required: false,
+    options: OTHER_OFFER_DELIVERIES,
+    optionLabels: { link: "Texted as a link", booking: "Someone calls to book it" },
+    whenBlank: null,
+    extraction: "",
+    extract: false,
+  },
+  {
+    key: "winback_other_label",
+    label: "What the something else is",
+    shortLabel: "other winback offer",
+    kind: "text",
+    required: false,
+    whenBlank: null,
+    example: "smoothie",
+    extraction: "",
+    extract: false,
+  },
+  {
+    key: "winback_other_delivery",
+    label: "How it reaches them",
+    shortLabel: "other winback offer delivery",
+    kind: "enum",
+    required: false,
+    options: OTHER_OFFER_DELIVERIES,
+    optionLabels: { link: "Texted as a link", booking: "Someone calls to book it" },
+    whenBlank: null,
+    extraction: "",
+    extract: false,
+  },
 ];
+
+/** The fields a document can fill. The extraction schema, prompt and sanitiser use only these. */
+export const EXTRACTABLE_SPECS: FieldSpec[] = FIELD_SPECS.filter((spec) => spec.extract !== false);
 
 export function fieldSpec(key: GymFieldKey): FieldSpec {
   const spec = FIELD_SPECS.find((f) => f.key === key);
@@ -257,7 +457,7 @@ export function fieldSpec(key: GymFieldKey): FieldSpec {
 
 // --- Parsing ------------------------------------------------------------------
 
-export type FieldErrors = Partial<Record<GymFieldKey | "gym_id" | "_form", string>>;
+export type FieldErrors = Partial<Record<GymFieldKey | "gym_id" | "offer_schedule" | "_form", string>>;
 
 export type ParseResult<T> =
   | { ok: true; value: T }
@@ -412,6 +612,12 @@ export function parseGymField(key: GymFieldKey, value: unknown): FieldParse<GymF
       return parseText(value, { kind: "tier_name", max: LIMITS.tier_name, label: "Cheaper membership name" });
     case "cheaper_tier_price":
       return parsePrice(value);
+    case "reengagement_other_label":
+    case "winback_other_label":
+      return parseText(value, { kind: "offer_label", max: LIMITS.offer_label, label: "The offer" });
+    case "reengagement_other_delivery":
+    case "winback_other_delivery":
+      return parseEnum(value, OTHER_OFFER_DELIVERIES, "How it reaches them");
   }
 }
 
@@ -462,6 +668,22 @@ export function parseGymFields(
     }
   }
 
+  // An "other" offer is its label and its delivery, both or neither — and only
+  // when "other" is the choice. A label left behind by another choice is an
+  // error, not something to keep quietly or drop.
+  for (const [choiceKey, labelKey, deliveryKey] of [
+    ["reengagement_perk", "reengagement_other_label", "reengagement_other_delivery"],
+    ["winback_offer", "winback_other_label", "winback_other_delivery"],
+  ] as const) {
+    if (errors[choiceKey] || errors[labelKey] || errors[deliveryKey]) continue;
+    if (value[choiceKey] === "other") {
+      if (value[labelKey] === null) errors[labelKey] = 'Name the offer, like "protein shake" — Charlie says exactly this.';
+      if (value[deliveryKey] === null) errors[deliveryKey] = "Choose whether it's texted as a link or someone calls to book it.";
+    } else if (value[labelKey] !== null || value[deliveryKey] !== null) {
+      errors[labelKey] = 'Choose "Something else" for this offer, or clear what it is and how it\'s delivered.';
+    }
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, value: value as unknown as GymFields };
 }
@@ -473,7 +695,7 @@ export function parseGymConfig(
   input: unknown,
   { allowKeys = [] }: { allowKeys?: string[] } = {}
 ): ParseResult<GymConfig> {
-  const fields = parseGymFields(input, { allowKeys: ["gym_id", ...allowKeys] });
+  const fields = parseGymFields(input, { allowKeys: ["gym_id", "offer_schedule", ...allowKeys] });
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const gymId = raw.gym_id;
   const idError =
@@ -485,7 +707,14 @@ export function parseGymConfig(
     return { ok: false, errors: idError ? { ...fields.errors, gym_id: idError } : fields.errors };
   }
   if (idError) return { ok: false, errors: { gym_id: idError } };
-  return { ok: true, value: { gym_id: gymId as string, ...fields.value } };
+  const schedule = parseOfferSchedule(raw.offer_schedule, fields.value);
+  if (schedule.error) return { ok: false, errors: { offer_schedule: schedule.error } };
+  // The key is present only when a schedule is: a gym without one parses to
+  // exactly the object it did before schedules existed.
+  return {
+    ok: true,
+    value: { gym_id: gymId as string, ...fields.value, ...(schedule.value ? { offer_schedule: schedule.value } : {}) },
+  };
 }
 
 /** "Southbank Strength & Conditioning" → "southbank-strength-conditioning". */
@@ -516,6 +745,10 @@ export function emptyGymFields(): GymFields {
     winback_offer: null,
     cheaper_tier_name: null,
     cheaper_tier_price: null,
+    reengagement_other_label: null,
+    reengagement_other_delivery: null,
+    winback_other_label: null,
+    winback_other_delivery: null,
   };
 }
 

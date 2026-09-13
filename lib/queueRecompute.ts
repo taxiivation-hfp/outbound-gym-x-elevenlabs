@@ -4,6 +4,9 @@ import type { CallType } from "@/lib/callType";
 import { DATA_AS_OF } from "@/lib/clock";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { loadMembers, memberSource, type MemberSource } from "@/lib/memberSource";
+import { readAllCallRows } from "@/lib/callRecords";
+import { reasonDetails, type ReasonRow, type StoredReasonThemes } from "@/lib/reasonThemes";
+import { summariseReasonThemes } from "@/lib/reasonThemesSummary";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { Member } from "@/lib/types";
 
@@ -124,6 +127,8 @@ export interface RecomputeResult {
   gym_id: string | null;
   counts: SnapshotCounts;
   history_error: string | null;
+  /** What happened to tonight's themed summary of members' stated reasons. */
+  reason_themes: { status: string; statements?: number; reason?: string };
 }
 
 export class RecomputeError extends Error {
@@ -198,7 +203,30 @@ export async function runRecompute(now: Date): Promise<RecomputeResult> {
     }
   }
 
-  return { run_id: runId, as_of: asOfIso, clock: plan.clock, member_source: plan.source.kind, gym_id: gymId, counts, history_error: historyError };
+  // The themed summary of what members said. The one model call in the nightly
+  // job, and never on a page render; its result is stored on this run for the
+  // intelligence page to read. Nothing it returns can fail the run.
+  const themes = await nightlyReasonThemes();
+  const { error: themesError } = await supabaseAdmin.from("queue_runs").update({ reason_themes: themes }).eq("id", runId);
+
+  return {
+    run_id: runId,
+    as_of: asOfIso,
+    clock: plan.clock,
+    member_source: plan.source.kind,
+    gym_id: gymId,
+    counts,
+    history_error: historyError,
+    reason_themes: themesError ? { status: "not_stored", reason: themesError.message } : { status: themes.status, statements: themes.statements },
+  };
+}
+
+async function nightlyReasonThemes(): Promise<StoredReasonThemes> {
+  const { rows, error } = await readAllCallRows<ReasonRow>();
+  if (error) {
+    return { status: "unavailable", statements: 0, reason: `Call records couldn't be read: ${error}`, generated_at: new Date().toISOString() };
+  }
+  return summariseReasonThemes(reasonDetails(rows));
 }
 
 export interface LatestRun {

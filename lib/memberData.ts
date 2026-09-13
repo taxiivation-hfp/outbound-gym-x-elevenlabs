@@ -39,6 +39,8 @@ export interface MemberRecord {
   mobile: string | null;
   /** ISO YYYY-MM-DD. */
   join_date: string;
+  /** Local timestamp of a cancellation request, or null. Absent from an export means no request. */
+  cancellation_requested: string | null;
 }
 
 export interface ContractRecord {
@@ -380,6 +382,7 @@ export function buildMember(
       expiry_date: contract.end_date,
       monthly_fee: contract.monthly_fee,
       renewal_fee: contract.renewal_fee,
+      cancellation_requested: record.cancellation_requested,
       signals: {
         days_since_visit: signals.days_since_visit,
         old_rate: signals.old_rate,

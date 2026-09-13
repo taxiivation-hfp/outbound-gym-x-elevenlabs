@@ -14,6 +14,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 69,
       "old_rate": 0.99,
@@ -36,6 +37,7 @@
     "expiry_date": "2027-05-26",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.78,
@@ -58,6 +60,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 62,
       "old_rate": 2.07,
@@ -80,6 +83,7 @@
     "expiry_date": "2027-04-23",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.49,
@@ -102,6 +106,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 28,
       "old_rate": 0.22,
@@ -124,6 +129,7 @@
     "expiry_date": "2027-01-01",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 45,
       "old_rate": 2.03,
@@ -146,6 +152,7 @@
     "expiry_date": "2027-01-14",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 95,
       "old_rate": 2.27,
@@ -168,6 +175,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-09-05T15:29:00",
     "signals": {
       "days_since_visit": 14,
       "old_rate": 1.18,
@@ -190,6 +198,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.11,
@@ -212,6 +221,7 @@
     "expiry_date": "2026-06-16",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 105,
       "old_rate": 0.19,
@@ -234,6 +244,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.06,
@@ -256,6 +267,7 @@
     "expiry_date": "2026-11-08",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 0.7,
@@ -278,6 +290,7 @@
     "expiry_date": "2026-11-13",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 105,
       "old_rate": 3.78,
@@ -300,6 +313,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.21,
@@ -322,6 +336,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 87,
       "old_rate": 2.31,
@@ -344,6 +359,7 @@
     "expiry_date": "2026-11-27",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 125,
       "old_rate": 2.91,
@@ -366,6 +382,7 @@
     "expiry_date": "2026-06-26",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 82,
       "old_rate": 2.12,
@@ -388,6 +405,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.32,
@@ -410,6 +428,7 @@
     "expiry_date": "2027-02-15",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.43,
@@ -432,6 +451,7 @@
     "expiry_date": "2027-04-22",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 132,
       "old_rate": 0.63,
@@ -454,6 +474,7 @@
     "expiry_date": "2026-03-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 134,
       "old_rate": 1.09,
@@ -476,6 +497,7 @@
     "expiry_date": "2026-07-29",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 66,
       "old_rate": 1.67,
@@ -498,6 +520,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.0,
@@ -520,6 +543,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 96,
       "old_rate": 2.07,
@@ -542,6 +566,7 @@
     "expiry_date": "2027-06-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 0.75,
@@ -564,6 +589,7 @@
     "expiry_date": "2026-08-21",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 44,
       "old_rate": 2.06,
@@ -586,6 +612,7 @@
     "expiry_date": "2026-08-07",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 63,
       "old_rate": 1.08,
@@ -608,6 +635,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.86,
@@ -630,6 +658,7 @@
     "expiry_date": "2027-01-06",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 2.27,
@@ -652,6 +681,7 @@
     "expiry_date": "2027-05-11",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.81,
@@ -674,6 +704,7 @@
     "expiry_date": "2026-03-14",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 228,
       "old_rate": 1.16,
@@ -696,6 +727,7 @@
     "expiry_date": "2026-11-10",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.87,
@@ -718,6 +750,7 @@
     "expiry_date": "2026-08-20",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 45,
       "old_rate": 1.54,
@@ -740,6 +773,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 12,
       "old_rate": 0.27,
@@ -762,6 +796,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.52,
@@ -784,6 +819,7 @@
     "expiry_date": "2026-11-09",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.63,
@@ -806,6 +842,7 @@
     "expiry_date": "2027-02-01",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 122,
       "old_rate": 0.93,
@@ -828,6 +865,7 @@
     "expiry_date": "2027-03-31",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 45,
       "old_rate": 0.26,
@@ -850,6 +888,7 @@
     "expiry_date": "2026-12-26",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 0.63,
@@ -872,6 +911,7 @@
     "expiry_date": "2026-12-14",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.02,
@@ -894,6 +934,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-08-25T20:22:00",
     "signals": {
       "days_since_visit": 125,
       "old_rate": 1.48,
@@ -916,6 +957,7 @@
     "expiry_date": "2027-05-30",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.67,
@@ -938,6 +980,7 @@
     "expiry_date": "2026-07-30",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 54,
       "old_rate": 2.48,
@@ -960,6 +1003,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.57,
@@ -982,6 +1026,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.17,
@@ -1004,6 +1049,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 32,
       "old_rate": 0.1,
@@ -1026,6 +1072,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 2.72,
@@ -1048,6 +1095,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-09-11T20:59:00",
     "signals": {
       "days_since_visit": 10,
       "old_rate": 1.08,
@@ -1070,6 +1118,7 @@
     "expiry_date": "2026-03-05",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 66,
       "old_rate": 1.16,
@@ -1092,6 +1141,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.66,
@@ -1114,6 +1164,7 @@
     "expiry_date": "2026-10-09",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 0.8,
@@ -1136,6 +1187,7 @@
     "expiry_date": "2027-03-17",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 4.0,
@@ -1158,6 +1210,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.85,
@@ -1180,6 +1233,7 @@
     "expiry_date": "2026-08-11",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 37,
       "old_rate": 1.15,
@@ -1202,6 +1256,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 17,
       "old_rate": 0.13,
@@ -1224,6 +1279,7 @@
     "expiry_date": "2026-11-14",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.22,
@@ -1246,6 +1302,7 @@
     "expiry_date": "2026-11-17",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 43,
       "old_rate": 0.18,
@@ -1268,6 +1325,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 2.3,
@@ -1290,6 +1348,7 @@
     "expiry_date": "2027-04-09",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 55,
       "old_rate": 0.29,
@@ -1312,6 +1371,7 @@
     "expiry_date": "2027-01-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.34,
@@ -1334,6 +1394,7 @@
     "expiry_date": "2026-08-21",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 78,
       "old_rate": 0.53,
@@ -1356,6 +1417,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.0,
@@ -1378,6 +1440,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.02,
@@ -1400,6 +1463,7 @@
     "expiry_date": "2026-06-15",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 133,
       "old_rate": 0.76,
@@ -1422,6 +1486,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.8,
@@ -1444,6 +1509,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.94,
@@ -1466,6 +1532,7 @@
     "expiry_date": "2026-03-15",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 35,
       "old_rate": 0.69,
@@ -1488,6 +1555,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.76,
@@ -1510,6 +1578,7 @@
     "expiry_date": "2026-10-08",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 36,
       "old_rate": 0.06,
@@ -1532,6 +1601,7 @@
     "expiry_date": "2027-02-21",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 129,
       "old_rate": 1.76,
@@ -1554,6 +1624,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 65,
       "old_rate": 1.51,
@@ -1576,6 +1647,7 @@
     "expiry_date": "2027-02-13",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 4.6,
@@ -1598,6 +1670,7 @@
     "expiry_date": "2027-07-25",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 12,
       "old_rate": 0.0,
@@ -1620,6 +1693,7 @@
     "expiry_date": "2026-10-07",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": "2026-09-02T18:50:00",
     "signals": {
       "days_since_visit": 12,
       "old_rate": 0.0,
@@ -1642,6 +1716,7 @@
     "expiry_date": "2027-01-29",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.21,
@@ -1664,6 +1739,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 19,
       "old_rate": 2.55,
@@ -1686,6 +1762,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -1708,6 +1785,7 @@
     "expiry_date": "2027-06-23",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.3,
@@ -1730,6 +1808,7 @@
     "expiry_date": "2026-08-03",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 76,
       "old_rate": 1.78,
@@ -1752,6 +1831,7 @@
     "expiry_date": "2026-06-10",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 125,
       "old_rate": 1.56,
@@ -1774,6 +1854,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.73,
@@ -1796,6 +1877,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.53,
@@ -1818,6 +1900,7 @@
     "expiry_date": "2026-06-25",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 109,
       "old_rate": 1.44,
@@ -1840,6 +1923,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 0.1,
@@ -1862,6 +1946,7 @@
     "expiry_date": "2027-05-20",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.66,
@@ -1884,6 +1969,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 0.29,
@@ -1906,6 +1992,7 @@
     "expiry_date": "2027-04-24",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.51,
@@ -1928,6 +2015,7 @@
     "expiry_date": "2026-05-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 119,
       "old_rate": 0.97,
@@ -1950,6 +2038,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.56,
@@ -1972,6 +2061,7 @@
     "expiry_date": "2027-09-10",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -1994,6 +2084,7 @@
     "expiry_date": "2026-10-10",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": "2026-09-09T20:01:00",
     "signals": {
       "days_since_visit": 107,
       "old_rate": 1.49,
@@ -2016,6 +2107,7 @@
     "expiry_date": "2026-03-13",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 221,
       "old_rate": 1.23,
@@ -2038,6 +2130,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 61,
       "old_rate": 2.26,
@@ -2060,6 +2153,7 @@
     "expiry_date": "2026-09-28",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.3,
@@ -2082,6 +2176,7 @@
     "expiry_date": "2026-08-14",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 34,
       "old_rate": 0.73,
@@ -2104,6 +2199,7 @@
     "expiry_date": "2026-09-13",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.89,
@@ -2126,6 +2222,7 @@
     "expiry_date": "2027-03-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.57,
@@ -2148,6 +2245,7 @@
     "expiry_date": "2027-04-30",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 0.67,
@@ -2170,6 +2268,7 @@
     "expiry_date": "2026-06-08",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 96,
       "old_rate": 1.9,
@@ -2192,6 +2291,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 13,
       "old_rate": 3.45,
@@ -2214,6 +2314,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.0,
@@ -2236,6 +2337,7 @@
     "expiry_date": "2026-03-01",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.82,
@@ -2258,6 +2360,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.98,
@@ -2280,6 +2383,7 @@
     "expiry_date": "2027-01-04",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 9,
       "old_rate": 2.57,
@@ -2302,6 +2406,7 @@
     "expiry_date": "2026-11-22",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.71,
@@ -2324,6 +2429,7 @@
     "expiry_date": "2026-10-04",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 10,
       "old_rate": 0.61,
@@ -2346,6 +2452,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 3.46,
@@ -2368,6 +2475,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 4.41,
@@ -2390,6 +2498,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.11,
@@ -2412,6 +2521,7 @@
     "expiry_date": "2027-03-10",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.77,
@@ -2434,6 +2544,7 @@
     "expiry_date": "2026-10-05",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 32,
       "old_rate": 0.47,
@@ -2456,6 +2567,7 @@
     "expiry_date": "2026-06-07",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 101,
       "old_rate": 2.48,
@@ -2478,6 +2590,7 @@
     "expiry_date": "2026-09-30",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 14,
       "old_rate": 3.9,
@@ -2500,6 +2613,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 1.47,
@@ -2522,6 +2636,7 @@
     "expiry_date": "2026-08-22",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 34,
       "old_rate": 1.87,
@@ -2544,6 +2659,7 @@
     "expiry_date": "2026-09-30",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -2566,6 +2682,7 @@
     "expiry_date": "2027-09-11",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -2588,6 +2705,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.77,
@@ -2610,6 +2728,7 @@
     "expiry_date": "2027-05-04",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.4,
@@ -2632,6 +2751,7 @@
     "expiry_date": "2027-04-08",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.77,
@@ -2654,6 +2774,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-08-28T17:19:00",
     "signals": {
       "days_since_visit": 56,
       "old_rate": 0.21,
@@ -2676,6 +2797,7 @@
     "expiry_date": "2027-03-14",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 9,
       "old_rate": 1.02,
@@ -2698,6 +2820,7 @@
     "expiry_date": "2027-01-29",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.11,
@@ -2720,6 +2843,7 @@
     "expiry_date": "2027-01-27",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.86,
@@ -2742,6 +2866,7 @@
     "expiry_date": "2027-03-31",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.08,
@@ -2764,6 +2889,7 @@
     "expiry_date": "2026-12-25",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 37,
       "old_rate": 0.06,
@@ -2786,6 +2912,7 @@
     "expiry_date": "2026-06-20",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 95,
       "old_rate": 2.2,
@@ -2808,6 +2935,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.14,
@@ -2830,6 +2958,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.38,
@@ -2852,6 +2981,7 @@
     "expiry_date": "2026-10-20",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 14,
       "old_rate": 3.41,
@@ -2874,6 +3004,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.94,
@@ -2896,6 +3027,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 13,
       "old_rate": 1.4,
@@ -2918,6 +3050,7 @@
     "expiry_date": "2026-08-04",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 67,
       "old_rate": 1.26,
@@ -2940,6 +3073,7 @@
     "expiry_date": "2027-08-18",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 0.0,
@@ -2962,6 +3096,7 @@
     "expiry_date": "2026-12-20",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 87,
       "old_rate": 0.16,
@@ -2984,6 +3119,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 33,
       "old_rate": 0.33,
@@ -3006,6 +3142,7 @@
     "expiry_date": "2026-10-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 4.22,
@@ -3028,6 +3165,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 2.37,
@@ -3050,6 +3188,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.97,
@@ -3072,6 +3211,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 0.0,
@@ -3094,6 +3234,7 @@
     "expiry_date": "2027-01-20",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.24,
@@ -3116,6 +3257,7 @@
     "expiry_date": "2027-06-16",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 32,
       "old_rate": 0.46,
@@ -3138,6 +3280,7 @@
     "expiry_date": "2026-08-06",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 64,
       "old_rate": 1.45,
@@ -3160,6 +3303,7 @@
     "expiry_date": "2026-11-02",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -3182,6 +3326,7 @@
     "expiry_date": "2027-07-30",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-09-05T11:42:00",
     "signals": {
       "days_since_visit": 21,
       "old_rate": 0.0,
@@ -3204,6 +3349,7 @@
     "expiry_date": "2027-08-22",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 10,
       "old_rate": 0.0,
@@ -3226,6 +3372,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": "2026-09-03T09:58:00",
     "signals": {
       "days_since_visit": 9,
       "old_rate": 1.78,
@@ -3248,6 +3395,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 1.25,
@@ -3270,6 +3418,7 @@
     "expiry_date": "2027-09-10",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -3292,6 +3441,7 @@
     "expiry_date": "2026-06-27",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 106,
       "old_rate": 2.76,
@@ -3314,6 +3464,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-08-22T14:39:00",
     "signals": {
       "days_since_visit": 22,
       "old_rate": 1.42,
@@ -3336,6 +3487,7 @@
     "expiry_date": "2026-09-28",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 47,
       "old_rate": 0.08,
@@ -3358,6 +3510,7 @@
     "expiry_date": "2027-05-27",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 9,
       "old_rate": 0.69,
@@ -3380,6 +3533,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.54,
@@ -3402,6 +3556,7 @@
     "expiry_date": "2026-06-19",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 88,
       "old_rate": 1.44,
@@ -3424,6 +3579,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 88,
       "old_rate": 0.94,
@@ -3446,6 +3602,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.48,
@@ -3468,6 +3625,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.03,
@@ -3490,6 +3648,7 @@
     "expiry_date": "2026-12-07",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 53,
       "old_rate": 1.35,
@@ -3512,6 +3671,7 @@
     "expiry_date": "2027-03-18",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.32,
@@ -3534,6 +3694,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.13,
@@ -3556,6 +3717,7 @@
     "expiry_date": "2026-10-17",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 14,
       "old_rate": 2.72,
@@ -3578,6 +3740,7 @@
     "expiry_date": "2026-08-16",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 61,
       "old_rate": 2.56,
@@ -3600,6 +3763,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.33,
@@ -3622,6 +3786,7 @@
     "expiry_date": "2026-08-09",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 52,
       "old_rate": 1.66,
@@ -3644,6 +3809,7 @@
     "expiry_date": "2026-06-17",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 65,
       "old_rate": 1.73,
@@ -3666,6 +3832,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.72,
@@ -3688,6 +3855,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.8,
@@ -3710,6 +3878,7 @@
     "expiry_date": "2026-06-18",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 116,
       "old_rate": 2.15,
@@ -3732,6 +3901,7 @@
     "expiry_date": "2026-10-08",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 32,
       "old_rate": 0.16,
@@ -3754,6 +3924,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 1.8,
@@ -3776,6 +3947,7 @@
     "expiry_date": "2027-05-01",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 4.26,
@@ -3798,6 +3970,7 @@
     "expiry_date": "2026-06-22",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 134,
       "old_rate": 0.7,
@@ -3820,6 +3993,7 @@
     "expiry_date": "2027-02-03",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.02,
@@ -3842,6 +4016,7 @@
     "expiry_date": "2026-12-06",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.93,
@@ -3864,6 +4039,7 @@
     "expiry_date": "2026-12-01",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 95,
       "old_rate": 0.19,
@@ -3886,6 +4062,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 67,
       "old_rate": 2.25,
@@ -3908,6 +4085,7 @@
     "expiry_date": "2026-11-07",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 153,
       "old_rate": 0.13,
@@ -3930,6 +4108,7 @@
     "expiry_date": "2027-05-15",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.72,
@@ -3952,6 +4131,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 128,
       "old_rate": 2.18,
@@ -3974,6 +4154,7 @@
     "expiry_date": "2027-04-15",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 121,
       "old_rate": 1.67,
@@ -3996,6 +4177,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.83,
@@ -4018,6 +4200,7 @@
     "expiry_date": "2027-07-08",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 141,
       "old_rate": 1.56,
@@ -4040,6 +4223,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.0,
@@ -4062,6 +4246,7 @@
     "expiry_date": "2026-03-25",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 16,
       "old_rate": 0.72,
@@ -4084,6 +4269,7 @@
     "expiry_date": "2026-11-04",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 23,
       "old_rate": 0.38,
@@ -4106,6 +4292,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 148,
       "old_rate": 1.65,
@@ -4128,6 +4315,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.11,
@@ -4150,6 +4338,7 @@
     "expiry_date": "2026-12-28",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 1.25,
@@ -4172,6 +4361,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.42,
@@ -4194,6 +4384,7 @@
     "expiry_date": "2026-03-08",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 194,
       "old_rate": 0.67,
@@ -4216,6 +4407,7 @@
     "expiry_date": "2027-02-20",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 87,
       "old_rate": 0.97,
@@ -4238,6 +4430,7 @@
     "expiry_date": "2026-10-22",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 119,
       "old_rate": 0.98,
@@ -4260,6 +4453,7 @@
     "expiry_date": "2027-07-29",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -4282,6 +4476,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 0.69,
@@ -4304,6 +4499,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -4326,6 +4522,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.36,
@@ -4348,6 +4545,7 @@
     "expiry_date": "2027-06-18",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 1.94,
@@ -4370,6 +4568,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.94,
@@ -4392,6 +4591,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 77,
       "old_rate": 1.51,
@@ -4414,6 +4614,7 @@
     "expiry_date": "2026-07-30",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 85,
       "old_rate": 1.82,
@@ -4436,6 +4637,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 54,
       "old_rate": 0.42,
@@ -4458,6 +4660,7 @@
     "expiry_date": "2027-07-23",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-09-06T12:26:00",
     "signals": {
       "days_since_visit": 20,
       "old_rate": 0.0,
@@ -4480,6 +4683,7 @@
     "expiry_date": "2027-07-09",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 5.06,
@@ -4502,6 +4706,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.29,
@@ -4524,6 +4729,7 @@
     "expiry_date": "2026-09-27",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 18,
       "old_rate": 1.24,
@@ -4546,6 +4752,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.87,
@@ -4568,6 +4775,7 @@
     "expiry_date": "2026-10-04",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 4.41,
@@ -4590,6 +4798,7 @@
     "expiry_date": "2026-03-08",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 211,
       "old_rate": 1.18,
@@ -4612,6 +4821,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 66,
       "old_rate": 1.77,
@@ -4634,6 +4844,7 @@
     "expiry_date": "2027-07-15",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -4656,6 +4867,7 @@
     "expiry_date": "2027-06-18",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 47,
       "old_rate": 0.11,
@@ -4678,6 +4890,7 @@
     "expiry_date": "2027-06-11",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 2.55,
@@ -4700,6 +4913,7 @@
     "expiry_date": "2027-05-22",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 19,
       "old_rate": 1.64,
@@ -4722,6 +4936,7 @@
     "expiry_date": "2027-08-05",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -4744,6 +4959,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 68,
       "old_rate": 2.8,
@@ -4766,6 +4982,7 @@
     "expiry_date": "2026-11-29",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 62,
       "old_rate": 1.92,
@@ -4788,6 +5005,7 @@
     "expiry_date": "2026-11-25",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 2.16,
@@ -4810,6 +5028,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 71,
       "old_rate": 3.26,
@@ -4832,6 +5051,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 18,
       "old_rate": 0.55,
@@ -4854,6 +5074,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-09-05T20:31:00",
     "signals": {
       "days_since_visit": 99,
       "old_rate": 1.93,
@@ -4876,6 +5097,7 @@
     "expiry_date": "2027-08-02",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -4898,6 +5120,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.19,
@@ -4920,6 +5143,7 @@
     "expiry_date": "2027-04-29",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 0.47,
@@ -4942,6 +5166,7 @@
     "expiry_date": "2026-10-01",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 4.67,
@@ -4964,6 +5189,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 61,
       "old_rate": 2.87,
@@ -4986,6 +5212,7 @@
     "expiry_date": "2026-10-21",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 109,
       "old_rate": 0.07,
@@ -5008,6 +5235,7 @@
     "expiry_date": "2026-03-07",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 198,
       "old_rate": 1.44,
@@ -5030,6 +5258,7 @@
     "expiry_date": "2026-09-28",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.0,
@@ -5052,6 +5281,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 1.99,
@@ -5074,6 +5304,7 @@
     "expiry_date": "2026-10-03",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.08,
@@ -5096,6 +5327,7 @@
     "expiry_date": "2026-10-25",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.81,
@@ -5118,6 +5350,7 @@
     "expiry_date": "2026-03-19",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 212,
       "old_rate": 1.56,
@@ -5140,6 +5373,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.33,
@@ -5162,6 +5396,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 85,
       "old_rate": 2.21,
@@ -5184,6 +5419,7 @@
     "expiry_date": "2027-07-05",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.42,
@@ -5206,6 +5442,7 @@
     "expiry_date": "2027-06-07",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 3.07,
@@ -5228,6 +5465,7 @@
     "expiry_date": "2026-11-22",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 27,
       "old_rate": 0.52,
@@ -5250,6 +5488,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": "2026-09-10T09:34:00",
     "signals": {
       "days_since_visit": 111,
       "old_rate": 0.13,
@@ -5272,6 +5511,7 @@
     "expiry_date": "2027-03-26",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.09,
@@ -5294,6 +5534,7 @@
     "expiry_date": "2027-02-04",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 144,
       "old_rate": 2.88,
@@ -5316,6 +5557,7 @@
     "expiry_date": "2027-04-10",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.5,
@@ -5338,6 +5580,7 @@
     "expiry_date": "2026-08-14",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 39,
       "old_rate": 2.71,
@@ -5360,6 +5603,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.68,
@@ -5382,6 +5626,7 @@
     "expiry_date": "2027-03-01",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 61,
       "old_rate": 2.15,
@@ -5404,6 +5649,7 @@
     "expiry_date": "2026-09-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.39,
@@ -5426,6 +5672,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.34,
@@ -5448,6 +5695,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.43,
@@ -5470,6 +5718,7 @@
     "expiry_date": "2026-11-10",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 16,
       "old_rate": 3.66,
@@ -5492,6 +5741,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.23,
@@ -5514,6 +5764,7 @@
     "expiry_date": "2026-03-14",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 65,
       "old_rate": 1.16,
@@ -5536,6 +5787,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 17,
       "old_rate": 2.59,
@@ -5558,6 +5810,7 @@
     "expiry_date": "2026-06-11",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 100,
       "old_rate": 2.3,
@@ -5580,6 +5833,7 @@
     "expiry_date": "2027-03-29",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.62,
@@ -5602,6 +5856,7 @@
     "expiry_date": "2027-04-15",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 1.99,
@@ -5624,6 +5879,7 @@
     "expiry_date": "2026-08-23",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 61,
       "old_rate": 1.2,
@@ -5646,6 +5902,7 @@
     "expiry_date": "2026-09-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.59,
@@ -5668,6 +5925,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-08-23T20:16:00",
     "signals": {
       "days_since_visit": 139,
       "old_rate": 1.54,
@@ -5690,6 +5948,7 @@
     "expiry_date": "2027-05-29",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.25,
@@ -5712,6 +5971,7 @@
     "expiry_date": "2026-06-07",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 98,
       "old_rate": 2.26,
@@ -5734,6 +5994,7 @@
     "expiry_date": "2027-07-10",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -5756,6 +6017,7 @@
     "expiry_date": "2026-10-25",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 45,
       "old_rate": 0.16,
@@ -5778,6 +6040,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 149,
       "old_rate": 0.86,
@@ -5800,6 +6063,7 @@
     "expiry_date": "2027-06-01",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 29,
       "old_rate": 0.15,
@@ -5822,6 +6086,7 @@
     "expiry_date": "2026-11-15",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 12,
       "old_rate": 1.54,
@@ -5844,6 +6109,7 @@
     "expiry_date": "2026-11-08",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 23,
       "old_rate": 0.46,
@@ -5866,6 +6132,7 @@
     "expiry_date": "2026-03-02",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 204,
       "old_rate": 0.54,
@@ -5888,6 +6155,7 @@
     "expiry_date": "2027-05-30",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 71,
       "old_rate": 0.1,
@@ -5910,6 +6178,7 @@
     "expiry_date": "2027-03-12",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 64,
       "old_rate": 2.25,
@@ -5932,6 +6201,7 @@
     "expiry_date": "2027-03-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.79,
@@ -5954,6 +6224,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 49,
       "old_rate": 0.62,
@@ -5976,6 +6247,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.99,
@@ -5998,6 +6270,7 @@
     "expiry_date": "2027-07-23",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": "2026-08-26T13:55:00",
     "signals": {
       "days_since_visit": 21,
       "old_rate": 0.0,
@@ -6020,6 +6293,7 @@
     "expiry_date": "2026-09-28",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.24,
@@ -6042,6 +6316,7 @@
     "expiry_date": "2027-06-27",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 1.82,
@@ -6064,6 +6339,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 12,
       "old_rate": 2.73,
@@ -6086,6 +6362,7 @@
     "expiry_date": "2027-04-25",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 108,
       "old_rate": 2.01,
@@ -6108,6 +6385,7 @@
     "expiry_date": "2027-05-04",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 96,
       "old_rate": 0.76,
@@ -6130,6 +6408,7 @@
     "expiry_date": "2027-08-30",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.0,
@@ -6152,6 +6431,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.52,
@@ -6174,6 +6454,7 @@
     "expiry_date": "2027-05-06",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 13,
       "old_rate": 2.11,
@@ -6196,6 +6477,7 @@
     "expiry_date": "2027-04-03",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": "2026-09-07T13:04:00",
     "signals": {
       "days_since_visit": 26,
       "old_rate": 0.4,
@@ -6218,6 +6500,7 @@
     "expiry_date": "2026-03-07",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 203,
       "old_rate": 0.96,
@@ -6240,6 +6523,7 @@
     "expiry_date": "2026-12-16",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 62,
       "old_rate": 0.17,
@@ -6262,6 +6546,7 @@
     "expiry_date": "2026-12-14",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-09-03T17:42:00",
     "signals": {
       "days_since_visit": 9,
       "old_rate": 0.84,
@@ -6284,6 +6569,7 @@
     "expiry_date": "2026-06-06",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 127,
       "old_rate": 1.88,
@@ -6306,6 +6592,7 @@
     "expiry_date": "2027-07-27",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -6328,6 +6615,7 @@
     "expiry_date": "2026-06-07",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 120,
       "old_rate": 0.36,
@@ -6350,6 +6638,7 @@
     "expiry_date": "2027-01-11",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 155,
       "old_rate": 0.71,
@@ -6372,6 +6661,7 @@
     "expiry_date": "2026-10-03",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 0.0,
@@ -6394,6 +6684,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 136,
       "old_rate": 1.7,
@@ -6416,6 +6707,7 @@
     "expiry_date": "2027-08-17",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -6438,6 +6730,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 48,
       "old_rate": 1.55,
@@ -6460,6 +6753,7 @@
     "expiry_date": "2026-10-03",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 2.08,
@@ -6482,6 +6776,7 @@
     "expiry_date": "2027-04-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.73,
@@ -6504,6 +6799,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.11,
@@ -6526,6 +6822,7 @@
     "expiry_date": "2027-05-10",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.42,
@@ -6548,6 +6845,7 @@
     "expiry_date": "2026-06-04",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 90,
       "old_rate": 2.15,
@@ -6570,6 +6868,7 @@
     "expiry_date": "2026-03-23",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 182,
       "old_rate": 1.33,
@@ -6592,6 +6891,7 @@
     "expiry_date": "2026-03-19",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 207,
       "old_rate": 1.12,
@@ -6614,6 +6914,7 @@
     "expiry_date": "2026-08-19",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 34,
       "old_rate": 1.79,
@@ -6636,6 +6937,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.01,
@@ -6658,6 +6960,7 @@
     "expiry_date": "2027-02-18",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 8,
       "old_rate": 4.78,
@@ -6680,6 +6983,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 43,
       "old_rate": 0.1,
@@ -6702,6 +7006,7 @@
     "expiry_date": "2027-01-26",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.09,
@@ -6724,6 +7029,7 @@
     "expiry_date": "2026-10-10",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.1,
@@ -6746,6 +7052,7 @@
     "expiry_date": "2027-08-08",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 12,
       "old_rate": 0.0,
@@ -6768,6 +7075,7 @@
     "expiry_date": "2027-03-18",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.8,
@@ -6790,6 +7098,7 @@
     "expiry_date": "2027-03-10",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 1.99,
@@ -6812,6 +7121,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.2,
@@ -6834,6 +7144,7 @@
     "expiry_date": "2027-06-02",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 22,
       "old_rate": 3.79,
@@ -6856,6 +7167,7 @@
     "expiry_date": "2027-01-30",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.46,
@@ -6878,6 +7190,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 74,
       "old_rate": 2.09,
@@ -6900,6 +7213,7 @@
     "expiry_date": "2026-12-20",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 79,
       "old_rate": 3.48,
@@ -6922,6 +7236,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.11,
@@ -6944,6 +7259,7 @@
     "expiry_date": "2027-07-26",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -6966,6 +7282,7 @@
     "expiry_date": "2026-06-23",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 106,
       "old_rate": 2.36,
@@ -6988,6 +7305,7 @@
     "expiry_date": "2026-10-08",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.88,
@@ -7010,6 +7328,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 68,
       "old_rate": 2.32,
@@ -7032,6 +7351,7 @@
     "expiry_date": "2027-01-30",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 25,
       "old_rate": 1.17,
@@ -7054,6 +7374,7 @@
     "expiry_date": "2027-05-03",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.83,
@@ -7076,6 +7397,7 @@
     "expiry_date": "2026-08-20",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 49,
       "old_rate": 1.9,
@@ -7098,6 +7420,7 @@
     "expiry_date": "2027-01-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 10,
       "old_rate": 0.25,
@@ -7120,6 +7443,7 @@
     "expiry_date": "2026-03-26",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 77,
       "old_rate": 0.9,
@@ -7142,6 +7466,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 5.47,
@@ -7164,6 +7489,7 @@
     "expiry_date": "2027-08-13",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -7186,6 +7512,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.84,
@@ -7208,6 +7535,7 @@
     "expiry_date": "2026-10-24",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.13,
@@ -7230,6 +7558,7 @@
     "expiry_date": "2026-12-05",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.19,
@@ -7252,6 +7581,7 @@
     "expiry_date": "2027-06-09",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 110,
       "old_rate": 1.95,
@@ -7274,6 +7604,7 @@
     "expiry_date": "2027-05-05",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 1.11,
@@ -7296,6 +7627,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.31,
@@ -7318,6 +7650,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.15,
@@ -7340,6 +7673,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.98,
@@ -7362,6 +7696,7 @@
     "expiry_date": "2027-01-22",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 4.06,
@@ -7384,6 +7719,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": "2026-09-05T18:53:00",
     "signals": {
       "days_since_visit": 60,
       "old_rate": 0.14,
@@ -7406,6 +7742,7 @@
     "expiry_date": "2027-06-24",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 137,
       "old_rate": 1.08,
@@ -7428,6 +7765,7 @@
     "expiry_date": "2026-12-24",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 3.96,
@@ -7450,6 +7788,7 @@
     "expiry_date": "2027-04-06",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.97,
@@ -7472,6 +7811,7 @@
     "expiry_date": "2027-03-07",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 118,
       "old_rate": 0.06,
@@ -7494,6 +7834,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.96,
@@ -7516,6 +7857,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 33,
       "old_rate": 0.88,
@@ -7538,6 +7880,7 @@
     "expiry_date": "2026-03-06",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 199,
       "old_rate": 0.56,
@@ -7560,6 +7903,7 @@
     "expiry_date": "2026-10-07",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": "2026-08-23T12:38:00",
     "signals": {
       "days_since_visit": 78,
       "old_rate": 1.97,
@@ -7582,6 +7926,7 @@
     "expiry_date": "2026-10-04",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.4,
@@ -7604,6 +7949,7 @@
     "expiry_date": "2027-02-26",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 2.45,
@@ -7626,6 +7972,7 @@
     "expiry_date": "2026-06-26",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 114,
       "old_rate": 1.37,
@@ -7648,6 +7995,7 @@
     "expiry_date": "2026-03-11",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 155,
       "old_rate": 1.43,
@@ -7670,6 +8018,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.77,
@@ -7692,6 +8041,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -7714,6 +8064,7 @@
     "expiry_date": "2026-10-04",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.0,
@@ -7736,6 +8087,7 @@
     "expiry_date": "2026-03-23",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 207,
       "old_rate": 0.92,
@@ -7758,6 +8110,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 1.27,
@@ -7780,6 +8133,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.0,
@@ -7802,6 +8156,7 @@
     "expiry_date": "2026-03-10",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 221,
       "old_rate": 1.22,
@@ -7824,6 +8179,7 @@
     "expiry_date": "2027-01-29",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.04,
@@ -7846,6 +8202,7 @@
     "expiry_date": "2026-10-07",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.89,
@@ -7868,6 +8225,7 @@
     "expiry_date": "2026-06-22",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 128,
       "old_rate": 0.59,
@@ -7890,6 +8248,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 24,
       "old_rate": 0.54,
@@ -7912,6 +8271,7 @@
     "expiry_date": "2027-02-17",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 4.74,
@@ -7934,6 +8294,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 13,
       "old_rate": 0.08,
@@ -7956,6 +8317,7 @@
     "expiry_date": "2027-07-12",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.0,
@@ -7978,6 +8340,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.39,
@@ -8000,6 +8363,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 7,
       "old_rate": 0.75,
@@ -8022,6 +8386,7 @@
     "expiry_date": "2027-03-07",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.7,
@@ -8044,6 +8409,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-09-11T15:09:00",
     "signals": {
       "days_since_visit": 8,
       "old_rate": 2.47,
@@ -8066,6 +8432,7 @@
     "expiry_date": "2027-08-29",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.0,
@@ -8088,6 +8455,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.99,
@@ -8110,6 +8478,7 @@
     "expiry_date": "2027-02-15",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.42,
@@ -8132,6 +8501,7 @@
     "expiry_date": "2026-08-17",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 56,
       "old_rate": 1.13,
@@ -8154,6 +8524,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.74,
@@ -8176,6 +8547,7 @@
     "expiry_date": "2026-03-21",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 122,
       "old_rate": 1.73,
@@ -8198,6 +8570,7 @@
     "expiry_date": "2027-04-07",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 16,
       "old_rate": 0.91,
@@ -8220,6 +8593,7 @@
     "expiry_date": "2027-08-10",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 9,
       "old_rate": 0.0,
@@ -8242,6 +8616,7 @@
     "expiry_date": "2027-09-08",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -8264,6 +8639,7 @@
     "expiry_date": "2026-10-07",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 29,
       "old_rate": 0.37,
@@ -8286,6 +8662,7 @@
     "expiry_date": "2026-08-12",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 41,
       "old_rate": 1.81,
@@ -8308,6 +8685,7 @@
     "expiry_date": "2027-04-11",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.69,
@@ -8330,6 +8708,7 @@
     "expiry_date": "2026-09-20",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.93,
@@ -8352,6 +8731,7 @@
     "expiry_date": "2027-01-22",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 1.07,
@@ -8374,6 +8754,7 @@
     "expiry_date": "2027-02-12",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.98,
@@ -8396,6 +8777,7 @@
     "expiry_date": "2026-08-08",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 78,
       "old_rate": 0.94,
@@ -8418,6 +8800,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.92,
@@ -8440,6 +8823,7 @@
     "expiry_date": "2027-05-26",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 19,
       "old_rate": 1.88,
@@ -8462,6 +8846,7 @@
     "expiry_date": "2026-03-20",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 215,
       "old_rate": 1.58,
@@ -8484,6 +8869,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.15,
@@ -8506,6 +8892,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.44,
@@ -8528,6 +8915,7 @@
     "expiry_date": "2026-09-18",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 2.69,
@@ -8550,6 +8938,7 @@
     "expiry_date": "2027-05-20",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 1.07,
@@ -8572,6 +8961,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 27,
       "old_rate": 0.26,
@@ -8594,6 +8984,7 @@
     "expiry_date": "2027-05-28",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 116,
       "old_rate": 2.46,
@@ -8616,6 +9007,7 @@
     "expiry_date": "2026-06-12",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 112,
       "old_rate": 1.05,
@@ -8638,6 +9030,7 @@
     "expiry_date": "2027-02-09",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 74,
       "old_rate": 2.87,
@@ -8660,6 +9053,7 @@
     "expiry_date": "2026-10-01",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 1.58,
@@ -8682,6 +9076,7 @@
     "expiry_date": "2027-09-05",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-08-27T19:34:00",
     "signals": {
       "days_since_visit": 20,
       "old_rate": 0.0,
@@ -8704,6 +9099,7 @@
     "expiry_date": "2026-08-05",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 63,
       "old_rate": 1.96,
@@ -8726,6 +9122,7 @@
     "expiry_date": "2026-03-03",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 210,
       "old_rate": 0.86,
@@ -8748,6 +9145,7 @@
     "expiry_date": "2027-02-27",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 1.83,
@@ -8770,6 +9168,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 21,
       "old_rate": 0.1,
@@ -8792,6 +9191,7 @@
     "expiry_date": "2027-03-17",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.99,
@@ -8814,6 +9214,7 @@
     "expiry_date": "2027-02-10",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 1.4,
@@ -8836,6 +9237,7 @@
     "expiry_date": "2026-12-30",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.63,
@@ -8858,6 +9260,7 @@
     "expiry_date": "2026-03-15",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 212,
       "old_rate": 1.07,
@@ -8880,6 +9283,7 @@
     "expiry_date": "2027-09-09",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -8902,6 +9306,7 @@
     "expiry_date": "2026-08-18",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 46,
       "old_rate": 1.24,
@@ -8924,6 +9329,7 @@
     "expiry_date": "2026-06-09",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 103,
       "old_rate": 2.1,
@@ -8946,6 +9352,7 @@
     "expiry_date": "2026-09-27",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 2.74,
@@ -8968,6 +9375,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 95,
       "old_rate": 2.11,
@@ -8990,6 +9398,7 @@
     "expiry_date": "2027-09-10",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -9012,6 +9421,7 @@
     "expiry_date": "2026-10-21",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 0.17,
@@ -9034,6 +9444,7 @@
     "expiry_date": "2026-11-30",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.49,
@@ -9056,6 +9467,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 28,
       "old_rate": 0.54,
@@ -9078,6 +9490,7 @@
     "expiry_date": "2026-10-08",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.71,
@@ -9100,6 +9513,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": "2026-08-25T18:43:00",
     "signals": {
       "days_since_visit": 106,
       "old_rate": 2.76,
@@ -9122,6 +9536,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 1.05,
@@ -9144,6 +9559,7 @@
     "expiry_date": "2026-10-02",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.07,
@@ -9166,6 +9582,7 @@
     "expiry_date": "2027-08-28",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.0,
@@ -9188,6 +9605,7 @@
     "expiry_date": "2027-06-13",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.35,
@@ -9210,6 +9628,7 @@
     "expiry_date": "2026-12-26",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 30,
       "old_rate": 0.04,
@@ -9232,6 +9651,7 @@
     "expiry_date": "2026-09-30",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": "2026-08-28T15:44:00",
     "signals": {
       "days_since_visit": 123,
       "old_rate": 2.22,
@@ -9254,6 +9674,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 1.83,
@@ -9276,6 +9697,7 @@
     "expiry_date": "2026-06-04",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 116,
       "old_rate": 2.2,
@@ -9298,6 +9720,7 @@
     "expiry_date": "2026-08-13",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 34,
       "old_rate": 3.12,
@@ -9320,6 +9743,7 @@
     "expiry_date": "2026-11-15",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.49,
@@ -9342,6 +9766,7 @@
     "expiry_date": "2026-07-29",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 68,
       "old_rate": 0.38,
@@ -9364,6 +9789,7 @@
     "expiry_date": "2026-09-15",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 21,
       "old_rate": 0.23,
@@ -9386,6 +9812,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": "2026-08-28T10:19:00",
     "signals": {
       "days_since_visit": 85,
       "old_rate": 0.09,
@@ -9408,6 +9835,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.93,
@@ -9430,6 +9858,7 @@
     "expiry_date": "2027-07-26",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -9452,6 +9881,7 @@
     "expiry_date": "2026-03-28",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 162,
       "old_rate": 0.73,
@@ -9474,6 +9904,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 129,
       "old_rate": 2.05,
@@ -9496,6 +9927,7 @@
     "expiry_date": "2026-09-23",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": "2026-08-31T09:54:00",
     "signals": {
       "days_since_visit": 125,
       "old_rate": 0.04,
@@ -9518,6 +9950,7 @@
     "expiry_date": "2027-05-29",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 13,
       "old_rate": 2.66,
@@ -9540,6 +9973,7 @@
     "expiry_date": "2026-08-17",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 33,
       "old_rate": 2.34,
@@ -9562,6 +9996,7 @@
     "expiry_date": "2027-04-22",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.94,
@@ -9584,6 +10019,7 @@
     "expiry_date": "2027-04-03",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.82,
@@ -9606,6 +10042,7 @@
     "expiry_date": "2027-09-05",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -9628,6 +10065,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.84,
@@ -9650,6 +10088,7 @@
     "expiry_date": "2026-09-24",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 3.06,
@@ -9672,6 +10111,7 @@
     "expiry_date": "2026-09-19",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.71,
@@ -9694,6 +10134,7 @@
     "expiry_date": "2026-10-03",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 1.28,
@@ -9716,6 +10157,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 86,
       "old_rate": 1.79,
@@ -9738,6 +10180,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.0,
@@ -9760,6 +10203,7 @@
     "expiry_date": "2026-11-04",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 1.55,
@@ -9782,6 +10226,7 @@
     "expiry_date": "2027-02-14",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 28,
       "old_rate": 2.58,
@@ -9804,6 +10249,7 @@
     "expiry_date": "2026-06-04",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 108,
       "old_rate": 2.22,
@@ -9826,6 +10272,7 @@
     "expiry_date": "2027-03-18",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 47,
       "old_rate": 0.57,
@@ -9848,6 +10295,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 3.25,
@@ -9870,6 +10318,7 @@
     "expiry_date": "2026-06-12",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 112,
       "old_rate": 1.85,
@@ -9892,6 +10341,7 @@
     "expiry_date": "2026-09-22",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 11,
       "old_rate": 2.64,
@@ -9914,6 +10364,7 @@
     "expiry_date": "2027-05-24",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 5.68,
@@ -9936,6 +10387,7 @@
     "expiry_date": "2027-05-01",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 0.62,
@@ -9958,6 +10410,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 71,
       "old_rate": 1.64,
@@ -9980,6 +10433,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.75,
@@ -10002,6 +10456,7 @@
     "expiry_date": "2026-06-29",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 74,
       "old_rate": 2.13,
@@ -10024,6 +10479,7 @@
     "expiry_date": "2026-10-31",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 46,
       "old_rate": 0.13,
@@ -10046,6 +10502,7 @@
     "expiry_date": "2026-03-03",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 230,
       "old_rate": 1.61,
@@ -10068,6 +10525,7 @@
     "expiry_date": "2026-09-27",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.14,
@@ -10090,6 +10548,7 @@
     "expiry_date": "2026-03-27",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 176,
       "old_rate": 0.97,
@@ -10112,6 +10571,7 @@
     "expiry_date": "2027-06-15",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 4.25,
@@ -10134,6 +10594,7 @@
     "expiry_date": "2026-09-14",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 46,
       "old_rate": 0.14,
@@ -10156,6 +10617,7 @@
     "expiry_date": "2027-03-17",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 15,
       "old_rate": 0.04,
@@ -10178,6 +10640,7 @@
     "expiry_date": "2026-11-14",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.34,
@@ -10200,6 +10663,7 @@
     "expiry_date": "2026-09-13",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 3.86,
@@ -10222,6 +10686,7 @@
     "expiry_date": "2026-10-10",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 29,
       "old_rate": 0.14,
@@ -10244,6 +10709,7 @@
     "expiry_date": "2027-07-17",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 0.0,
@@ -10266,6 +10732,7 @@
     "expiry_date": "2026-09-16",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.34,
@@ -10288,6 +10755,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 14,
       "old_rate": 4.2,
@@ -10310,6 +10778,7 @@
     "expiry_date": "2026-06-27",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 78,
       "old_rate": 0.79,
@@ -10332,6 +10801,7 @@
     "expiry_date": "2026-10-08",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 4.25,
@@ -10354,6 +10824,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -10376,6 +10847,7 @@
     "expiry_date": "2026-08-20",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 51,
       "old_rate": 0.74,
@@ -10398,6 +10870,7 @@
     "expiry_date": "2026-11-08",
     "monthly_fee": 99,
     "renewal_fee": 109,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 3.68,
@@ -10420,6 +10893,7 @@
     "expiry_date": "2027-05-04",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 95,
       "old_rate": 1.7,
@@ -10442,6 +10916,7 @@
     "expiry_date": "2026-10-12",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.0,
@@ -10464,6 +10939,7 @@
     "expiry_date": "2026-08-23",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 26,
       "old_rate": 1.86,
@@ -10486,6 +10962,7 @@
     "expiry_date": "2027-03-06",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 4.12,
@@ -10508,6 +10985,7 @@
     "expiry_date": "2027-09-02",
     "monthly_fee": 69,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.0,
@@ -10530,6 +11008,7 @@
     "expiry_date": "2027-05-24",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 2.03,
@@ -10552,6 +11031,7 @@
     "expiry_date": "2026-09-21",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 17,
       "old_rate": 0.24,
@@ -10574,6 +11054,7 @@
     "expiry_date": "2027-01-30",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 3.64,
@@ -10596,6 +11077,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 2,
       "old_rate": 4.58,
@@ -10618,6 +11100,7 @@
     "expiry_date": "2026-09-17",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": "2026-09-09T20:56:00",
     "signals": {
       "days_since_visit": 22,
       "old_rate": 1.55,
@@ -10640,6 +11123,7 @@
     "expiry_date": "2026-10-16",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 39,
       "old_rate": 0.13,
@@ -10662,6 +11146,7 @@
     "expiry_date": "2026-09-25",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 126,
       "old_rate": 2.08,
@@ -10684,6 +11169,7 @@
     "expiry_date": "2026-11-06",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 0,
       "old_rate": 0.68,
@@ -10706,6 +11192,7 @@
     "expiry_date": "2026-08-13",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 33,
       "old_rate": 1.82,
@@ -10728,6 +11215,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 24,
       "old_rate": 2.47,
@@ -10750,6 +11238,7 @@
     "expiry_date": "2026-10-11",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 0.45,
@@ -10772,6 +11261,7 @@
     "expiry_date": "2026-03-02",
     "monthly_fee": 89,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 214,
       "old_rate": 1.27,
@@ -10794,6 +11284,7 @@
     "expiry_date": "2027-03-12",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 0.95,
@@ -10816,6 +11307,7 @@
     "expiry_date": "2026-03-27",
     "monthly_fee": 79,
     "renewal_fee": 79,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 208,
       "old_rate": 0.37,
@@ -10838,6 +11330,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 79,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 4,
       "old_rate": 2.5,
@@ -10860,6 +11353,7 @@
     "expiry_date": "2026-10-06",
     "monthly_fee": 59,
     "renewal_fee": 59,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 1,
       "old_rate": 2.63,
@@ -10882,6 +11376,7 @@
     "expiry_date": "2027-01-04",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 1.17,
@@ -10904,6 +11399,7 @@
     "expiry_date": "2027-05-22",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 3,
       "old_rate": 3.72,
@@ -10926,6 +11422,7 @@
     "expiry_date": "2026-09-29",
     "monthly_fee": 69,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 5,
       "old_rate": 0.0,
@@ -10948,6 +11445,7 @@
     "expiry_date": "2026-10-21",
     "monthly_fee": 99,
     "renewal_fee": 99,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 6,
       "old_rate": 3.06,
@@ -10970,6 +11468,7 @@
     "expiry_date": "2026-06-20",
     "monthly_fee": 89,
     "renewal_fee": 89,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 105,
       "old_rate": 0.88,
@@ -10992,6 +11491,7 @@
     "expiry_date": "2026-09-26",
     "monthly_fee": 59,
     "renewal_fee": 69,
+    "cancellation_requested": null,
     "signals": {
       "days_since_visit": 15,
       "old_rate": 0.64,

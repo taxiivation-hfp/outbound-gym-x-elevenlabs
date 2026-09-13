@@ -1,6 +1,7 @@
 import type { CallType, Routing } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { parseGymConfig, type FieldErrors, type GymFields } from "@/lib/gymConfig";
+import { withholdOffers, type OfferEligibility } from "@/lib/eligibility";
 import type { Gym } from "@/lib/gyms";
 import { compileIncentives } from "@/lib/incentives";
 import { dayPhraseForPrompt, memberWordsForPrompt } from "@/lib/textSafety";
@@ -379,6 +380,12 @@ export interface CompileInput {
   attemptNumber?: number;
   priorCall?: PriorCallContext | null;
   asOf?: Date;
+  /**
+   * Offers this member may not be given on this call (`evaluateOffers`). Each is
+   * compiled as though the gym had never configured it. Absent: every offer the
+   * gym configured is compiled, as before offer schedules existed.
+   */
+  offers?: OfferEligibility | null;
 }
 
 /**
@@ -398,7 +405,9 @@ export function compileVariables(input: CompileInput): Record<string, string> {
   // payload exists — rather than on a live call.
   const checked = parseGymConfig(input.gym);
   if (!checked.ok) throw new GymConfigError(String((input.gym as { gym_id?: unknown }).gym_id), checked.errors);
-  const gym = checked.value;
+  // Offer eligibility is applied before the block exists, and the block is
+  // validated against the config it was actually compiled from.
+  const gym = withholdOffers(checked.value, input.offers);
   const incentives = compileIncentives(gym, callType).text;
   assertValidIncentives(incentives, gym, callType);
 

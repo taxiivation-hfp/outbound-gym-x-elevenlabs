@@ -1,23 +1,38 @@
-import membersData from "@/data/members_scored.json";
-import { getAllCallHistory, NO_HISTORY } from "@/lib/callHistory";
+import { getAllCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
+import { readAllCallRows } from "@/lib/callRecords";
+import { loadCheckinActivity } from "@/lib/checkinActivity";
+import { today } from "@/lib/clock";
 import { ASSUMPTIONS, campaignEconomics, tenureBand } from "@/lib/economics";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  attendanceTrend,
+  busyness,
+  frequencySegments,
+  membershipHealth,
+  revenueAtRisk,
+  type CheckinActivity,
+} from "@/lib/gymHealth";
+import { loadMembers, memberSource, type MemberSource } from "@/lib/memberSource";
+import { latestReasonThemes, MIN_REASON_DETAILS, reasonDetails, type StoredReasonThemes } from "@/lib/reasonThemes";
 import type { Member } from "@/lib/types";
-
-const members = membersData as Member[];
 
 /**
  * Churn intelligence: why members leave, who said they're coming in, and what the
- * whole exercise costs against what it is worth.
+ * whole exercise costs against what it is worth — surrounded by the health of
+ * the gym those members belong to.
  *
  * The first of those is the part no competitor has. Every retention product
  * records *that* a member churned; this records *why*, in the member's own words,
  * because something asked them and wrote the answer down. A gym that has never
  * had that data can act on it in a week — if the reason is the 6am crowd, that is
  * a rota change, not a discount.
+ *
+ * Split in two so it can be checked without a database: `buildIntelligence`
+ * reads (members through `loadMembers`, call history, check-in activity and the
+ * stored nightly summary), and `composeIntelligence` is pure. No model is called
+ * on any of it — the themed summary was written by the nightly recompute.
  */
-interface CallRow {
+export interface CallRow {
   member_id?: string;
   call_type?: string | null;
   outcome?: string | null;
@@ -64,21 +79,26 @@ function crossTally(
   return out;
 }
 
-export async function buildIntelligence() {
-  const memberById = new Map(members.map((m) => [m.member_id, m]));
+export interface IntelligenceInput {
+  asOf: Date;
+  members: Member[];
+  members_error: string | null;
+  rows: CallRow[];
+  db_error: string | null;
+  history: Map<string, CallHistory>;
+  history_error: string | null;
+  activity: CheckinActivity | null;
+  activity_notice: string | null;
+  themes: StoredReasonThemes | null;
+  themes_ran_at: string | null;
+  themes_notice: string | null;
+}
 
-  let rows: CallRow[] = [];
-  let dbError: string | null = null;
-  try {
-    const { data, error } = await supabaseAdmin
-      .from("call_records")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    rows = (data ?? []) as CallRow[];
-  } catch (err) {
-    dbError = err instanceof Error ? err.message : String(err);
-  }
+export type Intelligence = ReturnType<typeof composeIntelligence>;
+
+export function composeIntelligence(input: IntelligenceInput) {
+  const { asOf, members, rows, history } = input;
+  const memberById = new Map(members.map((m) => [m.member_id, m]));
 
   const completed = rows.filter((r) => r.status === "completed");
   const conversations = completed.filter(
@@ -150,31 +170,52 @@ export async function buildIntelligence() {
     })
   );
 
-  // Economics run off the live queue, not off call history, so the panel says
-  // something on day one — before a single call has been placed.
-  let queue: Member[] = [];
-  try {
-    const history = await getAllCallHistory();
-    queue = members.filter(
-      (m) => evaluateEligibility(m, history.get(m.member_id) ?? NO_HISTORY).allowed
-    );
-  } catch {
-    queue = members.filter((m) => evaluateEligibility(m, NO_HISTORY).allowed);
-  }
+  // Eligibility exactly as the queue and /api/call decide it. Economics run off
+  // the live queue, not off call history, so the panel says something on day
+  // one — before a single call has been placed.
+  const evaluated = members.map((member) => ({
+    member,
+    eligibility: evaluateEligibility(member, history.get(member.member_id) ?? NO_HISTORY, asOf),
+  }));
+  const queue = evaluated.filter((e) => e.eligibility.allowed).map((e) => e.member);
+
+  // The themed summary is shown only when enough members have said something;
+  // below that the enum breakdown stands alone. Counted with the same filter
+  // the nightly run uses, so the page and the run agree on "enough".
+  const statements = reasonDetails(rows).length;
 
   return {
-    db_error: dbError,
+    as_of: asOf.toISOString().slice(0, 10),
+    db_error: input.db_error,
     calls: {
       dials: rows.length,
       completed: completed.length,
       conversations: conversations.length,
       with_a_stated_reason: withReason.length,
     },
+    health: {
+      members_error: input.members_error,
+      history_error: input.history_error,
+      membership: members.length > 0 ? membershipHealth(members, asOf) : null,
+      revenue_at_risk: revenueAtRisk(evaluated),
+      segments: frequencySegments(members, asOf),
+      attendance: input.activity ? attendanceTrend(input.activity, members, asOf) : null,
+      busyness: input.activity ? busyness(input.activity) : null,
+      activity_notice: input.activity_notice,
+    },
     why_they_leave: {
       overall: tally(withReason, (r) => r.reason_for_absence),
       by_call_type: crossTally(withReason, (r) => r.call_type, (r) => r.reason_for_absence),
       by_cohort: crossTally(withReason, cohortOf, (r) => r.reason_for_absence),
       by_tenure_band: crossTally(withReason, bandOf, (r) => r.reason_for_absence),
+      themes: {
+        statements,
+        minimum: MIN_REASON_DETAILS,
+        enough: statements >= MIN_REASON_DETAILS,
+        stored: statements >= MIN_REASON_DETAILS ? input.themes : null,
+        ran_at: statements >= MIN_REASON_DETAILS ? input.themes_ran_at : null,
+        notice: statements >= MIN_REASON_DETAILS ? input.themes_notice : null,
+      },
     },
     outcomes: {
       overall: tally(conversations, (r) => r.outcome),
@@ -195,4 +236,45 @@ export async function buildIntelligence() {
       assumptions: ASSUMPTIONS,
     },
   };
+}
+
+export async function buildIntelligence(): Promise<Intelligence> {
+  const asOf = today();
+
+  let source: MemberSource | null = null;
+  let members: Member[] = [];
+  let membersError: string | null = null;
+  try {
+    source = memberSource();
+    members = (await loadMembers(asOf)).members;
+  } catch (err) {
+    // Never the synthetic members in place of a gym's: the health section says
+    // it couldn't read them instead.
+    membersError = err instanceof Error ? err.message : String(err);
+  }
+
+  const [calls, historyRead, activityRead, themesRead] = await Promise.all([
+    readAllCallRows<CallRow>(),
+    getAllCallHistory().then(
+      (history) => ({ history, error: null as string | null }),
+      (err) => ({ history: new Map<string, CallHistory>(), error: err instanceof Error ? err.message : String(err) })
+    ),
+    source ? loadCheckinActivity(source, asOf) : Promise.resolve({ activity: null, notice: null }),
+    source ? latestReasonThemes(source) : Promise.resolve({ themes: null, ran_at: null, notice: null }),
+  ]);
+
+  return composeIntelligence({
+    asOf,
+    members,
+    members_error: membersError,
+    rows: calls.rows,
+    db_error: calls.error,
+    history: historyRead.history,
+    history_error: historyRead.error,
+    activity: activityRead.activity,
+    activity_notice: activityRead.notice,
+    themes: themesRead.themes,
+    themes_ran_at: themesRead.ran_at,
+    themes_notice: themesRead.notice,
+  });
 }

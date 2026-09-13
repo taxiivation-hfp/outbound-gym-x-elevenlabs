@@ -261,6 +261,12 @@ for member_id, row in df.iterrows():
         "expiry_date": row["expiry_date"].date().isoformat(),
         "monthly_fee": int(row["monthly_fee"]),
         "renewal_fee": int(row["renewal_fee"]),
+        # When the member asked to cancel (local time), or None. A raw fact
+        # only: nothing routes on it yet, and an auto-renewing member who has
+        # asked is still never called. See pipeline/generate_cancellations.py.
+        "cancellation_requested": (
+            None if pd.isna(row.get("cancellation_requested")) else str(row["cancellation_requested"])
+        ),
         "signals": {
             "days_since_visit": int(row["days_since_last_visit"]),
             "old_rate": float(row["old_rate"]),
