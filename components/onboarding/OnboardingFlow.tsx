@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import AppShell from "@/components/shell/AppShell";
+import AppShell, { type FirstRunStep } from "@/components/shell/AppShell";
 import { CALL_TYPE_TINT } from "@/components/calls/format";
 import type { GymConfig } from "@/lib/gymConfig";
 import { GYM_FIELD_KEYS, hasAtMostTwoDecimals } from "@/lib/gymConfig";
@@ -62,6 +62,7 @@ export default function OnboardingFlow({
   defaultGym,
   maxUploadMb,
   editing = null,
+  firstRunStep = null,
 }: {
   /**
    * Editing an existing gym: the form opens prefilled with its current values
@@ -77,6 +78,8 @@ export default function OnboardingFlow({
   defaultGym: { gym_id: string; gym_name: string } | null;
   /** The document route's upload limit, from lib/extraction/documentText.ts. */
   maxUploadMb: number;
+  /** Set on a first run (lib/firstRun.ts): the nav is hidden and the step named. */
+  firstRunStep?: FirstRunStep | null;
 }) {
   const [baseline] = useState<Draft>(() =>
     editing ? { ...draftFromValues(editing), offer_schedule: scheduleToDraft(editing.offer_schedule) } : emptyDraft()
@@ -191,9 +194,17 @@ export default function OnboardingFlow({
 
   if (saved) {
     return (
-      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Configuration">
+      // Saving the first gym finishes step one; members are still to come.
+      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Configuration" firstRunStep={firstRunStep ? "members" : undefined}>
         <div className="min-h-0 flex-1 overflow-auto">
-          <Saved gym={saved.gym} incentives={saved.incentives} headingRef={savedHeading} edited={Boolean(editing)} defaultGym={defaultGym} />
+          <Saved
+            gym={saved.gym}
+            incentives={saved.incentives}
+            headingRef={savedHeading}
+            edited={Boolean(editing)}
+            defaultGym={defaultGym}
+            firstRun={Boolean(firstRunStep)}
+          />
         </div>
       </AppShell>
     );
@@ -222,6 +233,7 @@ export default function OnboardingFlow({
       current="setup"
       title={editing ? editing.gym_name : "Retention Router"}
       eyebrow="Configuration"
+      firstRunStep={firstRunStep ?? undefined}
       headerActions={
         <SaveControls
           saveAvailable={saveAvailable}
@@ -487,8 +499,11 @@ function Saved({
   headingRef,
   edited,
   defaultGym,
+  firstRun,
 }: {
   edited: boolean;
+  /** On a first run there is no queue yet, so the only way on is member data. */
+  firstRun: boolean;
   gym: GymConfig;
   incentives: Record<CallType, string>;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
@@ -531,9 +546,11 @@ function Saved({
           <Link href={`/onboarding/${gym.gym_id}/members`} className={buttonClass("primary")}>
             Connect member data
           </Link>
-          <Link href="/" className={buttonClass("secondary")}>
-            Back to the queue
-          </Link>
+          {!firstRun && (
+            <Link href="/" className={buttonClass("secondary")}>
+              Back to the queue
+            </Link>
+          )}
         </div>
       </Card>
     </div>

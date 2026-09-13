@@ -11,7 +11,19 @@ import ThemeToggle from "@/components/shell/ThemeToggle";
  * content. Only screens that exist are in the nav — the mockups' Call log,
  * Numbers and Settings have no page behind them and are left out rather than
  * linked to nothing.
+ *
+ * On a first run (no gym saved, or its members not imported yet — see
+ * lib/firstRun.ts) the configuration screens pass `firstRunStep` and the nav is
+ * left out entirely: there is nothing behind it yet, and the product should be
+ * met in order. A pill in the header says which step this is.
  */
+
+export type FirstRunStep = "gym" | "members";
+
+const FIRST_RUN_STEP: Record<FirstRunStep, { n: number; label: string }> = {
+  gym: { n: 1, label: "save your gym" },
+  members: { n: 2, label: "import its members" },
+};
 
 export type NavKey = "overview" | "queue" | "members" | "setup" | "evals" | "about";
 
@@ -91,6 +103,7 @@ export default function AppShell({
   headerBody,
   headerActions,
   memberCount,
+  firstRunStep,
   children,
 }: {
   current: NavKey;
@@ -104,6 +117,8 @@ export default function AppShell({
   headerActions?: ReactNode;
   /** Shown beside Members in the nav, when the screen already has it. */
   memberCount?: number;
+  /** Set on a first run: hides the nav and names the step in the header. */
+  firstRunStep?: FirstRunStep;
   children: ReactNode;
 }) {
   const open = useSyncExternalStore(subscribeNav, readNavOpen, () => true);
@@ -161,6 +176,14 @@ export default function AppShell({
           <h1 className="m-0 font-display text-[22px] font-bold leading-[1.05] tracking-[-0.03em]">{title}</h1>
           <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-dim">{eyebrow}</span>
         </div>
+        {firstRunStep && (
+          <HeaderPill>
+            <span className="font-bold">First run</span>
+            <span className="opacity-75">
+              step {FIRST_RUN_STEP[firstRunStep].n} of 2, {FIRST_RUN_STEP[firstRunStep].label}
+            </span>
+          </HeaderPill>
+        )}
         {headerBody}
         <div className="ml-auto flex flex-none items-center gap-2.5">
           {headerActions}
@@ -169,29 +192,31 @@ export default function AppShell({
       </header>
 
       <div className="flex min-h-0 flex-1 gap-3.5 p-3.5">
-        <aside
-          aria-label="Sections"
-          className={`flex flex-none flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-soft transition-[width] duration-200 ease-[cubic-bezier(.2,.8,.2,1)] ${
-            open ? "w-[208px]" : "w-[58px]"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={toggleNav}
-            aria-expanded={open}
-            aria-label={open ? "Collapse navigation" : "Expand navigation"}
-            className={`mx-2 mt-2 flex h-[38px] items-center gap-2.5 rounded-[9px] text-[11px] font-bold uppercase tracking-[0.08em] text-dim hover:text-ink ${
-              open ? "justify-start px-2.5" : "justify-center px-0"
+        {!firstRunStep && (
+          <aside
+            aria-label="Sections"
+            className={`flex flex-none flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-soft transition-[width] duration-200 ease-[cubic-bezier(.2,.8,.2,1)] ${
+              open ? "w-[208px]" : "w-[58px]"
             }`}
           >
-            <span aria-hidden="true" className={`inline-block text-[15px] leading-none transition-transform ${open ? "" : "rotate-180"}`}>
-              ‹
-            </span>
-            {open && <span>Collapse</span>}
-          </button>
-          <nav className="flex flex-col gap-[3px] px-2 pt-2">{PRIMARY.map(item)}</nav>
-          <div className="mt-auto flex flex-col gap-[3px] border-t border-line p-2">{SECONDARY.map(item)}</div>
-        </aside>
+            <button
+              type="button"
+              onClick={toggleNav}
+              aria-expanded={open}
+              aria-label={open ? "Collapse navigation" : "Expand navigation"}
+              className={`mx-2 mt-2 flex h-[38px] items-center gap-2.5 rounded-[9px] text-[11px] font-bold uppercase tracking-[0.08em] text-dim hover:text-ink ${
+                open ? "justify-start px-2.5" : "justify-center px-0"
+              }`}
+            >
+              <span aria-hidden="true" className={`inline-block text-[15px] leading-none transition-transform ${open ? "" : "rotate-180"}`}>
+                ‹
+              </span>
+              {open && <span>Collapse</span>}
+            </button>
+            <nav className="flex flex-col gap-[3px] px-2 pt-2">{PRIMARY.map(item)}</nav>
+            <div className="mt-auto flex flex-col gap-[3px] border-t border-line p-2">{SECONDARY.map(item)}</div>
+          </aside>
+        )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </div>

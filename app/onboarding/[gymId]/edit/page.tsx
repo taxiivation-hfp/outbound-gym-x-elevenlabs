@@ -5,6 +5,7 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { Notice } from "@/components/onboarding/ui";
 import { MAX_UPLOAD_BYTES } from "@/lib/extraction/documentText";
 import { extractionConfigured } from "@/lib/extraction/extract";
+import { firstRunState } from "@/lib/firstRun";
 import { listGyms, resolveGym } from "@/lib/gymStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function EditGymPage({ params }: { params: Promise<{ gymId: string }> }) {
   const { gymId } = await params;
-  const [lookup, listing] = await Promise.all([resolveGym(gymId), listGyms()]);
+  const [lookup, listing, firstRun] = await Promise.all([resolveGym(gymId), listGyms(), firstRunState()]);
   if (!lookup.ok && lookup.status === 404) notFound();
 
   const writesEnabled = onboardingWritesEnabled();
@@ -38,7 +39,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
 
   if (!lookup.ok) {
     return (
-      <AppShell current="setup" title="Retention Router" eyebrow="Configuration">
+      <AppShell current="setup" title="Retention Router" eyebrow="Configuration" firstRunStep={firstRun.gated ? firstRun.step : undefined}>
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="max-w-xl">
             <Notice tone="fault" title="This gym can't be edited right now">
@@ -60,6 +61,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
       existingGyms={[]}
       defaultGym={defaultGym ? { gym_id: defaultGym.gym_id, gym_name: defaultGym.gym_name } : null}
       maxUploadMb={MAX_UPLOAD_BYTES / 1024 / 1024}
+      firstRunStep={firstRun.gated ? firstRun.step : null}
     />
   );
 }

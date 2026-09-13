@@ -2,6 +2,8 @@ import MemberTable from "@/components/MemberTable";
 import AppShell, { HeaderPill } from "@/components/shell/AppShell";
 import { longDate } from "@/components/calls/format";
 import { buildQueueView } from "@/lib/queueView";
+import { redirect } from "next/navigation";
+import { firstRunPath, firstRunState } from "@/lib/firstRun";
 
 /**
  * Every member, with the routing decision and the sentence behind it.
@@ -18,6 +20,9 @@ export const metadata = {
 };
 
 export default async function MembersPage() {
+  const firstRun = await firstRunState();
+  if (firstRun.gated) redirect(firstRunPath(firstRun));
+
   const view = await buildQueueView();
   const gymName = view.gyms.find((g) => g.gym_id === view.default_gym_id)?.gym_name ?? "Retention Router";
 

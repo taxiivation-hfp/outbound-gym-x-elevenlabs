@@ -8,6 +8,7 @@ import { AdminDetail, Card, CardHeader, Notice, focusRing } from "@/components/o
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { routeMember } from "@/lib/callType";
 import { today } from "@/lib/clock";
+import { firstRunState } from "@/lib/firstRun";
 import { resolveGym } from "@/lib/gymStore";
 import { IMPORT_COLUMNS, IMPORT_KINDS, type ImportKind } from "@/lib/memberImport";
 import { MemberStoreError, loadGymMembers, memberDataCounts, type MemberDataCounts } from "@/lib/memberStore";
@@ -52,7 +53,7 @@ function Tally({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
  */
 export default async function MemberDataPage({ params }: { params: Promise<{ gymId: string }> }) {
   const { gymId } = await params;
-  const gym = await resolveGym(gymId);
+  const [gym, firstRun] = await Promise.all([resolveGym(gymId), firstRunState()]);
   if (!gym.ok && gym.status === 404) notFound();
 
   const asOf = today();
@@ -94,7 +95,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   const lastRun = lastRunRead ? await lastRunRead : null;
 
   return (
-    <AppShell current="setup" title={gymName} eyebrow="Member data">
+    <AppShell current="setup" title={gymName} eyebrow="Member data" firstRunStep={firstRun.gated ? firstRun.step : undefined}>
       <div className="min-h-0 flex-1 overflow-auto pr-0.5">
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-4">
