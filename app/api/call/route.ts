@@ -205,18 +205,39 @@ export async function POST(req: NextRequest) {
         }),
       }
     );
-  } catch {
-    return NextResponse.json({ error: "Failed to reach ElevenLabs" }, { status: 502 });
+  } catch (err) {
+    console.error(`ElevenLabs outbound call (${callType}) did not reach ElevenLabs:`, err);
+    return NextResponse.json(
+      { error: "Failed to reach ElevenLabs", details: err instanceof Error ? err.message : String(err) },
+      { status: 502 }
+    );
   }
 
-  const result = await elevenLabsResponse.json().catch(() => null);
+  // Read the body as text first: a non-JSON error page would otherwise parse to
+  // null and the reason would be lost.
+  const rawBody = await elevenLabsResponse.text().catch((err) => `<unreadable body: ${String(err)}>`);
+  let result: { success?: boolean; conversation_id?: string } | null = null;
+  try {
+    result = JSON.parse(rawBody);
+  } catch {
+    result = null;
+  }
   // ElevenLabs answers with HTTP 200 even when the call never left the ground —
   // a stale Twilio credential on the imported number, for instance, comes back
   // as `{ success: false, message: "..." }` inside a 200. Checking only
   // `.ok` would tell the dashboard "placed" for a call that was never dialled.
   if (!elevenLabsResponse.ok || result?.success === false) {
+    console.error(
+      `ElevenLabs outbound call (${callType}, agent ${AGENT_ID_ENV[callType]}) failed: HTTP ${elevenLabsResponse.status}`,
+      rawBody
+    );
     return NextResponse.json(
-      { error: "ElevenLabs call failed", details: result },
+      {
+        error: "ElevenLabs call failed",
+        call_type: callType,
+        elevenlabs_status: elevenLabsResponse.status,
+        details: result ?? rawBody,
+      },
       { status: 502 }
     );
   }
