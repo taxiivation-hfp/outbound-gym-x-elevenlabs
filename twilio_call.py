@@ -8,9 +8,10 @@ without going through ElevenLabs or the app.
 SECURITY NOTE — read this before using it.
 
 An earlier version of this file had the Account SID and auth token hardcoded in
-plaintext and was committed. They are therefore in this repository's git history
-and must be treated as compromised: rotate them in the Twilio console. Removing
-them from this file does not remove them from history. See REVIEW_NOTES.md.
+plaintext and was committed, so they are still in this repository's git history.
+The auth token has since been rotated in the Twilio console, so the one in
+history no longer works. Rewriting history to remove it is still outstanding.
+Credentials now come only from the environment. See REVIEW_NOTES.md.
 
 RUN:
   pip install requests python-dotenv

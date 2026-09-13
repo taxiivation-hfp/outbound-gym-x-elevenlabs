@@ -30,6 +30,10 @@ on the live URL, not just locally.
 
 ### 1a. Rotate the Twilio credentials. Do this first.
 
+> **Status, 13 September 2026:** the auth token has been rotated, so the token in
+> git history no longer authenticates. Still outstanding: rewriting history to
+> remove the dead token (it is in commit `4a04a89`) before the repo is made public.
+
 `twilio_call.py` had a live Account SID and auth token in plaintext, committed,
 in a public repo. I have replaced them with env-var reads, **but they are still
 in git history and must be treated as compromised.**
