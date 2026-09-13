@@ -332,7 +332,7 @@ Scenarios build their variables with `compileVariables`, the same compiler the l
 
 Every run is committed with its transcripts. The first nine were on the first three agents. The tenth was the first with the cancellation agent and scored **23/31**. Three of the cancellation agent's six failures were the same real defect. After a flat "no thanks" to the freeze, the agent offered the cheaper plan anyway. The prompt had treated refusal as the exception to offering. The Goal now says any decline ends the offers, and a second offer needs the member's own objection.
 
-The eleventh run, after that fix, scored **80/80 guards and 28/31 conversations**. Runs after it added the leak checks above, and the latest score is on the Our Journey screen.
+The eleventh run, after that fix, scored **80/80 guards and 28/31 conversations**. The table below is that run. The twelfth file is a re-score of the same transcripts under the leak checks, with no new calls, and it scored 27/31. The thirteenth run, after the winback fix described under the rough edges, scored **81/81 guards and 30/31 conversations**, with no leaks. Its one miss is the callback phrasing again.
 
 | Agent | Score | The non-passes |
 |---|---|---|
@@ -343,11 +343,13 @@ The eleventh run, after that fix, scored **80/80 guards and 28/31 conversations*
 
 All four scenarios that test the stop rule passed. The full account, transcript by transcript, is in [`docs/build-log/PASS_TWO_REPORT.md`](docs/build-log/PASS_TWO_REPORT.md).
 
-The first eleven runs:
+Every run as it was scored at the time:
 
 ```
-10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15 -> 23/31 -> 28/31
+10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15 -> 23/31 -> 28/31 -> 27/31 (re-score) -> 30/31
 ```
+
+Under today's leak checks the first five runs score lower. The third run, recorded as 15/15, is 9/15.
 
 **The conversation score isn't stable, and saying so is more useful than quoting the best number.** It moved between 11 and 15 across runs that changed nothing about the agents. The simulated member is a model, and so is the judge. The guards were 19/19 on every run but one, which scored 18/19. They were 20/20 once the pattern guard was added, and 80/80 on both runs with the cancellation agent. The deterministic half is steady, which is why it exists.
 
@@ -406,7 +408,7 @@ Written to be read by someone looking for the holes.
 - **Simulated members are more cooperative and more literal than real ones.** Passing the eval suite means the agent behaves under a scripted provocation. A real member may push harder. The cancellation agent's stop rule failed three times out of three in the first run with that agent, and held four times out of four in the run after the fix. Both runs used a simulated member who says exactly what the persona says. Nobody has yet tested a member who says "no thanks… well, what else have you got?"
 - **Judged eval conditions aren't deterministic.** The conversation score moved between 11 and 15 out of 15 across runs that changed nothing about the agents. Ordering and forbidden-phrase checks were pushed into local regexes to keep the suite's spine deterministic. The judgement calls remain judgement calls, graded by the same vendor's models as the agent under test. Treat 15/15 as the best observed run.
 - **The suite has two known false negatives.** The cancellation callback pattern misses "have someone from the gym give you a call", and a cut-off call counts as not passed even when it's labelled inconclusive.
-- **A transcript passed while leaking.** The check for narrated reasoning passed all 122 scenario runs after the model change. In the eleventh run, one winback call at Kensington (`winback-moved-away-lets-go`, 9 turns) spoke three turns that began with the agent's own Goal steps wrapped in platform markup (`<current-active-structured-procedure>`). Text-to-speech would read that out. The call passed every assertion, because no check looked for markup. The checks over every spoken turn were added after a person read the transcript, and each is pinned to the turn that revealed it.
+- **A transcript passed while leaking.** The check for narrated reasoning passed all 122 scenario runs after the model change. In the eleventh run, one winback call at Kensington (`winback-moved-away-lets-go`, 9 turns) spoke three turns that began with the agent's own Goal steps wrapped in platform markup (`<current-active-structured-procedure>`). Text-to-speech would read that out. The call passed every assertion, because no check looked for markup. The cause was a procedure attached to the winback agent in the ElevenLabs dashboard. The sync never set that field, so it kept it. The dry run only compared fields the repo sets, so it called the agent unchanged. The sync now sets no procedures, and the dry run reports any it finds. A person then read every committed agent turn. 32 turns leaked, in 25 scenario runs, and 21 of those scenarios had passed. The checks over every spoken turn were added after that reading, and each is pinned to the turn that revealed it.
 - **A Twilio Account SID and auth token were once committed in plaintext** in `twilio_call.py`, and they are still in git history. The exposed auth token has since been rotated, so the one in history no longer authenticates, and the script now reads credentials from environment variables. Rewriting history to remove the dead token is still outstanding.
 - **Uploading an older export after a newer one moves member data back to the older state.** Contract rows remember the last import that listed them. They don't know when the platform exported them. Where rows then disagree about auto-renew, the member is treated as auto-renewing and isn't called. Where they agree, the older export's dates win until the newer one is uploaded again.
 - **The live clock reads today's date in UTC.** For an Australian gym before 10am, "today" is still yesterday. A same-morning check-in counts as zero days ago, but an expiry date can be a day early. A gym timezone setting would fix it, and there isn't one.
