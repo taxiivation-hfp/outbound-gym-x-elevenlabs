@@ -1,3 +1,4 @@
+import AppShell from "@/components/shell/AppShell";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -76,7 +77,9 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   const lastRun = lastRunRead ? await lastRunRead : null;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
+    <AppShell current="setup" title="Retention Router" eyebrow="Member data">
+      <div className="min-h-0 flex-1 overflow-auto">
+<main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
       <Link href="/onboarding" className="text-sm font-semibold text-zinc-400 transition-colors hover:text-white">
         <span aria-hidden="true">←</span> Set up a gym
       </Link>
@@ -232,5 +235,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
         <Connectors />
       </div>
     </main>
+      </div>
+    </AppShell>
   );
 }

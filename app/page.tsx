@@ -1,4 +1,4 @@
-import Dashboard from "@/components/Dashboard";
+import CallQueue from "@/components/calls/CallQueue";
 import { buildQueueView } from "@/lib/queueView";
 
 /**
@@ -12,7 +12,12 @@ import { buildQueueView } from "@/lib/queueView";
  */
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Call queue — Retention Router",
+};
+
 export default async function Home() {
   const view = await buildQueueView();
-  return <Dashboard view={view} />;
+  const gymName = view.gyms.find((g) => g.gym_id === view.default_gym_id)?.gym_name ?? "Retention Router";
+  return <CallQueue view={view} gymName={gymName} />;
 }

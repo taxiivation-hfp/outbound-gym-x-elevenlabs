@@ -1,3 +1,4 @@
+import AppShell from "@/components/shell/AppShell";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
@@ -34,7 +35,9 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
         : ONBOARDING_WRITES_OFF;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
+    <AppShell current="setup" title="Retention Router" eyebrow="Voice agent setup">
+      <div className="min-h-0 flex-1 overflow-auto">
+<main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
       <header className="max-w-3xl">
         <h1 className="text-3xl font-black uppercase tracking-tight sm:text-4xl">Edit {lookup.ok ? lookup.gym.gym_name : "a gym"}</h1>
         <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-zinc-400">
@@ -61,5 +64,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
         )}
       </div>
     </main>
+      </div>
+    </AppShell>
   );
 }

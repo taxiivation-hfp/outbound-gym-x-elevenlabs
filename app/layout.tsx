@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Nav from "@/components/Nav";
+import { Archivo, Figtree } from "next/font/google";
+import { THEME_STORAGE_KEY } from "@/components/shell/theme";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
 });
 
@@ -19,16 +19,19 @@ export const metadata: Metadata = {
     "Calls the gym members worth calling, and leaves alone the ones a call would cost you.",
 };
 
+/**
+ * Applies the remembered theme before first paint, so a light-theme user never
+ * sees a dark flash. Dark is the default. The toggle writes the same key.
+ */
+const themeScript = `try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-black text-white">
-        <Nav />
-        {children}
-      </body>
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={`${archivo.variable} ${figtree.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }

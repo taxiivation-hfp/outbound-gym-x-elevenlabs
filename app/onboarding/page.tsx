@@ -1,3 +1,4 @@
+import AppShell from "@/components/shell/AppShell";
 import type { Metadata } from "next";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { extractionConfigured } from "@/lib/extraction/extract";
@@ -26,7 +27,9 @@ export default async function OnboardingPage() {
   const saveAdminDetail = listing.source !== "supabase" ? listing.notice : writesEnabled ? null : ONBOARDING_WRITES_OFF;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
+    <AppShell current="setup" title="Retention Router" eyebrow="Voice agent setup">
+      <div className="min-h-0 flex-1 overflow-auto">
+<main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
       <header className="max-w-3xl">
         <h1 className="text-3xl font-black uppercase tracking-tight text-balance sm:text-4xl">Set up a gym</h1>
         <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-zinc-400 text-pretty">
@@ -46,5 +49,7 @@ export default async function OnboardingPage() {
         />
       </div>
     </main>
+      </div>
+    </AppShell>
   );
 }

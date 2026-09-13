@@ -1,3 +1,4 @@
+import AppShell from "@/components/shell/AppShell";
 import IntelligenceView from "@/components/intelligence/IntelligenceView";
 import { buildIntelligence } from "@/lib/intelligence";
 
@@ -19,5 +20,11 @@ export const metadata = {
 };
 
 export default async function IntelligencePage() {
-  return <IntelligenceView data={await buildIntelligence()} />;
+  return (
+    <AppShell current="overview" title="Retention Router" eyebrow="Overview">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <IntelligenceView data={await buildIntelligence()} />
+      </div>
+    </AppShell>
+  );
 }

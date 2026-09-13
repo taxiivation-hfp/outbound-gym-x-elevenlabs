@@ -1,56 +1,227 @@
 @import "tailwindcss";
 
 /*
- * Dark by construction, not by toggle. This is a back-office screen a front-desk
- * manager keeps open next to a booking system; it is never printed and never
- * embedded, so a single committed palette is simpler than two half-tuned ones.
+ * Two themes, one set of names. The palette is the approved mockups' (FULL HTML
+ * MOCKUP/): an olive-lime accent used for the primary action and a win, a clay
+ * red kept for a cancellation or a failure, and a tint per call type. Every
+ * colour is a variable on <html data-theme>, so a component names a role
+ * ("surface", "dim", "flag-ink") and never a hex value. The theme is chosen by
+ * the toggle in the header and remembered in localStorage; the inline script
+ * in app/layout.tsx applies it before first paint.
  */
-:root {
-  --background: #000000;
-  --foreground: #fafafa;
-  /* The one accent. Used for the win state and nothing else, so that when it
-     appears it means something. */
-  --accent: #d6ff3d;
-  /* Native controls, autofill and scrollbars render dark to match. */
+:root,
+[data-theme="dark"] {
+  --canvas: #0c0e0a;
+  --surface: #14170f;
+  --surface-2: #101309;
+  --panel: #181b13;
+  --panel-edge: #2a2e21;
+  --line: #242920;
+  --line-strong: #333a28;
+  --cell-line: #20251a;
+  --row-line: #1a1e14;
+  --row-hover: #1b2013;
+  --row-open: #1f2319;
+  --row-excl: #101209;
+  --ink: #eef1e4;
+  --ink-2: #c9cfbc;
+  --muted: #a2aa94;
+  --dim: #949c85;
+  --faint: #868e76;
+  --accent: #bcd47f;
+  --accent-line: #6e8b45;
+  --accent-ink: #c2d491;
+  --accent-wash: #1c1f17;
+  --on-accent: #181d0e;
+  --bar: #a3bd6b;
+  --flag: #c96a57;
+  --flag-ink: #e2a091;
+  --flag-wash: #261510;
+  --flag-open: #301b15;
+  --on-flag: #241009;
+  --control: #1a1e13;
+  --control-line: #2c3222;
+  --renew-bg: #222814;
+  --renew-ink: #bfd296;
+  --reeng-bg: #14241f;
+  --reeng-ink: #9cc4b9;
+  --winb-bg: #2a2114;
+  --winb-ink: #d2b48d;
+  --off-bg: #181c12;
+  --off-ink: #7f8773;
+  --heat: 163, 189, 107;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --window: 0 28px 56px -30px rgba(0, 0, 0, 0.85), 0 2px 10px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
-  /* DESIGN.md tokens. `signal` is the rationed lime: the primary action on a
-     screen and a win state, nothing else. */
-  --color-signal: var(--accent);
-  --color-signal-hover: #c2eb2b;
-  --color-hairline: #27272a;
-  --color-hairline-quiet: #18181b;
-  --color-surface: #09090b;
-  --color-ink: var(--foreground);
-  --color-ink-body: #d4d4d8;
-  --color-ink-secondary: #a1a1aa;
+[data-theme="light"] {
+  --canvas: #eef0e9;
+  --surface: #ffffff;
+  --surface-2: #f8f9f3;
+  --panel: #f9faf4;
+  --panel-edge: #e6e8dd;
+  --line: #e0e2d8;
+  --line-strong: #cdd1c0;
+  --cell-line: #e9ebe1;
+  --row-line: #eef0e7;
+  --row-hover: #f6f8ee;
+  --row-open: #f2f3ed;
+  --row-excl: #f6f7f1;
+  --ink: #1a1d16;
+  --ink-2: #3a3f33;
+  --muted: #5d6455;
+  --dim: #656c60;
+  --faint: #767d6c;
+  --accent: #d5e49b;
+  --accent-line: #a7bc77;
+  --accent-ink: #4c5b2c;
+  --accent-wash: #f2f3ed;
+  --on-accent: #2b3318;
+  --bar: #a9c069;
+  --flag: #a34b3e;
+  --flag-ink: #93463a;
+  --flag-wash: #f9efec;
+  --flag-open: #f3e5e1;
+  --on-flag: #ffffff;
+  --control: #f0f1ea;
+  --control-line: #dcdfd2;
+  --renew-bg: #e7eed2;
+  --renew-ink: #48562a;
+  --reeng-bg: #dfeae6;
+  --reeng-ink: #2c554c;
+  --winb-bg: #f3e6d3;
+  --winb-ink: #6a4e2b;
+  --off-bg: #ebede4;
+  --off-ink: #6b7266;
+  --heat: 96, 124, 54;
+  --shadow: 0 1px 2px rgba(26, 29, 22, 0.12);
+  --window: 0 24px 48px -28px rgba(26, 29, 22, 0.4), 0 2px 8px rgba(26, 29, 22, 0.06);
+  color-scheme: light;
 }
 
-/* The sticky nav is ~57px tall; a focused field must never scroll underneath it
-   (WCAG 2.4.11). */
-html {
-  scroll-padding-top: 5rem;
+@theme inline {
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-panel: var(--panel);
+  --color-panel-edge: var(--panel-edge);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-cell-line: var(--cell-line);
+  --color-row-line: var(--row-line);
+  --color-row-hover: var(--row-hover);
+  --color-row-open: var(--row-open);
+  --color-row-excl: var(--row-excl);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-line: var(--accent-line);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-on-accent: var(--on-accent);
+  --color-bar: var(--bar);
+  --color-flag: var(--flag);
+  --color-flag-ink: var(--flag-ink);
+  --color-flag-wash: var(--flag-wash);
+  --color-flag-open: var(--flag-open);
+  --color-on-flag: var(--on-flag);
+  --color-control: var(--control);
+  --color-control-line: var(--control-line);
+  --color-renew-bg: var(--renew-bg);
+  --color-renew-ink: var(--renew-ink);
+  --color-reeng-bg: var(--reeng-bg);
+  --color-reeng-ink: var(--reeng-ink);
+  --color-winb-bg: var(--winb-bg);
+  --color-winb-ink: var(--winb-ink);
+  --color-off-bg: var(--off-bg);
+  --color-off-ink: var(--off-ink);
+
+  /* The lime primary action, by its older name. */
+  --color-signal: var(--accent);
+  --color-signal-hover: var(--accent-line);
+
+  --shadow-soft: var(--shadow);
+  --shadow-window: var(--window);
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Long member lists and transcript panes get their own scrollbars; the default
-   Windows ones are wide enough to change the layout. */
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+[role="row"]:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The theme toggle shows the theme you'd switch to. */
+.theme-glyph-light,
+[data-theme="light"] .theme-glyph-dark {
+  display: none;
+}
+[data-theme="light"] .theme-glyph-light {
+  display: inline;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel-in {
+  animation: panel-in 0.2s ease both;
+}
+
+.line-in {
+  animation: line-in 0.22s ease both;
 }
 
 /*
@@ -93,12 +264,16 @@ body {
 }
 
 .compiled-text[data-rewritten] {
-  border-color: var(--color-zinc-500);
+  border-color: var(--accent-line);
   transition-duration: 0ms;
   transition-delay: 0ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .panel-in,
+  .line-in {
+    animation: none;
+  }
   /* No travel. A still, full bar would read as finished, so the track breathes
      instead, never as bright as a finished stage's solid fill. */
   .stage-sweep {

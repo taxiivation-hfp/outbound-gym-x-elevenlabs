@@ -1,3 +1,4 @@
+import AppShell from "@/components/shell/AppShell";
 import Link from "next/link";
 import latest from "@/evals/results/latest.json";
 
@@ -64,7 +65,9 @@ export default function EvalsPage() {
   const { guards, conversations } = run;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
+    <AppShell current="evals" title="Retention Router" eyebrow="Evals">
+      <div className="min-h-0 flex-1 overflow-auto">
+<main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
       <header>
         <h1 className="text-3xl font-black uppercase tracking-tight sm:text-4xl">Evals</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">
@@ -149,6 +152,8 @@ export default function EvalsPage() {
         </div>
       </section>
     </main>
+      </div>
+    </AppShell>
   );
 }
 
