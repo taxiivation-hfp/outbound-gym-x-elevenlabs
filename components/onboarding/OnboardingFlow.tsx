@@ -19,6 +19,7 @@ import {
   type Draft,
 } from "@/lib/onboardingDraft";
 import Connectors from "./Connectors";
+import DemoReset from "./DemoReset";
 import DocumentReader, { type ReadResult } from "./DocumentReader";
 import GymForm, { SaveControls, SaveNotices, type SaveState } from "./GymForm";
 import PromptPreview, { PREVIEW_TITLE_ID } from "./PromptPreview";
@@ -389,6 +390,7 @@ export default function OnboardingFlow({
             </div>
 
             <MemberDataCard editing={editing} existingGyms={existingGyms} defaultGymId={defaultGym?.gym_id ?? null} />
+            {!editing && <DemoReset available={saveAvailable} adminDetail={saveAdminDetail} />}
             <div aria-hidden="true" className="h-1.5" />
           </div>
 
