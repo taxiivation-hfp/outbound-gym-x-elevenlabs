@@ -1,5 +1,5 @@
 import type { EvalsData, LadderCall } from "@/components/evals/data";
-import { Badge, Code, Section, Source } from "@/components/evals/ui";
+import { Badge, Section } from "@/components/evals/ui";
 
 /**
  * The cancellation agent's ladder: a second offer after a flat "no thanks", in
@@ -12,7 +12,7 @@ export default function LadderFailure({ ladder }: { ladder: EvalsData["ladder"] 
   return (
     <Section
       title="It kept offering after “no thanks”"
-      sub="The cancellation agent’s first run. The one behaviour the plan said must never happen."
+      sub="The cancellation agent’s first run."
       lead
       aside={
         scenarios && (
@@ -23,10 +23,7 @@ export default function LadderFailure({ ladder }: { ladder: EvalsData["ladder"] 
       }
     >
       <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.6] text-ink-2 text-pretty">
-        A member who asked to cancel gets at most two offers, and the second only when they say the first doesn’t fit. The first prompt said
-        <em> if the offer doesn’t fit you may make the second one; if they refuse, stop</em>. Offering was the default and refusal the
-        exception, so the model offered and went looking for permission — and made it up itself, saying “If a pause doesn’t help…” to a member
-        who had said “No thanks” and nothing else. Three transcripts out of three.
+        The member said “No thanks”. The agent made a second offer anyway.
       </p>
 
       <div className="mt-4 grid items-start gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))" }}>
@@ -34,33 +31,11 @@ export default function LadderFailure({ ladder }: { ladder: EvalsData["ladder"] 
         {after ? <Transcript call={after} heading="After: the stop rule inverted" /> : <Missing what="the latest run’s transcript" />}
       </div>
 
-      <div className="mt-4 rounded-xl border border-line bg-canvas px-4 py-3">
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-dim">The decision</span>
-        <p className="m-0 mt-1.5 max-w-[80ch] text-[13px] leading-[1.6] text-ink-2 text-pretty">
-          The rule was turned around rather than reworded: <em>“Any decline ends the offers.”</em> “No thanks”, “I don’t think so” and “I’ve
-          decided” are named as endings, and the second offer is allowed only when the objection is the member’s own, in their words — “Never
-          supply it for them”. A prompt change to the cancellation agent alone, made from the first run’s diagnosis before the second run, and
-          pinned by a logic check. Nothing was tuned to chase the number.
-        </p>
-      </div>
-
-      <p className="m-0 mt-4 text-[12.5px] leading-[1.55] text-muted text-pretty">
-        Two runs is evidence, not proof: the simulated member says exactly what its persona tells it. A real member who says “no thanks… well,
-        what else have you got?” has no transcript yet, which is why it is listed under <em>Still broken</em> below.
+      <p className="m-0 mt-4 max-w-[80ch] text-[13px] leading-[1.6] text-ink-2 text-pretty">
+        The fix: we inverted the rule to <em>“Any decline ends the offers.”</em>
       </p>
-      <Source>
-        the diagnosis and the rule, docs/build-log/PASS_TWO_REPORT.md, “What the run says about the agent” and addendum §1; the transcripts and
-        counts, <Code>{ladderSource(before, after)}</Code>.
-      </Source>
     </Section>
   );
-}
-
-function ladderSource(before: LadderCall | null, after: LadderCall | null): string {
-  return [before, after]
-    .filter((c): c is LadderCall => Boolean(c))
-    .map((c) => `evals/results/${c.stamp}.json`)
-    .join(", ");
 }
 
 function Transcript({ call, heading }: { call: LadderCall; heading: string }) {

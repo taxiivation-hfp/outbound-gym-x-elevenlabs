@@ -128,16 +128,9 @@ export default function EvalsView({ data }: { data: EvalsData }) {
         <div className="flex min-w-[620px] max-w-[1160px] flex-col gap-4">
           <div className="flex flex-col gap-[9px] px-0.5 pt-1">
             <h2 className="m-0 font-display text-[30px] font-bold tracking-[-0.035em] text-balance">How it was built, and what broke</h2>
-            <p className="m-0 max-w-[80ch] text-[14.5px] leading-[1.55] text-ink-2 text-pretty">
-              <strong className="text-ink">This page is for judges, not gym managers.</strong> A gym manager never needs to open it: the call
-              queue and the configuration are the product. This is the record of how that product was built — the decisions, the things that
-              broke, and what each fix was measured against.
-            </p>
-            <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.55] text-muted text-pretty">
-              The first run scored {firstRun ? `${firstRun.passed}/${firstRun.total}` : "below full marks"}. Every run is committed, failures
-              included — a suite that passed everything first time would only prove its assertions too weak to catch anything. The{" "}
-              {data.guards.total} logic checks and {data.calls.total} test calls sit at the end, as the evidence for the story above them. The
-              full account is in <Code>evals/README.md</Code> and <Code>docs/build-log/</Code>.
+            <p className="m-0 max-w-[80ch] text-[14px] leading-[1.55] text-muted text-pretty">
+              For judges. The first run scored {firstRun ? `${firstRun.passed}/${firstRun.total}` : "below full marks"}; every run is committed,
+              failures included.
             </p>
             <nav aria-label="On this page" className="mt-2">
               <ol className="m-0 grid list-none gap-2 p-0" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
@@ -151,7 +144,6 @@ export default function EvalsView({ data }: { data: EvalsData }) {
                         {String(i + 1).padStart(2, "0")} · what broke
                       </span>
                       <span className="text-[13px] font-semibold leading-snug text-ink text-pretty">{c.title}</span>
-                      <span className="text-[12px] leading-snug text-muted">→ {c.decision}</span>
                     </a>
                   </li>
                 ))}
@@ -164,7 +156,6 @@ export default function EvalsView({ data }: { data: EvalsData }) {
                     <span className="text-[13px] font-semibold leading-snug text-ink text-pretty">
                       {data.guards.total} logic checks, {data.calls.total} test calls
                     </span>
-                    <span className="text-[12px] leading-snug text-muted">every transcript, every run</span>
                   </a>
                 </li>
               </ol>
@@ -192,11 +183,7 @@ export default function EvalsView({ data }: { data: EvalsData }) {
             <h2 className="m-0 font-display text-[24px] font-bold tracking-[-0.03em] text-balance">
               {data.guards.total} logic checks and {data.calls.total} test calls
             </h2>
-            <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.55] text-muted text-pretty">
-              What the story above rests on. The logic checks involve no model and give the same answer every time. The test calls are real
-              agents talking to simulated members; open any one to read the whole conversation, which is where the branching shows — what the
-              member said, and which way the agent went because of it.
-            </p>
+            <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.55] text-muted text-pretty">Open any call to read the whole conversation.</p>
           </div>
 
           <div
