@@ -33,7 +33,7 @@ type Transient = "idle" | "busy" | "done" | "failed";
 const CHAPTERS = [
   { id: "leak", title: "It read its thinking out loud", decision: "the conversation model changed" },
   { id: "ladder", title: "It kept offering after “no thanks”", decision: "the stop rule inverted" },
-  { id: "withdrawn", title: "We deleted our best number", decision: "structure, not accuracy" },
+  { id: "withdrawn", title: "We excluded our 90.4% accuracy metric", decision: "structure, not accuracy" },
   { id: "attack", title: "A price list tried to rewrite the agent", decision: "no model writes prompt text" },
 ] as const;
 
