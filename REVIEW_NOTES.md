@@ -99,12 +99,14 @@ regardless. Status:
    db:verify` applies it twice locally. Until it is applied, a gym saved with a
    freeze is refused with the migration's name, and the nightly recompute's
    entries fail on a cancellation row.
-2. **`agents:sync` has not been run, and `ELEVENLABS_AGENT_ID_CANCELLATION` is
-   not set anywhere yet.** The dry run before it found `charlie-renewal`
-   differing from the repo in two dashboard-edited placeholders, and the
-   instruction was to stop there — see `PASS_TWO_REPORT.md`. Once synced, put
-   the printed id in `.env.local` and on Vercel; `/api/call` refuses a
-   cancellation call with a 500 naming the variable until the deployment has it.
+2. **Synced on 13 September 2026.** `charlie-cancellation` is
+   `agent_1601m2d9fhg1fx2vft4skxneahkm`, in `.env.local` as
+   `ELEVENLABS_AGENT_ID_CANCELLATION`. **Do not put it on Vercel yet.** The
+   first live run showed the agent making a second offer after a flat "no
+   thanks" — the one thing the cancellation call must never do — see the
+   report. Until the deployment has the variable, `/api/call` refuses every
+   cancellation call with a 500 naming it, which is the safe state; `main`
+   doesn't carry this branch anyway.
 3. **Give Southbank a freeze if you want the ladder on the live URL.** The seed
    is unchanged (Southbank has only the cheaper tier, so its flagged members get
    that one offer); the eval scenarios add the freeze through a config override.

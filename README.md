@@ -212,10 +212,10 @@ Scenarios build their variables with `compileVariables`, the same compiler the l
 
 ### The numbers, and the runs that failed
 
-Nine runs of the original suite, all committed with transcripts. Latest of those: **20/20 guards, 15/15 conversations.** That run predates onboarding; the guards are 80/80 now, and the fifteen scenario payloads are byte-identical to what that run sent — a guard pins them to a committed snapshot. Pass two's live run, the first with the cancellation agent, is reported in [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
+Ten runs, all committed with transcripts. Nine were the original suite; the tenth is the first with the cancellation agent: **80/80 guards, 23/31 conversations** — 13/15 on the three unchanged agents (a judge verdict whose own rationale describes a pass, and a platform timeout), and **10/16 on the cancellation agent**, where three of the six failures are the same real defect: a second offer after a flat "no thanks". The fifteen original payloads are byte-identical to what the 15/15 run sent — a guard pins them to a committed snapshot. The full account, transcript by transcript, is in [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
 
 ```
-10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15
+10/15 -> 12/15 -> 15/15 -> 11/15 -> 11/15 -> 13/15 -> 13/15 -> 13/15 -> 15/15 -> 23/31
 ```
 
 **The conversation score isn't stable, and saying so is more useful than quoting the best number.** It moved between 11 and 15 across runs that changed nothing about the agents, because the simulated member is a model and so is the judge. The deterministic half sat at 19/19 or 20/20 throughout, which is precisely why it exists: the spine of the measurement doesn't wobble.

@@ -170,7 +170,8 @@ where it failed. The failures are the useful part.
 | `17-51-28` | 19/19 | **13/15** | **conversation model changed** |
 | `17-54-47` | 20/20 | **13/15** | assertions pinned to real transcript lines |
 | `17-57-11` | 20/20 | **13/15** | judge conditions narrowed |
-| `17-59-57` | 20/20 | **15/15** | current |
+| `17-59-57` | 20/20 | **15/15** | the last run of the three-agent suite |
+| `2026-09-13T11-47-36` | 80/80 | **23/31** | pass two: the cancellation agent's first run. 13/15 on the unchanged agents (judge variance, a platform timeout); 10/16 on the new one, three of the six being a second offer after a refusal — see `PASS_TWO_REPORT.md` |
 
 **The score is not stable, and that matters more than the best number.** It moved
 between 11 and 15 across runs that changed nothing about the agents, because a
