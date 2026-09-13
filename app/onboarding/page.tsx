@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { MAX_UPLOAD_BYTES } from "@/lib/extraction/documentText";
 import { extractionConfigured } from "@/lib/extraction/extract";
+import { firstRunState } from "@/lib/firstRun";
 import { listGyms } from "@/lib/gymStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
 export const metadata: Metadata = {
-  title: "Voice agent setup — Retention Router",
+  title: "Configuration — Retention Router",
 };
 
 /**
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
-  const listing = await listGyms();
+  const [listing, firstRun] = await Promise.all([listGyms(), firstRunState()]);
   const extractionAvailable = extractionConfigured();
   const writesEnabled = onboardingWritesEnabled();
   const saveAvailable = listing.source === "supabase" && writesEnabled;
@@ -36,6 +37,7 @@ export default async function OnboardingPage() {
       existingGyms={listing.gyms.map((g) => ({ gym_id: g.gym_id, gym_name: g.gym_name }))}
       defaultGym={defaultGym ? { gym_id: defaultGym.gym_id, gym_name: defaultGym.gym_name } : null}
       maxUploadMb={MAX_UPLOAD_BYTES / 1024 / 1024}
+      firstRunStep={firstRun.gated ? firstRun.step : null}
     />
   );
 }

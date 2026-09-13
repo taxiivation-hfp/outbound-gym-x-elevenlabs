@@ -18,7 +18,7 @@ import {
   revenueAtRisk,
   type CheckinActivity,
 } from "@/lib/gymHealth";
-import { loadMembers, memberSource, type MemberSource } from "@/lib/memberSource";
+import { currentMemberSource, loadMembers, type MemberSource } from "@/lib/memberSource";
 import { latestReasonThemes, MIN_REASON_DETAILS, reasonDetails, type StoredReasonThemes } from "@/lib/reasonThemes";
 import type { Member } from "@/lib/types";
 
@@ -253,7 +253,7 @@ export async function buildIntelligence(): Promise<Intelligence> {
   let members: Member[] = [];
   let membersError: string | null = null;
   try {
-    source = memberSource();
+    source = await currentMemberSource();
     members = (await loadMembers(asOf)).members;
   } catch (err) {
     // Never the synthetic members in place of a gym's: the health section says

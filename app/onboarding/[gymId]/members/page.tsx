@@ -4,11 +4,14 @@ import { notFound } from "next/navigation";
 import AppShell from "@/components/shell/AppShell";
 import Connectors from "@/components/onboarding/Connectors";
 import MemberImport, { type ColumnHelp } from "@/components/onboarding/MemberImport";
+import { SampleCsvs } from "@/components/onboarding/SampleFiles";
 import { AdminDetail, Card, CardHeader, Notice, focusRing } from "@/components/onboarding/ui";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { routeMember } from "@/lib/callType";
 import { today } from "@/lib/clock";
+import { firstRunState } from "@/lib/firstRun";
 import { resolveGym } from "@/lib/gymStore";
+import { currentMemberSource } from "@/lib/memberSource";
 import { IMPORT_COLUMNS, IMPORT_KINDS, type ImportKind } from "@/lib/memberImport";
 import { MemberStoreError, loadGymMembers, memberDataCounts, type MemberDataCounts } from "@/lib/memberStore";
 import { latestRun } from "@/lib/queueRecompute";
@@ -52,7 +55,12 @@ function Tally({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
  */
 export default async function MemberDataPage({ params }: { params: Promise<{ gymId: string }> }) {
   const { gymId } = await params;
-  const gym = await resolveGym(gymId);
+  const [gym, firstRun, queueSource] = await Promise.all([
+    resolveGym(gymId),
+    firstRunState(),
+    currentMemberSource().catch(() => null),
+  ]);
+  const queueUsesThisGym = queueSource?.kind === "supabase" && queueSource.gymId === gymId;
   if (!gym.ok && gym.status === 404) notFound();
 
   const asOf = today();
@@ -94,13 +102,13 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   const lastRun = lastRunRead ? await lastRunRead : null;
 
   return (
-    <AppShell current="setup" title={gymName} eyebrow="Member data">
+    <AppShell current="setup" title={gymName} eyebrow="Member data" firstRunStep={firstRun.gated ? firstRun.step : undefined}>
       <div className="min-h-0 flex-1 overflow-auto pr-0.5">
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-4">
             <p className="text-[12.5px] text-muted">
               <Link href="/onboarding" className={`rounded-sm font-semibold text-accent-ink hover:text-ink ${focusRing}`}>
-                <span aria-hidden="true">←</span> Voice agent setup
+                <span aria-hidden="true">←</span> Configuration
               </Link>
               {gym.ok && (
                 <>
@@ -119,6 +127,9 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
                 exports — the same files you&apos;d send an accountant. Each file is checked before anything is written, and
                 imported whole or not at all.
               </p>
+              <div className="mb-4">
+                <SampleCsvs />
+              </div>
 
               <div className="mb-4 flex flex-col gap-2.5 empty:hidden">
                 {!gym.ok && (
@@ -231,10 +242,17 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
               )}
 
               <p className="border-t border-line pt-[13px] text-[11.5px] leading-[1.45] text-dim text-pretty">
-                The queue uses these members when the deployment sets{" "}
-                <code className="font-mono text-ink-2">MEMBER_SOURCE=supabase</code> and{" "}
-                <code className="font-mono text-ink-2 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>. Until then it uses the
-                synthetic dataset.
+                {queueUsesThisGym ? (
+                  <>The call queue, the overview and every call use these members.</>
+                ) : (
+                  <>
+                    The queue uses these members when the deployment sets{" "}
+                    <code className="font-mono text-ink-2">MEMBER_SOURCE=onboarded</code> (the gym saved at setup) or{" "}
+                    <code className="font-mono text-ink-2">MEMBER_SOURCE=supabase</code> with{" "}
+                    <code className="font-mono text-ink-2 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>, either with{" "}
+                    <code className="font-mono text-ink-2">DATASET_CLOCK=live</code>. Until then it uses the synthetic dataset.
+                  </>
+                )}
               </p>
             </div>
           </aside>

@@ -5,6 +5,8 @@ import RefreshButton from "@/components/intelligence/RefreshButton";
 import AppShell, { HeaderPill } from "@/components/shell/AppShell";
 import { buildIntelligence } from "@/lib/intelligence";
 import { listGyms } from "@/lib/gymStore";
+import { redirect } from "next/navigation";
+import { firstRunPath, firstRunState } from "@/lib/firstRun";
 
 /**
  * The overview: the health of the gym, why members leave — in their own words,
@@ -22,6 +24,9 @@ export const metadata = {
 };
 
 export default async function IntelligencePage() {
+  const firstRun = await firstRunState();
+  if (firstRun.gated) redirect(firstRunPath(firstRun));
+
   // buildIntelligence reads the gym listing too but doesn't return it, so the
   // header reads it again — and says so when that read fell back or dropped rows.
   const [data, gyms] = await Promise.all([buildIntelligence(), listGyms()]);

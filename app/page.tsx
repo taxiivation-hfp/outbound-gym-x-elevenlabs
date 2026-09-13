@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import CallQueue from "@/components/calls/CallQueue";
+import { firstRunPath, firstRunState } from "@/lib/firstRun";
 import { buildQueueView } from "@/lib/queueView";
 
 /**
@@ -17,6 +19,11 @@ export const metadata = {
 };
 
 export default async function Home() {
+  // Before a gym and its members exist there is no queue to show: back to the
+  // step the first run is on.
+  const firstRun = await firstRunState();
+  if (firstRun.gated) redirect(firstRunPath(firstRun));
+
   const view = await buildQueueView();
   const gymName = view.gyms.find((g) => g.gym_id === view.default_gym_id)?.gym_name ?? "Retention Router";
   return <CallQueue view={view} gymName={gymName} />;

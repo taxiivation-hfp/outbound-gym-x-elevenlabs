@@ -22,7 +22,8 @@ import { runStamp, runTime, type RowState } from "@/components/evals/format";
  *   real-model extraction of the adversarial PDF — the same call
  *   `evals/configGuards.ts` makes.
  *
- * Only the current run's transcripts go to the browser; older runs contribute
+ * Only the current run's transcripts go to the browser, plus the one older
+ * transcript the ladder story is told from; older runs otherwise contribute
  * their scores and labels. Nothing here estimates, averages or fills a gap: a
  * file that can't be read turns into a sentence saying so.
  *
@@ -196,6 +197,25 @@ export interface EvalsData {
     error: string | null;
   };
   broken: BrokenRow[];
+  ladder: {
+    /** The first committed run of the ladder scenario, and the latest. */
+    before: LadderCall | null;
+    after: LadderCall | null;
+    /** The four ladder scenarios, passed in each of those two runs. */
+    scenarios: { total: number; beforePassed: number; afterPassed: number } | null;
+  };
+}
+
+export interface LadderCall {
+  scenario: string;
+  name: string;
+  passed: boolean;
+  stamp: string;
+  when: string;
+  label: string | null;
+  turns: Turn[];
+  checks: Array<{ name: string; passed: boolean }>;
+  judge: { passed: boolean; rationale: string | null };
 }
 
 const RUN_FILE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/;
@@ -303,6 +323,45 @@ function leakSummary(runs: RunFile[]): EvalsData["leak"] {
     check,
     since,
   };
+}
+
+/** The scenario the ladder failure was found in, and the other three that test the same stop rule (PASS_TWO_REPORT.md, addendum §4). */
+const LADDER_SCENARIO = "cancellation-ladder-stops-on-refusal";
+const LADDER_SCENARIOS = [
+  LADDER_SCENARIO,
+  "cancellation-ambiguous-decline-is-a-refusal",
+  "cancellation-no-justification-demanded",
+  "cancellation-ladder-runs-on-unsuitability",
+];
+
+function ladderCall(run: RunFile): LadderCall | null {
+  const result = run.conversations.results.find((r) => r.id === LADDER_SCENARIO);
+  if (!result) return null;
+  return {
+    scenario: result.id,
+    name: result.name,
+    passed: result.passed,
+    stamp: runStamp(run.run_at),
+    when: runTime(run.run_at),
+    label: run.label,
+    turns: result.turns,
+    checks: result.local.map((l) => ({ name: l.name, passed: l.passed })),
+    judge: { passed: result.llm.passed, rationale: result.llm.rationale },
+  };
+}
+
+/** The ladder scenario's first committed run against the latest, both transcripts in full. */
+function ladderSummary(runs: RunFile[]): EvalsData["ladder"] {
+  const firstRun = runs.find((run) => run.conversations.results.some((r) => r.id === LADDER_SCENARIO));
+  const passedIn = (run: RunFile) => run.conversations.results.filter((r) => LADDER_SCENARIOS.includes(r.id) && r.passed).length;
+  const present = (run: RunFile) => run.conversations.results.filter((r) => LADDER_SCENARIOS.includes(r.id)).length;
+  const before = firstRun ? ladderCall(firstRun) : null;
+  const after = ladderCall(latest);
+  const scenarios =
+    firstRun && firstRun.run_at !== latest.run_at && present(firstRun) === LADDER_SCENARIOS.length && present(latest) === LADDER_SCENARIOS.length
+      ? { total: LADDER_SCENARIOS.length, beforePassed: passedIn(firstRun), afterPassed: passedIn(latest) }
+      : null;
+  return { before: before && firstRun?.run_at !== latest.run_at ? before : null, after, scenarios };
 }
 
 function formatValue(spec: FieldSpec, value: unknown): string {
@@ -436,5 +495,6 @@ export function loadEvalsData(): EvalsData {
     leak: leakSummary(runs),
     attack: attackPanel(),
     broken,
+    ladder: ladderSummary(runs),
   };
 }

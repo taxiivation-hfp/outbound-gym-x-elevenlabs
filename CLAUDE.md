@@ -118,7 +118,8 @@ actually lives:
   verbatim quote from the document supports it. A person reviews every value
   before `POST /api/gyms` saves it.
 - Member data — `memberSource.ts` picks the synthetic dataset (default) or one
-  gym's uploaded members (`MEMBER_SOURCE=supabase`, `MEMBER_SOURCE_GYM_ID`).
+  gym's uploaded members (`MEMBER_SOURCE=supabase`, `MEMBER_SOURCE_GYM_ID`), or the
+  members of whichever gym was saved at onboarding (`MEMBER_SOURCE=onboarded`).
   Uploaded data is stored as members (upsert), contracts (one row per term,
   insert-only) and check-ins (insert-only) by `memberStore.ts`, imported by
   `memberImport.ts`/`csv.ts`, and derived into the router's `Member` shape by
@@ -135,7 +136,7 @@ about who is due a call.
 
 **Screens (`app/`, `components/`).** Five screens built from the approved
 mockups in `docs/design/mockups/`: the call queue (`/`, `components/calls/`),
-the overview (`/intelligence`, `components/intelligence/`), voice agent setup
+the overview (`/intelligence`, `components/intelligence/`), configuration
 (`/onboarding`, `components/onboarding/`), evals (`/evals`, `components/evals/`)
 and about (`/about`, `components/about/`), plus `/members`. Every screen sits in
 `components/shell/AppShell.tsx` and uses the theme tokens in `app/globals.css`

@@ -4,6 +4,7 @@
  */
 import membersData from "@/data/members_scored.json";
 import { today } from "@/lib/clock";
+import { listGyms } from "@/lib/gymStore";
 import { loadGymMember, loadGymMembers } from "@/lib/memberStore";
 import type { Member } from "@/lib/types";
 
@@ -15,6 +16,14 @@ import type { Member } from "@/lib/types";
  *
  *   MEMBER_SOURCE=dataset                      data/members_scored.json (default)
  *   MEMBER_SOURCE=supabase MEMBER_SOURCE_GYM_ID=<gym>  that gym's uploaded members
+ *   MEMBER_SOURCE=onboarded                    the uploaded members of the gym saved at
+ *                                              /onboarding (the demo's first run)
+ *
+ * `onboarded` is its own value rather than "supabase with no gym id", which is
+ * still refused: a forgotten variable must not quietly pick a gym. It resolves
+ * to the gym the queue calls as (`listGyms().default_gym_id`, the same one the
+ * first run checks), read from the gyms table on every call — so after a reset
+ * and a new gym saved, the queue follows the new gym without a redeploy.
  *
  * Supabase-sourced members are derived fresh on every read — the queue at
  * render time, and one member again at dial time — so a renewal imported after
@@ -35,9 +44,27 @@ export class MemberSourceError extends Error {
   }
 }
 
-export function memberSource(env: Record<string, string | undefined> = process.env): MemberSource {
+/**
+ * `onboardedGymId` is only read for `MEMBER_SOURCE=onboarded`, and only
+ * `currentMemberSource` supplies it; without one that setting is refused.
+ */
+export function memberSource(
+  env: Record<string, string | undefined> = process.env,
+  onboardedGymId: string | null = null
+): MemberSource {
   const source = env.MEMBER_SOURCE?.trim() || "dataset";
   if (source === "dataset") return { kind: "dataset" };
+  if (source === "onboarded") {
+    if (env.DATASET_CLOCK !== "live") {
+      throw new MemberSourceError(
+        "Uploaded members are only read against today's date. Set DATASET_CLOCK=live alongside MEMBER_SOURCE=onboarded — the frozen date belongs to the synthetic dataset."
+      );
+    }
+    if (!onboardedGymId) {
+      throw new MemberSourceError("MEMBER_SOURCE=onboarded reads the members of the gym saved at /onboarding, and no gym is saved yet.");
+    }
+    return { kind: "supabase", gymId: onboardedGymId };
+  }
   if (source === "supabase") {
     const gymId = env.MEMBER_SOURCE_GYM_ID?.trim();
     if (!gymId) {
@@ -55,7 +82,20 @@ export function memberSource(env: Record<string, string | undefined> = process.e
     }
     return { kind: "supabase", gymId };
   }
-  throw new MemberSourceError(`MEMBER_SOURCE must be "dataset" or "supabase", not "${source}".`);
+  throw new MemberSourceError(`MEMBER_SOURCE must be "dataset", "supabase" or "onboarded", not "${source}".`);
+}
+
+/** The gym `MEMBER_SOURCE=onboarded` follows: the default gym, when it is a row in the gyms table. */
+export async function onboardedGymId(): Promise<string | null> {
+  const listing = await listGyms();
+  if (listing.source !== "supabase") return null;
+  return listing.gyms.some((g) => g.gym_id === listing.default_gym_id) ? listing.default_gym_id : null;
+}
+
+/** `memberSource` for a caller that can wait: resolves `onboarded` to its gym first. */
+export async function currentMemberSource(env: Record<string, string | undefined> = process.env): Promise<MemberSource> {
+  if (env.MEMBER_SOURCE?.trim() !== "onboarded") return memberSource(env);
+  return memberSource(env, await onboardedGymId());
 }
 
 /**
@@ -104,7 +144,7 @@ export function datasetMemberName(memberId: string, env: Record<string, string |
 }
 
 export async function loadMembers(asOf: Date = today()): Promise<MemberList> {
-  const source = memberSource();
+  const source = await currentMemberSource();
   if (source.kind === "dataset") return { members: datasetMembers, source, unrouted: [] };
   const loaded = await loadGymMembers(source.gymId, asOf);
   return { members: loaded.members, source, unrouted: loaded.unrouted };
@@ -114,7 +154,7 @@ export async function loadMember(
   memberId: string,
   asOf: Date = today()
 ): Promise<{ member: Member | null; source: MemberSource; unroutedReason: string | null }> {
-  const source = memberSource();
+  const source = await currentMemberSource();
   if (source.kind === "dataset") {
     return { member: datasetMembers.find((m) => m.member_id === memberId) ?? null, source, unroutedReason: null };
   }

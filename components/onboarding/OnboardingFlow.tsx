@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import AppShell from "@/components/shell/AppShell";
+import AppShell, { type FirstRunStep } from "@/components/shell/AppShell";
 import { CALL_TYPE_TINT } from "@/components/calls/format";
 import type { GymConfig } from "@/lib/gymConfig";
 import { GYM_FIELD_KEYS, hasAtMostTwoDecimals } from "@/lib/gymConfig";
@@ -19,13 +19,15 @@ import {
   type Draft,
 } from "@/lib/onboardingDraft";
 import Connectors from "./Connectors";
+import DemoReset from "./DemoReset";
 import DocumentReader, { type ReadResult } from "./DocumentReader";
 import GymForm, { SaveControls, SaveNotices, type SaveState } from "./GymForm";
 import PromptPreview, { PREVIEW_TITLE_ID } from "./PromptPreview";
+import { SampleCsvs, SamplePriceList } from "./SampleFiles";
 import { AdminDetail, Button, Card, CardHeader, Literal, Pill, buttonClass, focusRing } from "./ui";
 
 /**
- * The voice agent setup screen, start to saved.
+ * The configuration screen, start to saved.
  *
  *   ┌ Start from a document ┐  upload → read → extract → check → "Fill the form from it"
  *   │ The gym's details     │  typed by hand, or prefilled and shown with provenance
@@ -61,6 +63,7 @@ export default function OnboardingFlow({
   defaultGym,
   maxUploadMb,
   editing = null,
+  firstRunStep = null,
 }: {
   /**
    * Editing an existing gym: the form opens prefilled with its current values
@@ -76,6 +79,8 @@ export default function OnboardingFlow({
   defaultGym: { gym_id: string; gym_name: string } | null;
   /** The document route's upload limit, from lib/extraction/documentText.ts. */
   maxUploadMb: number;
+  /** Set on a first run (lib/firstRun.ts): the nav is hidden and the step named. */
+  firstRunStep?: FirstRunStep | null;
 }) {
   const [baseline] = useState<Draft>(() =>
     editing ? { ...draftFromValues(editing), offer_schedule: scheduleToDraft(editing.offer_schedule) } : emptyDraft()
@@ -190,9 +195,17 @@ export default function OnboardingFlow({
 
   if (saved) {
     return (
-      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Voice agent setup">
+      // Saving the first gym finishes step one; members are still to come.
+      <AppShell current="setup" title={saved.gym.gym_name} eyebrow="Configuration" firstRunStep={firstRunStep ? "members" : undefined}>
         <div className="min-h-0 flex-1 overflow-auto">
-          <Saved gym={saved.gym} incentives={saved.incentives} headingRef={savedHeading} edited={Boolean(editing)} defaultGym={defaultGym} />
+          <Saved
+            gym={saved.gym}
+            incentives={saved.incentives}
+            headingRef={savedHeading}
+            edited={Boolean(editing)}
+            defaultGym={defaultGym}
+            firstRun={Boolean(firstRunStep)}
+          />
         </div>
       </AppShell>
     );
@@ -220,7 +233,8 @@ export default function OnboardingFlow({
     <AppShell
       current="setup"
       title={editing ? editing.gym_name : "Retention Router"}
-      eyebrow="Voice agent setup"
+      eyebrow="Configuration"
+      firstRunStep={firstRunStep ?? undefined}
       headerActions={
         <SaveControls
           saveAvailable={saveAvailable}
@@ -260,6 +274,7 @@ export default function OnboardingFlow({
                   of it, each with the sentence it came from, and put in the form to check. A membership agreement is usually
                   the most reliable: prices and terms have to be in it.
                 </p>
+                <SamplePriceList />
 
                 {doc.kind === "reading" ? (
                   <DocumentReader
@@ -389,6 +404,7 @@ export default function OnboardingFlow({
             </div>
 
             <MemberDataCard editing={editing} existingGyms={existingGyms} defaultGymId={defaultGym?.gym_id ?? null} />
+            {!editing && <DemoReset available={saveAvailable} adminDetail={saveAdminDetail} />}
             <div aria-hidden="true" className="h-1.5" />
           </div>
 
@@ -447,6 +463,7 @@ function MemberDataCard({
             Member data is uploaded against a saved gym, so save this one first; the confirmation links to its member data.
             For a gym that is already set up, open its member data below.
           </p>
+          <SampleCsvs />
           {existingGyms.length > 0 && (
             <div role="group" aria-labelledby="existing-title">
               <h3 id="existing-title" className="m-0 mb-2 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">
@@ -485,8 +502,11 @@ function Saved({
   headingRef,
   edited,
   defaultGym,
+  firstRun,
 }: {
   edited: boolean;
+  /** On a first run there is no queue yet, so the only way on is member data. */
+  firstRun: boolean;
   gym: GymConfig;
   incentives: Record<CallType, string>;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
@@ -529,9 +549,11 @@ function Saved({
           <Link href={`/onboarding/${gym.gym_id}/members`} className={buttonClass("primary")}>
             Connect member data
           </Link>
-          <Link href="/" className={buttonClass("secondary")}>
-            Back to the queue
-          </Link>
+          {!firstRun && (
+            <Link href="/" className={buttonClass("secondary")}>
+              Back to the queue
+            </Link>
+          )}
         </div>
       </Card>
     </div>
