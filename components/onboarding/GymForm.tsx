@@ -87,14 +87,22 @@ export default function GymForm({
   const [attempts, setAttempts] = useState(0);
   const [accepted, setAccepted] = useState<Partial<Record<GymFieldKey, boolean>>>({});
   const summaryRef = useRef<HTMLDivElement>(null);
+  // Text typed into the site box but never added would otherwise be dropped on
+  // save, and a blank site list tells Charlie there are no other sites. So it
+  // blocks saving until it is added or cleared.
+  const [pendingSite, setPendingSite] = useState("");
+  const formErrors: FieldErrors =
+    pendingSite.trim() && !validationErrors.other_locations
+      ? { ...validationErrors, other_locations: `"${pendingSite.trim()}" is typed but not added. Press Add site, or clear the box.` }
+      : validationErrors;
 
   const serverErrors = saveState.kind === "error" ? (saveState.errors ?? {}) : {};
   const errorFor = (key: GymFieldKey): string | undefined =>
-    serverErrors[key] ?? (touched[key] || attempts > 0 ? validationErrors[key] : undefined);
+    serverErrors[key] ?? (touched[key] || attempts > 0 ? formErrors[key] : undefined);
 
   const touch = (key: GymFieldKey) => setTouched((t) => (t[key] ? t : { ...t, [key]: true }));
 
-  const fieldErrorKeys = (Object.keys(validationErrors) as Array<GymFieldKey | "_form" | "gym_id">).filter(
+  const fieldErrorKeys = (Object.keys(formErrors) as Array<GymFieldKey | "_form" | "gym_id">).filter(
     (k): k is GymFieldKey => k !== "_form" && k !== "gym_id"
   );
 
@@ -221,7 +229,7 @@ export default function GymForm({
                   >
                     {fieldSpec(key).label}
                   </button>{" "}
-                  — {validationErrors[key]}
+                  — {formErrors[key]}
                 </li>
               ))}
             </ul>
@@ -271,6 +279,7 @@ export default function GymForm({
               touch("other_locations");
             }}
             placeholder={fieldSpec("other_locations").example}
+            onPendingChange={setPendingSite}
           />
           <ChoiceField<boolean>
             name="has_online"

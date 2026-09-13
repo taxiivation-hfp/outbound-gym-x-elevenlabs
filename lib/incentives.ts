@@ -71,6 +71,14 @@ export interface SentenceTemplate {
   forbids?: boolean;
   /** Mentions the quiet times, which only a gym that gave us quiet times can do. */
   mentionsQuietTimes?: boolean;
+  /**
+   * Offers this sentence says there are none of, or only makes sense without
+   * ("If money is the reason they stopped, say you'll pass it on" can't sit
+   * beside a cheaper tier). "all": a sentence for a block with nothing to offer.
+   */
+  excludes?: OfferKind[] | "all";
+  /** The offer this sentence refers back to ("that guest pass"), or "any" offer ("lead with it"). */
+  needs?: OfferKind | "any";
 }
 
 export const SENTENCES: SentenceTemplate[] = [
@@ -91,6 +99,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "renewal.limit.everything",
+    needs: "renewal_discount",
     callType: "renewal",
     role: "limit",
     counts: 1,
@@ -98,24 +107,29 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "renewal.close.no_more",
+    needs: "renewal_discount",
+    excludes: ["cheaper_tier"],
     callType: "renewal",
     role: "close",
     text: "No other discount exists, no cheaper plan exists, and you cannot ask a manager for more.",
   },
   {
     id: "renewal.none.nothing",
+    excludes: "all",
     callType: "renewal",
     role: "deny",
     text: "You have nothing to offer.",
   },
   {
     id: "renewal.none.handling",
+    excludes: "all",
     callType: "renewal",
     role: "handling",
     text: "If they say it's too expensive, say you understand, you'll pass it on, and leave it there.",
   },
   {
     id: "renewal.none.close",
+    excludes: "all",
     callType: "renewal",
     role: "close",
     forbids: true,
@@ -139,6 +153,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "reengagement.frame.lead",
+    needs: "any",
     callType: "reengagement",
     role: "frame",
     text: "Lead with it — it is your reason for calling, not their absence.",
@@ -159,6 +174,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "reengagement.limit.guest_pass",
+    needs: "guest_pass",
     callType: "reengagement",
     role: "limit",
     counts: 1,
@@ -166,6 +182,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "reengagement.limit.free_session",
+    needs: "free_session",
     callType: "reengagement",
     role: "limit",
     counts: 1,
@@ -173,24 +190,29 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "reengagement.close.nothing_else",
+    needs: "any",
+    excludes: ["renewal_discount"],
     callType: "reengagement",
     role: "close",
     text: "There is no discount, no free month and nothing else to add to it.",
   },
   {
     id: "reengagement.none.nothing",
+    excludes: "all",
     callType: "reengagement",
     role: "deny",
     text: "You have nothing to give them.",
   },
   {
     id: "reengagement.none.frame",
+    excludes: "all",
     callType: "reengagement",
     role: "frame",
     text: "Your reason for calling is to check nothing's wrong and that the gym isn't the problem.",
   },
   {
     id: "reengagement.none.close",
+    excludes: "all",
     callType: "reengagement",
     role: "close",
     forbids: true,
@@ -237,12 +259,14 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.handling.money",
+    excludes: ["cheaper_tier"],
     callType: "winback",
     role: "handling",
     text: "If money is the reason they stopped, say you understand and you'll pass it on.",
   },
   {
     id: "winback.handling.momentum",
+    excludes: ["free_pt_session", "guest_pass"],
     callType: "winback",
     role: "handling",
     text: "If they lost momentum, say you understand and that the door's open.",
@@ -256,6 +280,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.limit.free_pt_session",
+    needs: "free_pt_session",
     callType: "winback",
     role: "limit",
     counts: 1,
@@ -263,6 +288,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.limit.guest_pass",
+    needs: "guest_pass",
     callType: "winback",
     role: "limit",
     counts: 1,
@@ -270,6 +296,7 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.limit.cheaper_tier",
+    needs: "cheaper_tier",
     callType: "winback",
     role: "limit",
     counts: 1,
@@ -277,36 +304,42 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.close.no_discount_no_tier",
+    excludes: ["renewal_discount", "cheaper_tier"],
     callType: "winback",
     role: "close",
     text: "There is no discount and no cheaper plan, and you cannot ask a manager for more.",
   },
   {
     id: "winback.close.no_discount_no_session",
+    excludes: ["renewal_discount", "free_pt_session", "free_session"],
     callType: "winback",
     role: "close",
     text: "There is no discount and no free session, and you cannot ask a manager for more.",
   },
   {
     id: "winback.deny.no_session",
+    excludes: ["free_pt_session", "free_session", "guest_pass"],
     callType: "winback",
     role: "deny",
     text: "You have no free session and no guest pass to offer.",
   },
   {
     id: "winback.none.nothing",
+    excludes: "all",
     callType: "winback",
     role: "deny",
     text: "You have nothing to put on the table — no free session, no cheaper plan, no discount.",
   },
   {
     id: "winback.none.handling",
+    excludes: "all",
     callType: "winback",
     role: "handling",
     text: "If money or motivation is the reason they stopped, say you understand and you'll pass it on.",
   },
   {
     id: "winback.none.quiet_and_door",
+    excludes: "all",
     callType: "winback",
     role: "handling",
     mentionsQuietTimes: true,
@@ -314,12 +347,14 @@ export const SENTENCES: SentenceTemplate[] = [
   },
   {
     id: "winback.none.door",
+    excludes: "all",
     callType: "winback",
     role: "handling",
     text: "All you can offer is the door being open.",
   },
   {
     id: "winback.none.close",
+    excludes: "all",
     callType: "winback",
     role: "close",
     forbids: true,

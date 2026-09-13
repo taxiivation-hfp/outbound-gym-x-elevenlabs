@@ -60,6 +60,8 @@ export type ViolationRule =
   | "nothing_block_has_offer_language"
   | "delivery_mismatch"
   | "count_mismatch"
+  | "contradicts_grant"
+  | "refers_to_missing_offer"
   | "quiet_times_unknown";
 
 export interface IncentivesViolation {
@@ -478,6 +480,37 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
           d === "link"
             ? "An offer delivered by link has no instruction to text it."
             : "An offer that needs booking has no instruction that someone will call to arrange it.",
+      });
+    }
+  }
+
+  // A block can't grant something and then say there is none of it, or refer
+  // back to an offer ("that guest pass", "lead with it") it never made. Checked
+  // against both what the block grants and what the config grants, so a denial
+  // is caught even when the grant it contradicts was also left out.
+  const offered = new Set<OfferKind>([...granted.keys(), ...expected]);
+  for (const { text, template } of matched) {
+    if (!template) continue;
+    const excluded = template.excludes === "all" ? [...offered] : (template.excludes ?? []).filter((o) => offered.has(o));
+    if (excluded.length > 0) {
+      violations.push({
+        rule: "contradicts_grant",
+        sentence: text,
+        message: `This sentence says there is no ${excluded.map((o) => o.replace(/_/g, " ")).join(" or ")}, but it is on offer.`,
+      });
+    }
+    const needs = template.needs;
+    if (needs === "any" && granted.size === 0) {
+      violations.push({
+        rule: "refers_to_missing_offer",
+        sentence: text,
+        message: "This sentence refers back to an offer, but the block doesn't make one.",
+      });
+    } else if (needs !== undefined && needs !== "any" && !granted.has(needs)) {
+      violations.push({
+        rule: "refers_to_missing_offer",
+        sentence: text,
+        message: `This sentence refers back to a ${needs.replace(/_/g, " ")}, but the block doesn't offer one.`,
       });
     }
   }

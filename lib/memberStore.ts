@@ -12,17 +12,19 @@ import type { Member } from "@/lib/types";
  * Uploaded member data in Supabase: writing an import, and reading members back
  * in the shape the router reads.
  *
- * Server-only. The per-table sync rules live in the migration and are kept
- * here: members are upserted, contracts and check-ins are inserted and never
- * updated, and a re-upload of the same export changes nothing. Nothing
+ * Server-only. The per-table sync rules live in the migration's import
+ * functions: members are upserted, contracts and check-ins are inserted and
+ * never rewritten, and a re-upload of the same export adds nothing. Each file is
+ * one function call, so one transaction — imported whole or not at all. Nothing
  * time-relative is stored — `days_since_visit` and contract status are derived
  * on every read, so a member read at dial time is current as of that moment.
  */
 
 const MIGRATION = "supabase/migrations/20260914010000_member_data.sql";
-const BATCH = 500;
 const PAGE = 1000;
 const TIMEOUT_MS = 15_000;
+/** One file is one statement; leave the route's 60 seconds room to answer. */
+const IMPORT_TIMEOUT_MS = 50_000;
 
 const MISSING_TABLE_CODES = new Set(["PGRST205", "42P01", "PGRST202"]);
 
@@ -64,18 +66,25 @@ function requireSupabase() {
   }
 }
 
-/** Reads every row a paged query returns, a page at a time. */
+/**
+ * Reads every row a paged query returns. It stops only on an empty page, not a
+ * short one: a project whose API row limit is below the page size returns short
+ * pages that are not the end, and stopping early would silently drop the
+ * newest contracts — the renewals and auto-renew switches.
+ */
 async function readAll<T>(
   doing: string,
   page: (from: number, to: number) => PromiseLike<{ data: unknown; error: DbError }>
 ): Promise<T[]> {
   const out: T[] = [];
-  for (let from = 0; ; from += PAGE) {
+  let from = 0;
+  for (;;) {
     const { data, error } = await page(from, from + PAGE - 1);
     if (error) fail(error, doing);
     const rows = (Array.isArray(data) ? data : []) as T[];
+    if (rows.length === 0) return out;
     out.push(...rows);
-    if (rows.length < PAGE) return out;
+    from += rows.length;
   }
 }
 
@@ -83,9 +92,12 @@ async function readAll<T>(
 
 export interface ImportOutcome {
   kind: ImportKind;
-  /** Rows written: new or updated members, or newly inserted contracts and check-ins. */
+  /** New rows: members added, or contracts and check-ins inserted. */
   written: number;
-  /** Rows already present from an earlier import, left untouched. */
+  /**
+   * Rows already stored from an earlier import: members updated with the file's
+   * name and number, contracts marked as still listed, check-ins left as they were.
+   */
   alreadyPresent: number;
 }
 
@@ -98,70 +110,43 @@ export async function existingMemberIds(gymId: string): Promise<Set<string>> {
   return new Set(rows.map((r) => r.member_id));
 }
 
-export async function importMembers(gymId: string, rows: MemberRecord[]): Promise<ImportOutcome> {
-  requireSupabase();
-  const now = new Date().toISOString();
-  let written = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH).map((r) => ({
-      gym_id: gymId,
-      member_id: r.member_id,
-      name: r.name,
-      mobile: r.mobile,
-      join_date: r.join_date,
-      last_imported_at: now,
-    }));
-    // Upsert: a member's name and number change, and the latest export wins.
-    // `first_imported_at` is left to its default on insert and never sent.
-    const { error, count } = await supabaseAdmin
-      .from("members")
-      .upsert(batch, { onConflict: "gym_id,member_id", count: "exact" })
-      .abortSignal(AbortSignal.timeout(TIMEOUT_MS));
-    if (error) {
-      fail(error, `write members ${i + 1}–${i + batch.length} (${i} were written before this)`);
-    }
-    written += count ?? batch.length;
-  }
-  return { kind: "members", written, alreadyPresent: 0 };
-}
-
-async function insertOnly<T extends object>(
-  table: "contracts" | "checkins",
-  onConflict: string,
-  gymId: string,
-  rows: T[],
-  kind: ImportKind
+/** Calls one import function: the whole file in one statement. */
+async function importFile(
+  kind: ImportKind,
+  fn: "import_members" | "import_contracts" | "import_checkins",
+  existingColumn: "updated" | "seen_again" | "already_present",
+  args: Record<string, unknown>
 ): Promise<ImportOutcome> {
   requireSupabase();
-  let written = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH).map((r) => ({ gym_id: gymId, ...r }));
-    // Insert only: a row that matches one already stored is ignored, never
-    // updated, so re-uploading an export is harmless.
-    const { error, count } = await supabaseAdmin
-      .from(table)
-      .upsert(batch, { onConflict, ignoreDuplicates: true, count: "exact" })
-      .abortSignal(AbortSignal.timeout(TIMEOUT_MS));
-    if (error) {
-      fail(error, `write ${table} rows ${i + 1}–${i + batch.length} (${written} new rows were written before this; re-uploading is safe)`);
-    }
-    written += count ?? 0;
+  const { data, error } = await supabaseAdmin.rpc(fn, args).abortSignal(AbortSignal.timeout(IMPORT_TIMEOUT_MS));
+  if (error) fail(error, `import the ${kind} file, so nothing from it was written`);
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, number | string | null> | undefined;
+  if (!row || row.inserted === undefined || row[existingColumn] === undefined) {
+    throw new MemberStoreError(`The ${kind} import returned no result, so it can't be confirmed. Re-uploading the same file is safe.`, 502);
   }
-  return { kind, written, alreadyPresent: rows.length - written };
+  return { kind, written: Number(row.inserted), alreadyPresent: Number(row[existingColumn]) };
+}
+
+export function importMembers(gymId: string, rows: MemberRecord[], hasMobileColumn: boolean): Promise<ImportOutcome> {
+  return importFile("members", "import_members", "updated", {
+    p_gym_id: gymId,
+    p_rows: rows.map((r) => [r.member_id, r.name, r.mobile, r.join_date]),
+    p_has_mobile: hasMobileColumn,
+  });
 }
 
 export function importContracts(gymId: string, rows: ContractRow[]): Promise<ImportOutcome> {
-  return insertOnly(
-    "contracts",
-    "gym_id,member_id,start_date,end_date,auto_renew,contract_type,monthly_fee,renewal_fee",
-    gymId,
-    rows,
-    "contracts"
-  );
+  return importFile("contracts", "import_contracts", "seen_again", {
+    p_gym_id: gymId,
+    p_rows: rows.map((r) => [r.member_id, r.contract_type, r.auto_renew, r.start_date, r.end_date, r.monthly_fee, r.renewal_fee]),
+  });
 }
 
 export function importCheckins(gymId: string, rows: CheckinRecord[]): Promise<ImportOutcome> {
-  return insertOnly("checkins", "gym_id,member_id,visited_at", gymId, rows, "checkins");
+  return importFile("checkins", "import_checkins", "already_present", {
+    p_gym_id: gymId,
+    p_rows: rows.map((r) => [r.member_id, r.visited_at]),
+  });
 }
 
 // --- Reading -------------------------------------------------------------------------
@@ -196,7 +181,7 @@ interface RawContract {
   end_date: string;
   monthly_fee: number | string;
   renewal_fee: number | string | null;
-  imported_at: string;
+  last_seen_at: string;
 }
 
 function toContract(row: RawContract): ContractRecord {
@@ -209,7 +194,7 @@ function toContract(row: RawContract): ContractRecord {
     end_date: row.end_date,
     monthly_fee: Number(row.monthly_fee),
     renewal_fee: row.renewal_fee === null ? null : Number(row.renewal_fee),
-    imported_at: row.imported_at,
+    last_seen_at: row.last_seen_at,
   };
 }
 
@@ -276,7 +261,7 @@ export async function loadGymMembers(gymId: string, asOf: Date): Promise<LoadedM
     readAll<RawContract>("read contracts", (from, to) =>
       supabaseAdmin
         .from("contracts")
-        .select("id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee, imported_at")
+        .select("id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee, last_seen_at")
         .eq("gym_id", gymId)
         .order("id")
         .range(from, to)
@@ -324,7 +309,7 @@ export async function loadGymMember(
       .maybeSingle(),
     supabaseAdmin
       .from("contracts")
-      .select("id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee, imported_at")
+      .select("id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee, last_seen_at")
       .eq("gym_id", gymId)
       .eq("member_id", memberId)
       .abortSignal(AbortSignal.timeout(TIMEOUT_MS)),

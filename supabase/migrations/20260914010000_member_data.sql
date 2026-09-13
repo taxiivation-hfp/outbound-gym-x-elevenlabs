@@ -13,12 +13,14 @@
 -- * contracts — INSERT ONLY, one row per term. A renewal is a new row with its
 --               own start and end, so a member who renewed at the front desk
 --               leaves the renewal queue on the next import instead of being
---               rung about a renewal she already did. Current state is the row
---               with the latest end date. Re-importing the same export inserts
---               nothing (the unique key covers every fact about the term); an
+--               rung about a renewal she already did. Re-importing the same
+--               export inserts nothing (the unique key covers every fact about
+--               the term) and only moves that row's last_seen_at forward; an
 --               export in which a term's facts changed — auto-renew switched on,
---               a price corrected — inserts a new row for that term, and the most
---               recently imported row for the latest term wins.
+--               a price corrected — inserts a new row for that term. Which row
+--               is current is decided in lib/memberData.ts `currentContract`,
+--               which resolves any disagreement about auto-renew towards not
+--               calling.
 -- * checkins  — INSERT ONLY, one row per visit. A visit that happened cannot
 --               un-happen. days_since_visit is derived from MAX(visited_at) at
 --               query time and never stored, and check-ins are never an array on
@@ -58,7 +60,9 @@ create table if not exists contracts (
   end_date date not null,
   monthly_fee numeric(8, 2) not null check (monthly_fee >= 0),
   renewal_fee numeric(8, 2) check (renewal_fee is null or renewal_fee >= 0),
+  -- When the row was first imported, and the last import that still listed it.
   imported_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
   constraint contracts_term_order check (end_date >= start_date),
   constraint contracts_member_fk
     foreign key (gym_id, member_id) references members (gym_id, member_id) on delete restrict,
@@ -70,8 +74,8 @@ create table if not exists contracts (
     (gym_id, member_id, start_date, end_date, auto_renew, contract_type, monthly_fee, renewal_fee)
 );
 
-create index if not exists contracts_current_idx
-  on contracts (gym_id, member_id, end_date desc, imported_at desc, id desc);
+create index if not exists contracts_member_idx
+  on contracts (gym_id, member_id);
 
 create table if not exists checkins (
   gym_id text not null,
@@ -90,11 +94,95 @@ alter table members enable row level security;
 alter table contracts enable row level security;
 alter table checkins enable row level security;
 
--- Which contract is current (latest end date, then latest import) is decided in
--- one place, lib/memberData.ts `currentContract`, which the guards cover. There
--- is deliberately no view duplicating that rule — and no view at all, because a
--- view owned by the migration role would read these tables around row level
--- security.
+-- Which contract is current is decided in one place, lib/memberData.ts
+-- `currentContract`, which the guards cover. There is deliberately no view
+-- duplicating that rule — and no view at all, because a view owned by the
+-- migration role would read these tables around row level security.
+
+-- Imports. Each file is written by one function call, which is one statement
+-- and so one transaction: a file is imported whole or not at all, and a
+-- failure part-way (a constraint, a timeout) leaves nothing behind. Rows arrive
+-- as a JSON array of arrays, in the column order named in each function, which
+-- keeps a large check-in export close to its CSV size on the wire.
+
+-- Members: upsert. A file without a mobile column leaves stored numbers alone
+-- rather than clearing them.
+create or replace function import_members(p_gym_id text, p_rows jsonb, p_has_mobile boolean)
+returns table (inserted bigint, updated bigint)
+language sql
+as $$
+  with incoming as (
+    -- [member_id, name, mobile, join_date]
+    select e->>0 as member_id, e->>1 as name, e->>2 as mobile, (e->>3)::date as join_date
+    from jsonb_array_elements(p_rows) as e
+  ),
+  written as (
+    insert into members as m (gym_id, member_id, name, mobile, join_date)
+    select p_gym_id, i.member_id, i.name, i.mobile, i.join_date from incoming i
+    on conflict (gym_id, member_id) do update
+      set name = excluded.name,
+          mobile = case when p_has_mobile then excluded.mobile else m.mobile end,
+          join_date = excluded.join_date,
+          last_imported_at = now()
+    returning (xmax = 0) as was_inserted
+  )
+  select count(*) filter (where was_inserted), count(*) filter (where not was_inserted) from written
+$$;
+
+-- Contracts: insert only. A term already stored is not rewritten; the import
+-- only records that the platform still lists it.
+create or replace function import_contracts(p_gym_id text, p_rows jsonb)
+returns table (inserted bigint, seen_again bigint)
+language sql
+as $$
+  with incoming as (
+    -- [member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee]
+    select
+      e->>0 as member_id,
+      e->>1 as contract_type,
+      (e->>2)::boolean as auto_renew,
+      (e->>3)::date as start_date,
+      (e->>4)::date as end_date,
+      (e->>5)::numeric as monthly_fee,
+      (e->>6)::numeric as renewal_fee
+    from jsonb_array_elements(p_rows) as e
+  ),
+  written as (
+    insert into contracts (gym_id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee)
+    select p_gym_id, i.member_id, i.contract_type, i.auto_renew, i.start_date, i.end_date, i.monthly_fee, i.renewal_fee
+    from incoming i
+    on conflict on constraint contracts_term_facts_uniq do update
+      set last_seen_at = now()
+    returning (xmax = 0) as was_inserted
+  )
+  select count(*) filter (where was_inserted), count(*) filter (where not was_inserted) from written
+$$;
+
+-- Check-ins: insert only. A visit already stored is ignored.
+create or replace function import_checkins(p_gym_id text, p_rows jsonb)
+returns table (inserted bigint, already_present bigint)
+language sql
+as $$
+  with incoming as (
+    -- [member_id, visited_at]
+    select e->>0 as member_id, (e->>1)::timestamp as visited_at
+    from jsonb_array_elements(p_rows) as e
+  ),
+  written as (
+    insert into checkins (gym_id, member_id, visited_at)
+    select p_gym_id, i.member_id, i.visited_at from incoming i
+    on conflict do nothing
+    returning 1
+  )
+  select (select count(*) from written), (select count(*) from incoming) - (select count(*) from written)
+$$;
+
+revoke all on function import_members(text, jsonb, boolean) from public, anon, authenticated;
+revoke all on function import_contracts(text, jsonb) from public, anon, authenticated;
+revoke all on function import_checkins(text, jsonb) from public, anon, authenticated;
+grant execute on function import_members(text, jsonb, boolean) to service_role;
+grant execute on function import_contracts(text, jsonb) to service_role;
+grant execute on function import_checkins(text, jsonb) to service_role;
 
 -- Check-in counts relative to a reference date, with the pipeline's windows
 -- (pipeline/build_scores.py). Computed on request, never stored, so the counts

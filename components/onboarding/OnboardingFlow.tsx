@@ -45,7 +45,7 @@ const ACCEPT = ".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlforma
 
 const SAVE_OFF_TITLE = "Saving is switched off here";
 const SAVE_OFF_BODY =
-  "New gyms can't be saved until your admin connects the database. You can still fill in the form and see exactly what Charlie would be told.";
+  "New gyms can't be saved until your admin switches saving on. You can still fill in the form and see exactly what Charlie would be told.";
 
 export default function OnboardingFlow({
   saveAvailable,

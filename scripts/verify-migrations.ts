@@ -27,6 +27,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS = [
   "20260914000000_create_gyms.sql",
   "20260914010000_member_data.sql",
+  "20260914020000_queue_runs.sql",
 ];
 
 let failures = 0;
@@ -97,6 +98,16 @@ async function main() {
   check("an unknown perk is refused", await rejects(db, "insert into gyms (gym_id, gym_name, reengagement_perk, created_via) values ('x4', 'X', 'half_price', 'manual')"));
   check("text that isn't NFKC-normalised is refused", await rejects(db, "insert into gyms (gym_id, gym_name, created_via) values ('x5', 'ＡＢＣ Gym', 'manual')"));
   check(
+    "an invisible combining mark that NFKC keeps is refused",
+    await rejects(db, `insert into gyms (gym_id, gym_name, quiet_hours, created_via) values ('x7', 'X', 'ig${String.fromCharCode(0x34f)}nore rules', 'manual')`)
+  );
+  check(
+    "small-capital look-alike letters are refused",
+    await rejects(db, `insert into gyms (gym_id, gym_name, created_via) values ('x8', '${String.fromCharCode(0x26a, 0x262, 0x274)} Gym', 'manual')`)
+  );
+  const accented = await rejects(db, "insert into gyms (gym_id, gym_name, other_locations, created_via) values ('cafe-creme', 'Café Crème Fitness', array['St. Kilda East'], 'manual')");
+  check("accented Latin names and abbreviations are accepted", !accented);
+  check(
     "a site list longer than one fact is refused",
     await rejects(db, "insert into gyms (gym_id, gym_name, other_locations, created_via) values ('x6', 'X', array[repeat('a', 60), repeat('b', 60), repeat('c', 60)], 'manual')")
   );
@@ -114,31 +125,82 @@ async function main() {
   const members = table("pipeline/data/members.csv");
   const contracts = table("pipeline/data/contracts.csv");
   const checkins = table("pipeline/data/checkins.csv");
-  await db.exec("begin");
-  for (const m of members) {
-    await db.query(
-      "insert into members (gym_id, member_id, name, mobile, join_date) values ('southbank', $1, $2, $3, $4) on conflict (gym_id, member_id) do update set name = excluded.name, mobile = excluded.mobile",
-      [m.memberid, m.name, m.phone || null, m.joindate]
-    );
-  }
-  const insertContract = (c: Record<string, string>, autoRenew = c.autorenew === "True") =>
-    db.query(
-      "insert into contracts (gym_id, member_id, contract_type, auto_renew, start_date, end_date, monthly_fee, renewal_fee) values ('southbank', $1, $2, $3, $4, $5, $6, $7) on conflict do nothing returning id",
-      [c.memberid, c.contracttype, autoRenew, c.startdate, c.expirydate, c.monthlyfee, c.renewalfee || null]
-    );
-  for (const c of contracts) await insertContract(c);
-  for (const v of checkins) {
-    await db.query("insert into checkins (gym_id, member_id, visited_at) values ('southbank', $1, $2) on conflict do nothing", [v.memberid, v.timestamp]);
-  }
-  await db.exec("commit");
 
-  let reinserted = 0;
-  for (const c of contracts.slice(0, 50)) reinserted += (await insertContract(c)).rows.length;
-  check("re-importing the same contracts inserts nothing", reinserted === 0, `${reinserted} new rows`);
-  const flipped = await insertContract(contracts[0], contracts[0].autorenew !== "True");
-  check("the same term with auto-renew changed becomes a new row", flipped.rows.length === 1);
-  const dupVisit = await db.query("insert into checkins (gym_id, member_id, visited_at) values ('southbank', $1, $2) on conflict do nothing returning 1", [checkins[0].memberid, checkins[0].timestamp]);
-  check("a check-in already stored is ignored", dupVisit.rows.length === 0);
+  // Everything below goes through the import functions the app calls, as the
+  // service role, with rows shaped as lib/memberStore.ts sends them.
+  type Counts = { first: number; second: number };
+  const importRows = async (fn: string, rows: unknown[], extra = ""): Promise<Counts> => {
+    const result = await db.query(`select * from ${fn}('southbank', $1::jsonb${extra})`, [JSON.stringify(rows)]);
+    const row = result.rows[0] as Record<string, unknown>;
+    const [first, second] = Object.values(row).map(Number);
+    return { first, second };
+  };
+  const memberRows = members.map((m) => [m.memberid, m.name, m.phone || null, m.joindate]);
+  const contractRow = (c: Record<string, string>, autoRenew = c.autorenew === "True") => [
+    c.memberid,
+    c.contracttype,
+    autoRenew,
+    c.startdate,
+    c.expirydate,
+    Number(c.monthlyfee),
+    c.renewalfee ? Number(c.renewalfee) : null,
+  ];
+  /** Microseconds since the epoch: a Date would round to milliseconds. */
+  const lastSeen = async (c: Record<string, string>, autoRenew: boolean): Promise<number> =>
+    Number(
+      (
+        (
+          await db.query(
+            "select (extract(epoch from last_seen_at) * 1000000)::bigint as us from contracts where gym_id = 'southbank' and member_id = $1 and start_date = $2 and auto_renew = $3",
+            [c.memberid, c.startdate, autoRenew]
+          )
+        ).rows[0] as { us: unknown }
+      ).us
+    );
+
+  await db.exec("set role service_role");
+  const membersIn = await importRows("import_members", memberRows, ", true");
+  check("import_members writes every member", membersIn.first === members.length, `${membersIn.first} inserted`);
+  const contractsIn = await importRows("import_contracts", contracts.map((c) => contractRow(c)));
+  check("import_contracts writes every term", contractsIn.first === contracts.length, `${contractsIn.first} inserted`);
+  const checkinsIn = await importRows("import_checkins", checkins.map((v) => [v.memberid, v.timestamp]));
+  check("import_checkins writes each distinct visit once", checkinsIn.first + checkinsIn.second === checkins.length, `${checkinsIn.first} inserted, ${checkinsIn.second} duplicates ignored`);
+
+  const first = contracts[0];
+  const auto = first.autorenew === "True";
+  const seenBefore = await lastSeen(first, auto);
+  await db.exec("select pg_sleep(0.01)");
+  const again = await importRows("import_contracts", contracts.slice(0, 50).map((c) => contractRow(c)));
+  check(
+    "re-importing the same contracts inserts nothing and marks them seen again",
+    again.first === 0 && again.second === 50 && (await lastSeen(first, auto)) !== seenBefore,
+    `${again.first} new, ${again.second} seen again`
+  );
+  const flipped = await importRows("import_contracts", [contractRow(first, !auto)]);
+  check("the same term with auto-renew changed becomes a new row", flipped.first === 1);
+  await db.exec("select pg_sleep(0.01)");
+  const flippedBack = await importRows("import_contracts", [contractRow(first, auto)]);
+  check(
+    "switching it back adds no row but makes the original the most recently seen",
+    flippedBack.first === 0 && (await lastSeen(first, auto)) > (await lastSeen(first, !auto))
+  );
+
+  const bad = contracts.slice(1, 4).map((c) => contractRow(c, c.autorenew !== "True"));
+  bad.push([first.memberid, first.contracttype, null, first.startdate, first.expirydate, 79, 79]);
+  const countBefore = Number(((await db.query("select count(*) as n from contracts")).rows[0] as { n: unknown }).n);
+  const badImport = await rejects(db, `select * from import_contracts('southbank', '${JSON.stringify(bad).replace(/'/g, "''")}'::jsonb)`);
+  const countAfter = Number(((await db.query("select count(*) as n from contracts")).rows[0] as { n: unknown }).n);
+  check("a file with one bad row writes none of its rows", badImport && countAfter === countBefore, `${countAfter - countBefore} rows written`);
+
+  const withNumber = members.find((m) => m.phone);
+  if (!withNumber) throw new Error("no member with a phone number in the synthetic data");
+  await importRows("import_members", [[withNumber.memberid, withNumber.name, null, withNumber.joindate]], ", false");
+  const kept = (await db.query("select mobile from members where gym_id = 'southbank' and member_id = $1", [withNumber.memberid])).rows[0] as { mobile: string | null };
+  check("a members file with no mobile column leaves stored numbers alone", kept.mobile === withNumber.phone);
+
+  const dupVisit = await importRows("import_checkins", [[checkins[0].memberid, checkins[0].timestamp]]);
+  check("a check-in already stored is ignored", dupVisit.first === 0 && dupVisit.second === 1);
+  await db.exec("reset role");
 
   await db.exec("set role service_role");
   const counted = (await db.query("select * from member_visit_counts('southbank', '2026-09-12')")).rows as Array<Record<string, unknown>>;
@@ -170,8 +232,19 @@ async function main() {
 
   await db.exec("set role anon");
   const anonDenied = await rejects(db, "select * from member_visit_counts('southbank', '2026-09-12')");
+  const anonImportDenied = await rejects(db, "select * from import_contracts('southbank', '[]'::jsonb)");
   await db.exec("reset role");
   check("the anonymous role cannot read visit counts", anonDenied);
+  check("the anonymous role cannot call the import functions", anonImportDenied);
+
+  console.log("\nQueue runs");
+  const run = (await db.query("insert into queue_runs (as_of, clock, member_source, counts) values ('2026-09-12', 'frozen', 'dataset', '{}') returning id")).rows[0] as { id: string };
+  check("a run records with a generated id", typeof run.id === "string" && run.id.length > 0);
+  check("an unknown clock is refused", await rejects(db, "insert into queue_runs (as_of, clock, member_source, counts) values ('2026-09-12', 'sometimes', 'dataset', '{}')"));
+  check(
+    "an unknown call type is refused",
+    await rejects(db, `insert into queue_run_entries (run_id, member_id, call_type) values ('${run.id}', 'M1', 'upsell')`)
+  );
 
   console.log(failures === 0 ? "\nAll migration checks passed." : `\n${failures} check${failures === 1 ? "" : "s"} failed.`);
   process.exit(failures === 0 ? 0 : 1);

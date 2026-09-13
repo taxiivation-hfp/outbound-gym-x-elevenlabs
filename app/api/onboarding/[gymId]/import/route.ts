@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveGym } from "@/lib/gymStore";
+import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { IMPORT_KINDS, parseImport, type ImportKind, type ImportPreview } from "@/lib/memberImport";
 import {
   MemberStoreError,
@@ -18,7 +19,8 @@ import {
  * clean, it is written with the table's sync rule: members upserted, contracts
  * and check-ins inserted and never updated.
  *
- * A file is imported whole or not at all. Contracts and check-ins must refer to
+ * A file is imported whole or not at all: the checks run over every row first,
+ * and the write is one database statement. Contracts and check-ins must refer to
  * members already imported for this gym; a row that doesn't is an error to fix,
  * not a row to skip, because a skipped contract is a member whose renewal date
  * silently disappears.
@@ -127,10 +129,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<Params> }) {
     if (!commit) {
       return NextResponse.json({ preview: summarise(preview), committed: false });
     }
+    if (!onboardingWritesEnabled()) {
+      return NextResponse.json({ error: ONBOARDING_WRITES_OFF, preview: summarise(preview) }, { status: 403 });
+    }
 
     const outcome =
       kind === "members"
-        ? await importMembers(gymId, preview.rows as ImportPreview<"members">["rows"])
+        ? await importMembers(gymId, preview.rows as ImportPreview<"members">["rows"], preview.presentColumns.includes("mobile"))
         : kind === "contracts"
           ? await importContracts(gymId, preview.rows as ImportPreview<"contracts">["rows"])
           : await importCheckins(gymId, preview.rows as ImportPreview<"checkins">["rows"]);

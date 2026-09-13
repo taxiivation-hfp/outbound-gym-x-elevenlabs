@@ -3,18 +3,58 @@
 Two suites, one runner.
 
 ```bash
-npm run evals            # routing guards + all fifteen conversations
-npm run evals:guards     # routing guards only — no network, no model, instant
+npm run evals            # all 51 guards + all fifteen conversations
+npm run evals:guards     # guards only — no network, no model, instant
 npm run evals -- --only renewal-one-save-only
+npm run evals:extraction # the adversarial document through the real extraction model
 ```
 
 **Routing guards** (`guards.ts`) — 19 deterministic assertions over
 `lib/callType.ts`, `lib/eligibility.ts`, `lib/callHistory.ts` and
-`lib/compileVariables.ts`. No model, no network. They answer the questions that
-matter most and cost nothing to ask: is an auto-renewing member ever dialled, do
-the three winback windows fire where they should and stay quiet between, does a
-no-answer increment the attempt count, does do-not-contact hold across call
-types, does switching gym change what the agent may offer.
+`lib/compileVariables.ts`, plus one that pins the suite's own transcript
+patterns. No model, no network. They answer the questions that matter most and
+cost nothing to ask: is an auto-renewing member ever dialled, do the three
+winback windows fire where they should and stay quiet between, does a no-answer
+increment the attempt count, does do-not-contact hold across call types, does
+switching gym change what the agent may offer.
+
+**Config guards** (`configGuards.ts`) — 19, added with onboarding. They pin the
+safety model for gym setup:
+- the seed gyms compile to their signed-off text byte for byte;
+- every combination of offers compiles to a block `validateIncentives` accepts;
+- the validator refuses an appended instruction, a number or an offer the config
+  doesn't hold, a missing door-closing sentence, the wrong delivery, and a block
+  that grants an offer and then denies it;
+- a tier name can't smuggle in an offer, and invisible combining marks,
+  small-capital look-alikes and offer synonyms are refused in every text field;
+- a blank form field reaches the compiler as null, and a blank `quiet_hours`
+  still produces "not recorded" and no quiet-times offer;
+- what a member said on the last call reaches the next call only as plainly
+  their own words, and an incentive text carries only the offer the compiled
+  block told the agent to text;
+- `documents/adversarial-price-list.txt`, run through a worst-case extraction
+  that obeyed its injected line, changes nothing the agent hears, and fragments
+  of that line or quotes that don't back their value are never prefilled.
+
+**Member guards** (`memberGuards.ts`) — 12, for uploaded member data:
+- a renewal is a new contract row, not a stale queue entry;
+- the same term re-exported as auto-renew is never called, and rows that
+  disagree about auto-renew resolve to not calling;
+- `days_since_visit` comes from the latest check-in;
+- a blank auto-renew cell is refused, not defaulted;
+- a malformed CSV is rejected with line-numbered errors;
+- a missing renewal fee stays unknown;
+- a queue entry computed before the latest import is refused at dial time;
+- an uploaded member can't be contacted as another gym;
+- uploaded members are refused on the frozen clock by every reader;
+- a synthetic number is never dialled, while an uploaded one needs the opt-in;
+- the nightly recompute refuses real members on the frozen clock.
+
+**Extraction eval** (`extraction.ts`) — sends the adversarial price list to the
+real extraction model and runs its answer through the sanitiser. It needs
+`ANTHROPIC_API_KEY`, prints `NOT RUN` without one, and writes
+`results/extraction-latest.json` when it runs. The config guard above is the
+deterministic half: it doesn't depend on what the model does.
 
 **Conversations** (`scenarios.ts`) — 15 simulated calls against the real
 ElevenLabs agents. Each is the brief's own verification list turned into a test:
@@ -169,6 +209,12 @@ Two conditions were **deleted rather than widened**:
   fallback, not ours. Recast as the case that does occur: a gym that skipped the
   question at onboarding. A routing guard covers the original claim by asserting
   all sixteen variables are always present.
+
+  Since onboarding, that scenario (`unanswered-gym-question-degrades`) gets
+  there the way a real gym does. It used to override the compiled variable with
+  the "not recorded" sentence directly. It now blanks `quiet_hours` in the gym's
+  typed config (`gymOverrides`), and the compiler produces the absence. The
+  payload it sends is byte-identical, and no assertion changed.
 
 ## Known limits of this suite
 

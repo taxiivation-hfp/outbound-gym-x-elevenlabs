@@ -287,6 +287,7 @@ export function ListField({
   placeholder,
   name,
   itemNoun,
+  onPendingChange,
 }: {
   chrome: FieldChrome;
   values: string[];
@@ -294,9 +295,15 @@ export function ListField({
   placeholder?: string;
   name: string;
   itemNoun: string;
+  /** Told about text typed but not yet added, so the form can refuse to drop it silently. */
+  onPendingChange?: (pending: string) => void;
 }) {
   const ids = useFieldIds();
-  const [pending, setPending] = useState("");
+  const [pending, setPendingText] = useState("");
+  const setPending = (text: string) => {
+    setPendingText(text);
+    onPendingChange?.(text);
+  };
   const [announcement, setAnnouncement] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);

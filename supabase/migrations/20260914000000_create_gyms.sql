@@ -76,6 +76,17 @@ create table if not exists gyms (
     and (quiet_hours is null or quiet_hours = normalize(quiet_hours, NFKC))
     and (cheaper_tier_name is null or cheaper_tier_name = normalize(cheaper_tier_name, NFKC))
     and (other_locations is null or array_to_string(other_locations, '|') = normalize(array_to_string(other_locations, '|'), NFKC))
+  ),
+  -- The characters lib/textSafety.ts allows (NAME_LETTERS and each field's
+  -- punctuation), so a row written around the app can't carry combining marks,
+  -- small capitals or look-alike letters into a prompt either. NFKC leaves some
+  -- of those in place, so normalisation alone is not enough.
+  constraint gyms_text_characters check (
+    gym_name ~ '^[A-Za-z0-9À-ÖØ-öø-ſȘ-ț .''’&()/+–—-]+$'
+    and (opening_hours is null or opening_hours ~ '^[A-Za-z0-9À-ÖØ-öø-ſȘ-ț ,.''’&()/:;+–—-]+$')
+    and (quiet_hours is null or quiet_hours ~ '^[A-Za-z0-9À-ÖØ-öø-ſȘ-ț ,.''’&()/:;+–—-]+$')
+    and (cheaper_tier_name is null or cheaper_tier_name ~ '^[A-Za-zÀ-ÖØ-öø-ſȘ-ț ''’&-]+$')
+    and (other_locations is null or cardinality(other_locations) = 0 or array_to_string(other_locations, '|') ~ '^[A-Za-z0-9À-ÖØ-öø-ſȘ-ț .''’&|-]+$')
   )
 );
 

@@ -37,8 +37,10 @@ export const IMPORT_COLUMNS: Record<ImportKind, ColumnSpec[]> = {
     { key: "mobile", label: "Mobile", required: false, aliases: ["mobile", "phone", "mobilephone", "phonenumber", "mobilenumber", "cell", "cellphone"], example: "+61400000000" },
     { key: "join_date", label: "Join date", required: true, aliases: ["joindate", "joined", "datejoined", "creationdate", "signupdate", "membersince"], example: "2025-02-09" },
   ],
+  // In a contracts or check-ins export a bare "id" is usually the row's own id,
+  // not the member's, so only the members file recognises it.
   contracts: [
-    { key: "member_id", label: "Member ID", required: true, aliases: ["memberid", "id", "clientid", "customerid", "membernumber", "memberno"], example: "M0001" },
+    { key: "member_id", label: "Member ID", required: true, aliases: ["memberid", "clientid", "customerid", "membernumber", "memberno"], example: "M0001" },
     { key: "contract_type", label: "Plan", required: true, aliases: ["contracttype", "plan", "planname", "membership", "membershiptype", "contractname"], example: "12-month" },
     { key: "auto_renew", label: "Auto-renews", required: true, aliases: ["autorenew", "autorenews", "autopay", "autopayenabled", "recurring", "rollsover"], example: "false" },
     { key: "start_date", label: "Start date", required: true, aliases: ["startdate", "termstart", "contractstart", "start"], example: "2026-03-14" },
@@ -47,7 +49,7 @@ export const IMPORT_COLUMNS: Record<ImportKind, ColumnSpec[]> = {
     { key: "renewal_fee", label: "Renewal fee", required: false, aliases: ["renewalfee", "renewalprice"], example: "79" },
   ],
   checkins: [
-    { key: "member_id", label: "Member ID", required: true, aliases: ["memberid", "id", "clientid", "customerid", "membernumber", "memberno"], example: "M0001" },
+    { key: "member_id", label: "Member ID", required: true, aliases: ["memberid", "clientid", "customerid", "membernumber", "memberno"], example: "M0001" },
     { key: "visited_at", label: "Check-in time", required: true, aliases: ["timestamp", "visitedat", "checkintime", "checkedinat", "checkin", "datetime", "startdatetime"], example: "2026-09-10T17:45:00" },
   ],
 };
@@ -65,7 +67,7 @@ export interface CheckinRecord {
   visited_at: string;
 }
 
-export type ContractRow = Omit<ContractRecord, "imported_at" | "id">;
+export type ContractRow = Omit<ContractRecord, "last_seen_at" | "id">;
 
 export type ImportRow<K extends ImportKind> = K extends "members"
   ? MemberRecord
@@ -85,6 +87,8 @@ export interface ImportPreview<K extends ImportKind> {
   issueCount: number;
   /** Header → the column it was read as. */
   matchedColumns: Record<string, string>;
+  /** The keys of the columns the file has, e.g. "mobile". */
+  presentColumns: string[];
   ignoredColumns: string[];
   /** Identical rows collapsed into one. */
   duplicateRows: number;
@@ -106,9 +110,19 @@ export function parseIsoDate(value: string): string | null {
   return isRealDate(Number(m[1]), Number(m[2]), Number(m[3])) ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
-/** `2026-09-10T17:45`, `2026-09-10 17:45:00`, with an optional ignored `Z`/offset. */
+/** A timestamp carrying a time zone: `…Z` or `…+10:00`. */
+export function hasTimeZone(value: string): boolean {
+  return /[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
+}
+
+/**
+ * `2026-09-10T17:45`, `2026-09-10 17:45:00`: the gym's local time, as a front
+ * desk reads it. A time with a zone is refused rather than having the zone
+ * dropped — a UTC export read as local time moves an Australian morning visit
+ * to the previous evening.
+ */
 export function parseTimestamp(value: string): string | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/.exec(value.trim());
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/.exec(value.trim());
   if (!m) return null;
   const [, y, mo, d, h, mi, s = "00"] = m;
   if (!isRealDate(Number(y), Number(mo), Number(d))) return null;
@@ -125,6 +139,9 @@ export function parseBooleanCell(value: string): boolean | null {
   if (FALSE_WORDS.has(v)) return false;
   return null;
 }
+
+/** No gym membership costs this much a month; above it, the column is something else. */
+export const MAX_MONTHLY_AMOUNT = 10_000;
 
 /** `79`, `79.00`, `$79.95`, `1,299.00`. Two decimal places at most. */
 export function parseMoney(value: string): number | null {
@@ -193,6 +210,7 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
   headerIssues.forEach(addIssue);
   csv.errors.forEach((e) => addIssue({ line: e.line, message: e.message }));
 
+  const presentColumns = [...columns.indexByKey.keys()];
   const empty: ImportPreview<K> = {
     kind,
     ok: false,
@@ -201,6 +219,7 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
     issues,
     issueCount,
     matchedColumns: columns.matchedColumns,
+    presentColumns,
     ignoredColumns: columns.ignoredColumns,
     duplicateRows: 0,
   };
@@ -292,11 +311,16 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
       const fee = parseMoney(feeRaw);
       if (!feeRaw) fail("Monthly fee", "Monthly fee is blank.");
       else if (fee === null) fail("Monthly fee", `"${feeRaw}" isn't an amount of dollars (for example 79 or 79.95).`);
+      else if (fee > MAX_MONTHLY_AMOUNT) {
+        fail("Monthly fee", `$${feeRaw} a month is more than any membership costs — check this is the monthly fee column.`);
+      }
 
       const renewalRaw = cell(cells, "renewal_fee");
       const renewal = renewalRaw ? parseMoney(renewalRaw) : null;
       if (renewalRaw && renewal === null) {
         fail("Renewal fee", `"${renewalRaw}" isn't an amount of dollars. Leave it blank if the export doesn't say.`);
+      } else if (renewal !== null && renewal > MAX_MONTHLY_AMOUNT) {
+        fail("Renewal fee", `$${renewalRaw} is more than any renewal costs — check this is the renewal fee column.`);
       }
 
       if (rowOk) {
@@ -322,7 +346,12 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
     const visitRaw = cell(cells, "visited_at");
     const visitedAt = parseTimestamp(visitRaw);
     if (!visitRaw) fail("Check-in time", "Check-in time is blank.");
-    else if (!visitedAt) {
+    else if (hasTimeZone(visitRaw)) {
+      fail(
+        "Check-in time",
+        `"${visitRaw}" has a time zone. Export check-in times in the gym's local time, like 2026-09-10T17:45:00 — a UTC time would move morning visits to the day before.`
+      );
+    } else if (!visitedAt) {
       fail("Check-in time", `"${visitRaw}" isn't a date and time like 2026-09-10T17:45:00.`);
     }
     if (rowOk) {
@@ -343,6 +372,7 @@ export function parseImport<K extends ImportKind>(kind: K, text: string): Import
     issues,
     issueCount,
     matchedColumns: columns.matchedColumns,
+    presentColumns,
     ignoredColumns: columns.ignoredColumns,
     duplicateRows,
   };

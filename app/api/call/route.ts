@@ -8,7 +8,7 @@ import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
 import { insertCallRecord } from "@/lib/callRecords";
-import { loadMember } from "@/lib/memberSource";
+import { gymForMember, loadMember, type MemberSource } from "@/lib/memberSource";
 
 /** One agent per call type. Created by `scripts/sync-agents.mjs`. */
 const AGENT_ID_ENV: Record<CallType, string> = {
@@ -40,9 +40,11 @@ export async function POST(req: NextRequest) {
   // switched to auto-renew or walked in, and an uploaded export is re-derived on
   // every read. Eligibility below is decided on this read alone.
   let member;
+  let source: MemberSource;
   try {
     const loaded = await loadMember(memberId);
     member = loaded.member;
+    source = loaded.source;
     if (!member && loaded.unroutedReason) {
       return NextResponse.json({ error: "Member can't be routed", reason: loaded.unroutedReason }, { status: 409 });
     }
@@ -95,7 +97,12 @@ export async function POST(req: NextRequest) {
   if (body?.gym_id !== undefined && body?.gym_id !== null && typeof body.gym_id !== "string") {
     return NextResponse.json({ error: "gym_id must be a string" }, { status: 400 });
   }
-  const gymLookup = await resolveGym(body?.gym_id ?? null);
+  // An uploaded member can only be called as the gym they were uploaded for.
+  const gymChoice = gymForMember(source, body?.gym_id ?? null);
+  if (!gymChoice.ok) {
+    return NextResponse.json({ error: "Refusing to call", reason: gymChoice.reason, blocked_by: "gym_mismatch" }, { status: 409 });
+  }
+  const gymLookup = await resolveGym(gymChoice.gymId);
   if (!gymLookup.ok) {
     return NextResponse.json({ error: gymLookup.error, blocked_by: "gym_config" }, { status: gymLookup.status });
   }
@@ -156,7 +163,7 @@ export async function POST(req: NextRequest) {
       { status: 409 }
     );
   }
-  const dial = resolveDialTarget(member.phone);
+  const dial = resolveDialTarget(member.phone, source);
   if (!dial.allowed || !dial.to) {
     return NextResponse.json(
       { error: "Refusing to dial", reason: dial.reason, blocked_by: "unverified_number" },

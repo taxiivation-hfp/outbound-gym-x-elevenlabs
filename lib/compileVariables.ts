@@ -3,6 +3,7 @@ import { today } from "@/lib/clock";
 import { parseGymConfig, type FieldErrors, type GymFields } from "@/lib/gymConfig";
 import type { Gym } from "@/lib/gyms";
 import { compileIncentives } from "@/lib/incentives";
+import { dayPhraseForPrompt, memberWordsForPrompt } from "@/lib/textSafety";
 import { assertValidIncentives } from "@/lib/validateIncentives";
 import type { Member } from "@/lib/types";
 
@@ -237,12 +238,21 @@ export function compileContext(
   return sentences.join(" ");
 }
 
+const REASONS = new Set(["time", "money", "injury", "motivation", "moved", "gym_issue", "other"]);
+
+/**
+ * What the last call learned. Everything here was extracted from a conversation
+ * by a model, so nothing is spliced in as it arrived: the reason must be one of
+ * the fixed values, the member's words are quoted only if they pass
+ * `memberWordsForPrompt`, and the day only if it is a day. Whatever fails is
+ * left out, and the sentence around it still reads.
+ */
 function priorCallSentences(priorCall?: PriorCallContext | null): string[] {
   if (!priorCall) return [];
   const out: string[] = [];
-  const reason = priorCall.reason_for_absence;
-  if (reason && reason !== "none_given") {
-    const detail = priorCall.reason_detail?.trim();
+  const reason = typeof priorCall.reason_for_absence === "string" && REASONS.has(priorCall.reason_for_absence) ? priorCall.reason_for_absence : null;
+  if (reason) {
+    const detail = memberWordsForPrompt(priorCall.reason_detail);
     // "Is anything else stopping you?" is the same question with a hat on, and
     // the first eval run caught it being asked that way. Naming it explicitly is
     // cheaper than hoping the agent generalises.
@@ -255,9 +265,10 @@ function priorCallSentences(priorCall?: PriorCallContext | null): string[] {
         : `You already know why they stopped: ${reason}. ${doNotReask}`
     );
   }
-  if (priorCall.committed_day?.trim()) {
+  const day = dayPhraseForPrompt(priorCall.committed_day);
+  if (day) {
     out.push(
-      `On the last call they said they'd come in on ${priorCall.committed_day.trim()} and did not. Do not hold it against them and do not mention it as a broken promise.`
+      `On the last call they said they'd come in on ${day} and did not. Do not hold it against them and do not mention it as a broken promise.`
     );
   }
   if (priorCall.offer_made) {

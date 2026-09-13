@@ -14,12 +14,11 @@ import type { Channel, Cohort, Member, Signals } from "@/lib/types";
  *
  * Three decisions that matter:
  *
- * - **Contracts are one row per term.** The current contract is the row with
- *   the latest end date; if the same term was exported twice with different
- *   facts (auto-renew switched on, a price changed), the most recently imported
- *   row for that term wins. A renewal at the front desk is a new row with a new
- *   end date, so a member who renewed three days ago drops out of the renewal
- *   queue on the next import instead of being rung about it.
+ * - **Contracts are one row per term.** A renewal at the front desk is a new
+ *   row with a new end date, so a member who renewed three days ago drops out of
+ *   the renewal queue on the next import instead of being rung about it. When
+ *   rows disagree about whether the member auto-renews, `currentContract`
+ *   resolves it towards not calling (see there).
  * - **Nothing time-relative is stored.** `days_since_visit` comes from the
  *   latest check-in timestamp at query time; contract status comes from the end
  *   date against today. A stored "days since visit" would be wrong by tomorrow.
@@ -53,9 +52,14 @@ export interface ContractRecord {
   monthly_fee: number;
   /** Null when the export did not say what renewing costs. */
   renewal_fee: number | null;
-  /** When this row was imported; breaks ties between two rows for the same term. */
-  imported_at: string;
-  /** Database identity; breaks ties between rows imported in the same instant. */
+  /**
+   * The last import that contained this exact row. Re-uploading an export that
+   * still lists a term moves this forward even though no new row is written, so
+   * it says what the platform reported most recently — which is what decides a
+   * term exported with conflicting facts.
+   */
+  last_seen_at: string;
+  /** Database identity; the last tie-break, between rows seen in the same import. */
   id?: number;
 }
 
@@ -148,9 +152,12 @@ export function deriveSignals(joinDate: string, visits: VisitCounts, asOf: Date)
   const joined = parseLocalInstant(joinDate);
   const tenureDays = floorDays(today - joined);
 
-  // Members with zero check-ins ever are treated as dormant since joining.
+  // Members with zero check-ins ever are treated as dormant since joining. A
+  // visit later on the reference day than its midnight (a live clock reads the
+  // date in UTC, which an Australian morning is still "yesterday" in) counts as
+  // today, never as a negative number of days.
   const daysSinceVisit =
-    visits.last_visit_at === null ? tenureDays : floorDays(today - parseLocalInstant(visits.last_visit_at));
+    visits.last_visit_at === null ? tenureDays : Math.max(0, floorDays(today - parseLocalInstant(visits.last_visit_at)));
 
   // old_rate: average weekly visits over history before the last four weeks.
   const cutoff = today - WINDOW_4WK * DAY_MS;
@@ -169,17 +176,57 @@ export function deriveSignals(joinDate: string, visits: VisitCounts, asOf: Date)
 
 // --- Contracts -------------------------------------------------------------------------
 
+function seenAt(contract: ContractRecord): number {
+  const t = Date.parse(contract.last_seen_at);
+  return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+}
+
 /**
- * The contract in force: the latest end date, and for two rows describing the
- * same term, the one imported last. Null for a member with no contract at all.
+ * Is this auto-renewing row replaced by a fixed term? Only by one the platform
+ * reported at least as recently: a fixed term that starts later and was seen in
+ * the same import or a later one, or the same term (same start) seen strictly
+ * later with auto-renew off. A fixed term the latest export no longer lists, or
+ * an older term re-exported with a correction, replaces nothing.
+ */
+function autoRenewReplaced(auto: ContractRecord, contracts: ContractRecord[]): boolean {
+  return contracts.some(
+    (c) =>
+      !c.auto_renew &&
+      ((c.start_date > auto.start_date && seenAt(c) >= seenAt(auto)) ||
+        (c.start_date === auto.start_date && seenAt(c) > seenAt(auto)))
+  );
+}
+
+function newestFirst(a: ContractRecord, b: ContractRecord): number {
+  if (a.end_date !== b.end_date) return b.end_date.localeCompare(a.end_date);
+  if (a.start_date !== b.start_date) return b.start_date.localeCompare(a.start_date);
+  if (seenAt(a) !== seenAt(b)) return seenAt(b) - seenAt(a);
+  return (b.id ?? 0) - (a.id ?? 0);
+}
+
+/**
+ * The contract in force. Null for a member with no contract at all.
+ *
+ * Term history arrives as rows from exports of different ages, and they can
+ * disagree: a term re-exported with auto-renew switched on, then off, then on
+ * again; a fixed term converted mid-way to a rolling plan whose next rollover is
+ * earlier than the fixed term's end; two rows for the same date in one file.
+ * "Which row is current" is then a judgement, and it has to fall on the side of
+ * not calling, because calling an auto-renewing member is the one call this
+ * product exists never to make.
+ *
+ * So: if any auto-renewing row is still standing — not replaced by a fixed term
+ * the platform reported at least as recently — the member is on that plan.
+ * Otherwise the current contract is the fixed term with the latest end date
+ * (then the latest start, then the most recently seen). A missed renewal call
+ * is the cost of an ambiguous export; a call that reminds a rolling member to
+ * cancel is not a cost this chooses.
  */
 export function currentContract(contracts: ContractRecord[]): ContractRecord | null {
   if (contracts.length === 0) return null;
-  return [...contracts].sort((a, b) => {
-    if (a.end_date !== b.end_date) return b.end_date.localeCompare(a.end_date);
-    if (a.imported_at !== b.imported_at) return b.imported_at.localeCompare(a.imported_at);
-    return (b.id ?? 0) - (a.id ?? 0);
-  })[0];
+  const standingAutoRenew = contracts.filter((c) => c.auto_renew && !autoRenewReplaced(c, contracts));
+  const pool = standingAutoRenew.length > 0 ? standingAutoRenew : contracts.filter((c) => !c.auto_renew);
+  return [...pool].sort(newestFirst)[0];
 }
 
 /** Derived, never stored: a term that ended before today is expired. */

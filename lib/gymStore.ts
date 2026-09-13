@@ -1,5 +1,6 @@
 import { DEFAULT_GYM_ID, gyms as seedGyms } from "@/lib/gyms";
 import { parseGymConfig, type GymConfig } from "@/lib/gymConfig";
+import { memberSource } from "@/lib/memberSource";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
@@ -143,9 +144,22 @@ export async function listGyms(): Promise<GymListing> {
         `${invalid.length === 1 ? "is" : "are"} not offered: ${invalid.map((i) => i.gym_id).join(", ")}.`
     );
   }
-  const defaultGymId = valid.some((g) => g.gym_id === DEFAULT_GYM_ID)
-    ? DEFAULT_GYM_ID
-    : (valid[0]?.gym_id ?? DEFAULT_GYM_ID);
+  // When the queue is one gym's uploaded members, that gym is the default: its
+  // members can only be called as that gym, so any other default would make
+  // every call from the dashboard a refusal until someone switched gym.
+  let sourceGymId: string | null = null;
+  try {
+    const source = memberSource();
+    sourceGymId = source.kind === "supabase" ? source.gymId : null;
+  } catch {
+    sourceGymId = null;
+  }
+  const defaultGymId =
+    sourceGymId && valid.some((g) => g.gym_id === sourceGymId)
+      ? sourceGymId
+      : valid.some((g) => g.gym_id === DEFAULT_GYM_ID)
+        ? DEFAULT_GYM_ID
+        : (valid[0]?.gym_id ?? DEFAULT_GYM_ID);
   return {
     gyms: valid,
     default_gym_id: defaultGymId,

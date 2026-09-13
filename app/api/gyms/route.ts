@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { compileGymFacts } from "@/lib/compileVariables";
 import { parseGymFields, slugifyGymName } from "@/lib/gymConfig";
 import { insertGym, listGyms, type CreatedVia } from "@/lib/gymStore";
+import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { CALL_TYPES, compileIncentives } from "@/lib/incentives";
 import { validateIncentives } from "@/lib/validateIncentives";
 
@@ -37,6 +38,9 @@ export async function GET() {
 const CREATED_VIA = new Set<CreatedVia>(["manual", "document"]);
 
 export async function POST(req: NextRequest) {
+  if (!onboardingWritesEnabled()) {
+    return NextResponse.json({ error: ONBOARDING_WRITES_OFF }, { status: 403 });
+  }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Expected a JSON body with the gym's fields." }, { status: 400 });

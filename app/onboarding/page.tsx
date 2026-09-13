@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { extractionConfigured } from "@/lib/extraction/extract";
 import { listGyms } from "@/lib/gymStore";
+import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
 export const metadata: Metadata = {
   title: "Set up a gym — Retention Router",
@@ -20,6 +21,9 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage() {
   const listing = await listGyms();
   const extractionAvailable = extractionConfigured();
+  const writesEnabled = onboardingWritesEnabled();
+  const saveAvailable = listing.source === "supabase" && writesEnabled;
+  const saveAdminDetail = listing.source !== "supabase" ? listing.notice : writesEnabled ? null : ONBOARDING_WRITES_OFF;
 
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
@@ -34,8 +38,8 @@ export default async function OnboardingPage() {
 
       <div className="mt-8">
         <OnboardingFlow
-          saveAvailable={listing.source === "supabase"}
-          saveAdminDetail={listing.source === "supabase" ? null : listing.notice}
+          saveAvailable={saveAvailable}
+          saveAdminDetail={saveAdminDetail}
           extractionAvailable={extractionAvailable}
           extractionAdminDetail={extractionAvailable ? null : "Set ANTHROPIC_API_KEY on the deployment to turn on document reading (model: claude-haiku-4-5)."}
           existingGyms={listing.gyms.map((g) => ({ gym_id: g.gym_id, gym_name: g.gym_name }))}

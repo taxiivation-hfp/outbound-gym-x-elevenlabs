@@ -21,9 +21,10 @@ npm run dev              # http://localhost:3000
 npm run build / start    # production build / serve
 npm run lint
 
-npm run evals             # 19 routing guards + 15 simulated ElevenLabs calls
+npm run evals             # 51 guards + 15 simulated ElevenLabs calls
 npm run evals:guards      # guards only — no network, no model, instant
 npm run evals -- --only <scenario-name>   # single scenario/guard by name
+npm run evals:extraction  # adversarial price list through the real extraction model (needs ANTHROPIC_API_KEY)
 
 npm run agents:sync       # push agents/prompts + scripts/agentConfig.mjs to ElevenLabs
 npm run agents:diff       # dry-run of the above — shows what would change
@@ -31,11 +32,19 @@ npm run agents:diff       # dry-run of the above — shows what would change
 npm run data:build        # regenerate the synthetic dataset:
                           #   pipeline/generate_gym_data.py -> pipeline/build_scores.py
                           #   -> scripts/copy-pipeline-output.mjs (into data/)
+npm run data:verify-port  # lib/memberData.ts reproduces build_scores.py for all 500 members
+npm run db:verify         # apply every onboarding migration to in-process Postgres and check it
+npm run gyms:seed-check   # the gyms migration's seed block still matches data/gyms.json
+npm run gyms:seed-sql     # regenerate that seed block after editing data/gyms.json
 ```
 
 There is no `npm test`; `evals:guards` is the fast deterministic check to run
-after touching `lib/callType.ts`, `lib/eligibility.ts`, `lib/callHistory.ts`, or
-`lib/compileVariables.ts`. Full `npm run evals` costs real ElevenLabs API calls.
+after touching `lib/callType.ts`, `lib/eligibility.ts`, `lib/callHistory.ts`,
+`lib/compileVariables.ts`, anything gym-config (`lib/gymConfig.ts`,
+`lib/incentives.ts`, `lib/validateIncentives.ts`, `lib/textSafety.ts`,
+`lib/extraction/sanitize.ts`) or member data (`lib/memberData.ts`,
+`lib/memberImport.ts`, `lib/csv.ts`). Full `npm run evals` costs real
+ElevenLabs API calls.
 
 ## Architecture
 
@@ -69,15 +78,44 @@ actually lives:
   branching happens here, once, so a variable rename touches one file. Three
   variables (`time_left`, `attempt_number`, `context`) can only be computed at
   call time, not offline, which is why this isn't part of the pipeline.
-- `dialSafety.ts` — structural guard: refuses to dial unless `CALL_OVERRIDE_NUMBER`
-  or `ALLOW_UNVERIFIED_NUMBERS=true` is set, so a misconfigured deploy can't
-  ring real members from synthetic data. Enforced in `/api/call`, not just documented.
+- `dialSafety.ts` — structural guard, decided per member source: a synthetic
+  dataset member is only ever dialled via `CALL_OVERRIDE_NUMBER`; an uploaded
+  member needs the override or `ALLOW_UNVERIFIED_NUMBERS=true`. A misconfigured
+  deploy can't ring strangers from synthetic data, and switching back to the
+  dataset can't leave the opt-in dialling them. Enforced in `/api/call` and
+  `send_text`, not just documented. `onboardingWrites.ts` is the same shape for
+  onboarding: saving a gym and importing members are off unless
+  `ONBOARDING_WRITES=enabled`.
 - `economics.ts` — cost/break-even math shown on the dashboard.
 - `intelligence.ts`, `queueView.ts`, `sortMembers.ts`, `labels.ts` — dashboard-
   facing view models built from the same primitives above.
-- `gyms.ts` — per-gym config (incentives, quiet hours) that lets one prompt
-  serve multiple gyms; switching gym in the dashboard changes what an agent may
-  offer without touching a prompt.
+- Gym config is **typed data, not prose**. `gymConfig.ts` defines the eleven
+  fields and parses/validates them (`textSafety.ts` holds the free-text rules);
+  `incentives.ts` compiles the `incentives` block from a fixed sentence
+  registry; `validateIncentives.ts` independently re-derives what a block may
+  say from the config and rejects anything else. `compileVariables` runs both on
+  every compile and throws `GymConfigError` / `IncentivesValidationError` before
+  a payload exists. `gyms.ts` is the seed (`data/gyms.json`); `gymStore.ts`
+  reads the `gyms` table, falling back to the seed only when the table doesn't
+  exist yet or Supabase isn't configured (a database error is a 503, never the
+  seed). One prompt still serves every gym; switching gym in the dashboard
+  changes what an agent may offer without touching a prompt.
+- Onboarding (`/onboarding`, `lib/onboardingDraft.ts`, `lib/extraction/`) — a
+  document is read (`documentText.ts`), a model fills typed fields
+  (`extract.ts`, `claude-haiku-4-5`), and `sanitize.ts` keeps a value only when a
+  verbatim quote from the document supports it. A person reviews every value
+  before `POST /api/gyms` saves it.
+- Member data — `memberSource.ts` picks the synthetic dataset (default) or one
+  gym's uploaded members (`MEMBER_SOURCE=supabase`, `MEMBER_SOURCE_GYM_ID`).
+  Uploaded data is stored as members (upsert), contracts (one row per term,
+  insert-only) and check-ins (insert-only) by `memberStore.ts`, imported by
+  `memberImport.ts`/`csv.ts`, and derived into the router's `Member` shape by
+  `memberData.ts` (a port of `build_scores.py`) on every read. An uploaded
+  member can only be contacted as their own gym (`gymForMember`).
+- `queueRecompute.ts` — the nightly job behind `/api/cron/recompute`
+  (`vercel.json`, `CRON_SECRET`). It records a snapshot and refuses to measure
+  uploaded members against the frozen clock. Nothing reads it to decide a call;
+  `/api/call` re-reads the member and re-checks eligibility at dial time.
 
 Server components in `app/` and the API routes in `app/api/` both call these
 same `lib/` functions directly — the dashboard and the endpoint cannot disagree
@@ -104,9 +142,13 @@ connected as failed instead of leaving it "initiated" forever.
 ## Evaluation (`evals/`)
 
 Two suites in one runner (`evals/run.ts`), full rationale in `evals/README.md`:
-- **Guards** (`guards.ts`) — deterministic assertions directly over the `lib/`
-  functions above. No network, no model. Run these after any router/eligibility
-  change.
+- **Guards** — deterministic assertions directly over the `lib/` functions
+  above. No network, no model. `guards.ts` holds the original 20 (19 routing, plus one that pins
+  the transcript assertion patterns) and
+  `runGuards`, which also runs `configGuards.ts` (16: gym config, the validator,
+  extraction sanitising, the adversarial document in `evals/documents/`) and
+  `memberGuards.ts` (9: contracts-per-term, CSV import, dial-time recheck, the
+  nightly recompute). Run these after any router/eligibility/config change.
 - **Scenarios** (`scenarios.ts`) — 15 simulated conversations against the real
   ElevenLabs agents. Each scenario builds a fixture, routes it with the real
   `routeMember`, compiles variables with the real `compileVariables`, and
@@ -126,6 +168,14 @@ a regression signal on its own; the guards are the stable half.
   based on gym config or member state, add/extend a variable in
   `compileVariables.ts` that resolves to finished prose — don't add an `if` to
   a prompt file.
+- **No model writes prompt text.** Extraction fills typed fields; the compiler
+  writes every sentence from `incentives.ts`'s registry, and the validator
+  checks it. Never pass extracted or user-typed prose into an incentives
+  sentence, and never add a free-text gym field that reaches a prompt without
+  `textSafety.ts` rules and a guard.
+- **Blank stays blank.** A field nobody answered is `null` at every layer until
+  `compileVariables` turns it into the "you don't have that" sentence. Don't
+  default it in the form, the parser, the store or the compiler.
 - **Shared prompt sections are edited once.** Never duplicate a
   Personality/Tone/Guardrails/Tools edit into a single agent's prompt file.
 - **The auto-renew exclusion is load-bearing and tested.** Any change touching

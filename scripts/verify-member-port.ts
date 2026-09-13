@@ -50,7 +50,7 @@ for (const c of contracts) {
     end_date: c.expirydate,
     monthly_fee: Number(c.monthlyfee),
     renewal_fee: Number(c.renewalfee),
-    imported_at: "2026-09-12T00:00:00Z",
+    last_seen_at: "2026-09-12T00:00:00Z",
   });
   contractsByMember.set(c.memberid, list);
 }

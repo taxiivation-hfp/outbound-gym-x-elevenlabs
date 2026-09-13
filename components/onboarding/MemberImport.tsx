@@ -50,7 +50,7 @@ const TITLES: Record<ImportKind, { title: string; what: string; rule: string }> 
   contracts: {
     title: "Contracts",
     what: "One row per membership term — a renewal is a new row with its own dates.",
-    rule: "Rows are only ever added. The term with the latest end date is the current one.",
+    rule: "Rows are only ever added. The latest term is the current one — and if rows disagree about whether it auto-renews, the member is treated as auto-renewing and isn't called.",
   },
   checkins: {
     title: "Check-ins",
@@ -63,10 +63,13 @@ export default function MemberImport({
   gymId,
   columns,
   uploadsAvailable,
+  importAvailable,
 }: {
   gymId: string;
   columns: Record<ImportKind, ColumnHelp[]>;
   uploadsAvailable: boolean;
+  /** Checking a file only reads; importing it writes, and can be switched off on its own. */
+  importAvailable: boolean;
 }) {
   const kinds: ImportKind[] = ["members", "contracts", "checkins"];
   return (
@@ -79,6 +82,7 @@ export default function MemberImport({
           gymId={gymId}
           columns={columns[kind]}
           uploadsAvailable={uploadsAvailable}
+          importAvailable={importAvailable}
         />
       ))}
     </ol>
@@ -101,12 +105,14 @@ function Slot({
   gymId,
   columns,
   uploadsAvailable,
+  importAvailable,
 }: {
   index: number;
   kind: ImportKind;
   gymId: string;
   columns: ColumnHelp[];
   uploadsAvailable: boolean;
+  importAvailable: boolean;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -234,14 +240,20 @@ function Slot({
           </div>
         )}
 
-        {state.phase === "checked" && (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <Button variant="primary" onClick={commit}>
-              Import {state.preview.importable_rows.toLocaleString("en-AU")} {copy.title.toLowerCase()}
-            </Button>
-            <p className="text-xs text-zinc-400">Nothing has been written yet.</p>
-          </div>
-        )}
+        {state.phase === "checked" &&
+          (importAvailable ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button variant="primary" onClick={commit}>
+                Import {state.preview.importable_rows.toLocaleString("en-AU")} {copy.title.toLowerCase()}
+              </Button>
+              <p className="text-xs text-zinc-400">Nothing has been written yet.</p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-amber-200">
+              <span className="font-semibold text-amber-300">This file is ready, but importing is switched off here.</span>{" "}
+              Nothing was written. Ask your admin to switch imports on.
+            </p>
+          ))}
 
         {state.phase === "importing" && <p className="mt-3 text-sm text-zinc-300">Importing…</p>}
 
@@ -249,10 +261,16 @@ function Slot({
           <p className="mt-3 text-sm text-zinc-300" role="status">
             <span className="font-semibold text-signal">Imported.</span>{" "}
             {kind === "members"
-              ? `${state.written.toLocaleString("en-AU")} members written.`
-              : `${state.written.toLocaleString("en-AU")} new rows added${
-                  state.alreadyPresent > 0 ? `, ${state.alreadyPresent.toLocaleString("en-AU")} were already there and left as they were` : ""
-                }.`}
+              ? `${state.written.toLocaleString("en-AU")} new members added${
+                  state.alreadyPresent > 0 ? `, ${state.alreadyPresent.toLocaleString("en-AU")} already here updated from this file` : ""
+                }.`
+              : kind === "contracts"
+                ? `${state.written.toLocaleString("en-AU")} new contract rows added${
+                    state.alreadyPresent > 0 ? `, ${state.alreadyPresent.toLocaleString("en-AU")} already here and marked as still in this export` : ""
+                  }.`
+                : `${state.written.toLocaleString("en-AU")} new check-ins added${
+                    state.alreadyPresent > 0 ? `, ${state.alreadyPresent.toLocaleString("en-AU")} were already here` : ""
+                  }.`}
           </p>
         )}
       </div>

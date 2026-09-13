@@ -1,19 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Connectors from "@/components/onboarding/Connectors";
 import MemberImport, { type ColumnHelp } from "@/components/onboarding/MemberImport";
-import { Notice } from "@/components/onboarding/ui";
+import { AdminDetail, Notice } from "@/components/onboarding/ui";
+import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { routeMember } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { resolveGym } from "@/lib/gymStore";
 import { IMPORT_COLUMNS, IMPORT_KINDS, type ImportKind } from "@/lib/memberImport";
 import { MemberStoreError, loadGymMembers, memberDataCounts, type MemberDataCounts } from "@/lib/memberStore";
+import { latestRun } from "@/lib/queueRecompute";
 
 export const metadata: Metadata = {
   title: "Member data — Retention Router",
 };
 
 export const dynamic = "force-dynamic";
+
+/** A run's timestamp in UTC, labelled, so it can't be misread as local time. */
+function formatRanAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.toLocaleString("en-AU", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} UTC`;
+}
 
 /**
  * Connecting a gym's member data: the CSV uploads that work today, what the
@@ -30,10 +40,14 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   const asOf = today();
   const liveClock = process.env.DATASET_CLOCK === "live";
   const uploadsAvailable = gym.ok && gym.source === "supabase";
+  const writesEnabled = onboardingWritesEnabled();
 
   let counts: MemberDataCounts | null = null;
   let dataError: string | null = null;
   let routing: { renewal: number; reengagement: number; winback: number; autoRenew: number; notDue: number; unrouted: number } | null = null;
+
+  // Started now, read below: it never rejects, and it doesn't wait on the counts.
+  const lastRunRead = uploadsAvailable ? latestRun(gymId) : null;
 
   if (uploadsAvailable) {
     try {
@@ -59,6 +73,7 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   ) as Record<ImportKind, ColumnHelp[]>;
 
   const gymName = gym.ok ? gym.gym.gym_name : gymId;
+  const lastRun = lastRunRead ? await lastRunRead : null;
 
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
@@ -103,7 +118,15 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
               </Notice>
             </div>
           )}
-          <MemberImport gymId={gymId} columns={columns} uploadsAvailable={uploadsAvailable && !dataError} />
+          {uploadsAvailable && !dataError && !writesEnabled && (
+            <div className="mb-4">
+              <Notice tone="caution" title="Imports are switched off here">
+                <p>Files can be checked, but nothing can be imported until your admin switches imports on.</p>
+                <AdminDetail>{ONBOARDING_WRITES_OFF}</AdminDetail>
+              </Notice>
+            </div>
+          )}
+          <MemberImport gymId={gymId} columns={columns} uploadsAvailable={uploadsAvailable && !dataError} importAvailable={writesEnabled} />
         </section>
 
         <aside aria-labelledby="imported-title" className="xl:sticky xl:top-20 xl:self-start">
@@ -158,6 +181,42 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
               </div>
             )}
 
+            {lastRun && (
+              <div className="mt-5 border-t border-zinc-900 pt-4">
+                <h3 className="text-sm font-semibold text-white">Nightly recompute</h3>
+                {lastRun.run ? (
+                  <>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                      Last ran {formatRanAt(lastRun.run.ran_at)}, measured against {lastRun.run.as_of}
+                      {lastRun.run.clock === "live" ? " (the date it ran)" : " (the frozen dataset date)"}.
+                    </p>
+                    <dl className="mt-3 space-y-1.5 text-sm">
+                      {(
+                        [
+                          ["Due a call", lastRun.run.counts.due],
+                          ["Never called — auto-renews", lastRun.run.counts.auto_renew],
+                          ["Blocked by call history", lastRun.run.counts.do_not_contact + lastRun.run.counts.cooldown + lastRun.run.counts.max_attempts],
+                        ] as const
+                      ).map(([label, n]) => (
+                        <div key={label} className="flex justify-between gap-3">
+                          <dt className="text-zinc-400">{label}</dt>
+                          <dd className="tabular-nums text-zinc-200">{n.toLocaleString("en-AU")}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {lastRun.run.history_error && (
+                      <p className="mt-2 text-xs leading-relaxed text-amber-200">
+                        <span className="font-semibold text-amber-300">Check this:</span> that run was recorded with a
+                        problem — {lastRun.run.history_error}. Calls still re-check everything when they are placed.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">{lastRun.notice}</p>
+                )}
+              </div>
+            )}
+
             <p className="mt-5 border-t border-zinc-900 pt-4 text-xs leading-relaxed text-zinc-400">
               The queue uses these members when the deployment sets{" "}
               <code className="font-mono text-zinc-300">MEMBER_SOURCE=supabase</code> and{" "}
@@ -168,6 +227,9 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
         </aside>
       </div>
 
+      <div className="mt-12">
+        <Connectors />
+      </div>
     </main>
   );
 }

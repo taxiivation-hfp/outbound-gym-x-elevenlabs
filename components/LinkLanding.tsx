@@ -1,6 +1,7 @@
 import { firstName, formatLocations } from "@/lib/compileVariables";
 import { resolveGym } from "@/lib/gymStore";
-import { loadMember } from "@/lib/memberSource";
+import { datasetMemberName } from "@/lib/memberSource";
+import { landingOffer, type TextedOffer } from "@/lib/textedOffer";
 
 /**
  * Where a texted link lands.
@@ -29,12 +30,12 @@ const COPY: Record<
       "put it back on, or mention it next time you are in — it does not expire.",
     action: "Show this at the front desk",
   },
+  // An incentive link says what it is only when the gym's config grants that
+  // offer; otherwise it carries the code and makes no claim (see incentiveCopy).
   incentive: {
-    eyebrow: "Guest pass",
-    heading: (gym) => `Bring someone with you to ${gym}`,
-    body:
-      "One guest pass, on the gym. Show this code at the desk when you come in together — " +
-      "no booking needed, no time limit on when you use it.",
+    eyebrow: "From the gym",
+    heading: (gym) => `A note from ${gym}`,
+    body: "Show this code at the front desk and the team will look it up.",
     action: "Show this at the front desk",
   },
   booking: {
@@ -46,6 +47,28 @@ const COPY: Record<
     action: "Quote this when you call",
   },
 };
+
+function incentiveCopy(offer: TextedOffer | null) {
+  if (offer?.kind === "guest_pass") {
+    return {
+      eyebrow: "Guest pass",
+      heading: (gym: string) => `Bring someone with you to ${gym}`,
+      body:
+        "One guest pass, on the gym. Show this code at the desk when you come in together — " +
+        "no booking needed, no time limit on when you use it.",
+      action: "Show this at the front desk",
+    };
+  }
+  if (offer?.kind === "renewal_discount") {
+    return {
+      eyebrow: "Renewal discount",
+      heading: (gym: string) => `${offer.percent}% off renewing at ${gym}`,
+      body: `Show this code at the front desk when you renew and the team will take ${offer.percent}% off your renewal.`,
+      action: "Show this at the front desk",
+    };
+  }
+  return COPY.incentive;
+}
 
 export default async function LinkLanding({
   kind,
@@ -63,10 +86,12 @@ export default async function LinkLanding({
   // back up.
   const gym = gymLookup.ok ? gymLookup.gym : null;
   const gymName = gym?.gym_name ?? "the gym";
-  // The page still works without the member's name: a lookup that fails only
-  // drops the greeting, never the code the member was texted.
-  const member = memberId ? await loadMember(memberId).then((r) => r.member).catch(() => null) : null;
-  const copy = COPY[kind];
+  // Anyone can open a link and change `?m=`, so a real member's name is never
+  // put on this page: only a synthetic member is greeted by name. The code the
+  // member was texted is what matters, and it is always shown.
+  const memberName = memberId ? datasetMemberName(memberId) : null;
+  const copy =
+    kind === "incentive" ? incentiveCopy(landingOffer(gym, typeof params.offer === "string" ? params.offer : null)) : COPY[kind];
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col px-6 py-12">
@@ -74,7 +99,7 @@ export default async function LinkLanding({
         {copy.eyebrow}
       </p>
       <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight">
-        {member ? `${firstName(member.name)}, ` : ""}
+        {memberName ? `${firstName(memberName)}, ` : ""}
         {copy.heading(gymName).toLowerCase()}
       </h1>
       <p className="mt-4 text-sm leading-relaxed text-zinc-400">{copy.body}</p>

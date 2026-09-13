@@ -1,3 +1,4 @@
+import type { CallType } from "@/lib/callType";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
@@ -86,24 +87,26 @@ const RECENT_CALL_WINDOW_MS = 30 * 60 * 1000;
  */
 export async function gymOfRecentCall(
   memberId: string
-): Promise<{ ok: true; gymId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; gymId: string; callType: CallType | null } | { ok: false; error: string }> {
   try {
     // Wall clock, not lib/clock.ts: call records are stamped with real time.
     const since = new Date(Date.now() - RECENT_CALL_WINDOW_MS).toISOString();
     const { data, error } = await supabaseAdmin
       .from("call_records")
-      .select("gym_id, created_at")
+      .select("gym_id, call_type, created_at")
       .eq("member_id", memberId)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(1)
       .abortSignal(AbortSignal.timeout(3000));
     if (error) return { ok: false, error: `call record read failed: ${error.message}` };
-    const gymId = (data?.[0] as { gym_id?: string | null } | undefined)?.gym_id;
+    const row = data?.[0] as { gym_id?: string | null; call_type?: string | null } | undefined;
+    const gymId = row?.gym_id;
     if (typeof gymId !== "string" || gymId.trim() === "") {
       return { ok: false, error: "no call placed to this member in the last 30 minutes records a gym" };
     }
-    return { ok: true, gymId };
+    const callType = row?.call_type === "renewal" || row?.call_type === "reengagement" || row?.call_type === "winback" ? row.call_type : null;
+    return { ok: true, gymId, callType };
   } catch (err) {
     return { ok: false, error: `call record read failed: ${err instanceof Error ? err.message : String(err)}` };
   }

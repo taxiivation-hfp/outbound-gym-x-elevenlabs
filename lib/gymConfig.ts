@@ -333,7 +333,7 @@ function parseLocations(value: unknown): FieldParse<string[]> {
   const parsed: string[] = [];
   for (const entry of value) {
     if (isBlank(entry)) continue;
-    const one = parseText(entry, { kind: "fact", max: LIMITS.location, label: "A location name" });
+    const one = parseText(entry, { kind: "place", max: LIMITS.location, label: "A location name" });
     if (one.error) return { value: null, error: one.error };
     if (one.value !== null) parsed.push(one.value);
   }
@@ -393,9 +393,9 @@ export function parseGymField(key: GymFieldKey, value: unknown): FieldParse<GymF
     case "gym_name":
       return parseText(value, { kind: "gym_name", max: LIMITS.gym_name, label: "Gym name" });
     case "opening_hours":
-      return parseText(value, { kind: "fact", max: LIMITS.fact, label: "Opening hours" });
+      return parseText(value, { kind: "hours", max: LIMITS.fact, label: "Opening hours" });
     case "quiet_hours":
-      return parseText(value, { kind: "fact", max: LIMITS.fact, label: "Quiet times" });
+      return parseText(value, { kind: "hours", max: LIMITS.fact, label: "Quiet times" });
     case "other_locations":
       return parseLocations(value);
     case "has_online":
