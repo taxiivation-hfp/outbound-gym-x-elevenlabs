@@ -147,7 +147,9 @@ export default function PromptPreview({
                         ? `${discount}% off the renewal`
                         : o === "cheaper_tier" && tierName && tierPrice !== null
                           ? `the ${tierName} at ${formatMoney(tierPrice)} a month`
-                          : `a ${OFFER_LABEL[o]}`
+                          : o === "other"
+                            ? "an offer of the gym's own"
+                            : `a ${OFFER_LABEL[o]}`
                     )
                     .join(" and ")}
                   , then tells Charlie that&apos;s everything he has.

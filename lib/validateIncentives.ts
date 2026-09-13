@@ -1,5 +1,7 @@
 import type { CallType } from "@/lib/callType";
 import {
+  OTHER_OFFER_DELIVERIES,
+  OTHER_OFFER_LABEL_MAX,
   RENEWAL_DISCOUNT_MAX,
   RENEWAL_DISCOUNT_MIN,
   REENGAGEMENT_PERKS,
@@ -35,7 +37,9 @@ import { checkText, looksLikeInstruction, normaliseText } from "@/lib/textSafety
  *   contains no discount, percentage, price or cheaper-tier language;
  * - each offer is delivered the way its type is delivered — a link is texted, a
  *   session is booked by a person;
- * - quiet times are only offered by a gym that told us its quiet times.
+ * - quiet times are only offered by a gym that told us its quiet times;
+ * - an "other" offer's label appears only in the sentences that grant and limit
+ *   that offer, on the call type it was configured for, and nowhere else.
  *
  * The config is re-checked here as `unknown` rather than trusted as `GymFields`,
  * because a malformed config — a string where extraction should have returned a
@@ -102,6 +106,10 @@ interface CheckedConfig {
   tierName: string | null;
   tierPrice: number | null;
   quietHoursKnown: boolean;
+  /** An "other" offer's label and delivery, per call type — set only when that choice is "other" and both are valid. */
+  other: Record<"reengagement" | "winback", { label: string; delivery: "link" | "booking" } | null>;
+  /** Every label the config holds, valid or not, so a label can be looked for where it doesn't belong. */
+  labels: string[];
 }
 
 function checkConfig(config: unknown, violations: IncentivesViolation[]): CheckedConfig {
@@ -175,6 +183,43 @@ function checkConfig(config: unknown, violations: IncentivesViolation[]): Checke
     bad(`quiet_hours must be text or null, got ${JSON.stringify(q)}`);
   }
 
+  const labels: string[] = [];
+  const other = { reengagement: null, winback: null } as CheckedConfig["other"];
+  for (const [slot, choice] of [
+    ["reengagement", perk],
+    ["winback", winback],
+  ] as const) {
+    const labelRaw = raw[`${slot}_other_label`];
+    const deliveryRaw = raw[`${slot}_other_delivery`];
+    const labelGiven = labelRaw !== null && labelRaw !== undefined;
+    const deliveryGiven = deliveryRaw !== null && deliveryRaw !== undefined;
+    if (typeof labelRaw === "string" && labelRaw.length > 0) labels.push(labelRaw);
+    let label: string | null = null;
+    if (labelGiven) {
+      if (typeof labelRaw !== "string" || labelRaw.length === 0 || labelRaw.length > OTHER_OFFER_LABEL_MAX || labelRaw !== normaliseText(labelRaw)) {
+        bad(`${slot}_other_label must be a short, normalised name or null, got ${JSON.stringify(labelRaw)}`);
+      } else {
+        const problem = checkText(labelRaw, "offer_label");
+        if (problem) bad(`${slot}_other_label is not a safe name: ${problem.message}`);
+        else label = labelRaw;
+      }
+    }
+    let delivery: "link" | "booking" | null = null;
+    if (deliveryGiven) {
+      if (typeof deliveryRaw !== "string" || !(OTHER_OFFER_DELIVERIES as readonly string[]).includes(deliveryRaw)) {
+        bad(`${slot}_other_delivery must be link, booking or null, got ${JSON.stringify(deliveryRaw)}`);
+      } else {
+        delivery = deliveryRaw as "link" | "booking";
+      }
+    }
+    if (choice === "other") {
+      if (!labelGiven || !deliveryGiven) bad(`an "other" ${slot} offer needs both ${slot}_other_label and ${slot}_other_delivery`);
+      if (label !== null && delivery !== null) other[slot] = { label, delivery };
+    } else if (labelGiven || deliveryGiven) {
+      bad(`${slot}_other_label and ${slot}_other_delivery are set, but the ${slot} offer isn't "other"`);
+    }
+  }
+
   return {
     discount,
     perk,
@@ -183,6 +228,8 @@ function checkConfig(config: unknown, violations: IncentivesViolation[]): Checke
     tierName: tierName !== null && tierPrice !== null ? tierName : null,
     tierPrice: tierName !== null && tierPrice !== null ? tierPrice : null,
     quietHoursKnown: typeof q === "string" && q.trim().length > 0,
+    other,
+    labels,
   };
 }
 
@@ -194,15 +241,17 @@ function expectedGrants(config: CheckedConfig, callType: CallType): Set<OfferKin
   } else if (callType === "reengagement") {
     if (config.perk === "guest_pass") out.add("guest_pass");
     if (config.perk === "free_session") out.add("free_session");
+    if (config.other.reengagement) out.add("other");
   } else {
     if (config.winback === "free_pt_session") out.add("free_pt_session");
     if (config.winback === "guest_pass") out.add("guest_pass");
+    if (config.other.winback) out.add("other");
     if (config.tierName !== null) out.add("cheaper_tier");
   }
   return out;
 }
 
-const DELIVERY_FOR: Record<OfferKind, "link" | "booking" | null> = {
+const DELIVERY_FOR: Record<Exclude<OfferKind, "other">, "link" | "booking" | null> = {
   renewal_discount: "link",
   guest_pass: "link",
   free_session: "booking",
@@ -210,13 +259,19 @@ const DELIVERY_FOR: Record<OfferKind, "link" | "booking" | null> = {
   cheaper_tier: null,
 };
 
+/** An "other" offer is delivered the way the gym said; every other offer the way its type is. */
+function deliveryFor(offer: OfferKind, config: CheckedConfig, callType: CallType): "link" | "booking" | null {
+  if (offer !== "other") return DELIVERY_FOR[offer];
+  return callType === "renewal" ? null : (config.other[callType]?.delivery ?? null);
+}
+
 // --- Sentences ---------------------------------------------------------------------
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const SLOT_PATTERN = /\{(discount_percent|tier_name|tier_price)\}/g;
+const SLOT_PATTERN = /\{(discount_percent|tier_name|tier_price|reengagement_label|winback_label)\}/g;
 
 function templateRegExp(template: SentenceTemplate): { re: RegExp; slots: Slot[] } {
   const slots: Slot[] = [];
@@ -258,6 +313,8 @@ function expectedSlotValues(config: CheckedConfig): Record<Slot, string | null> 
     discount_percent: config.discount !== null ? String(config.discount) : null,
     tier_name: config.tierName,
     tier_price: config.tierPrice !== null ? formatMoney(config.tierPrice) : null,
+    reengagement_label: config.other.reengagement?.label ?? null,
+    winback_label: config.other.winback?.label ?? null,
   };
 }
 
@@ -459,7 +516,7 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
   }
 
   // Delivery follows the offer type.
-  const required = new Set([...granted.keys()].map((o) => DELIVERY_FOR[o]).filter((d): d is "link" | "booking" => d !== null));
+  const required = new Set([...granted.keys()].map((o) => deliveryFor(o, checked, callType)).filter((d): d is "link" | "booking" => d !== null));
   const delivered = matched.map(({ template }) => template?.delivery).filter((d): d is "link" | "booking" => Boolean(d));
   for (const d of delivered) {
     if (!required.has(d)) {
@@ -524,6 +581,31 @@ export function validateIncentives(block: string, config: unknown, callType: Cal
         sentence: text,
         message: `This sentence counts ${template.counts} offer${template.counts === 1 ? "" : "s"}, but the block grants ${grantCount}.`,
       });
+    }
+  }
+
+  // An "other" offer's label: in this block only if this call type grants that
+  // offer, and then only inside the sentences written around that label. It
+  // can't turn up anywhere the compiler didn't put it — on another call type's
+  // block, or in a sentence whose own words don't carry the slot.
+  const ownOther = callType === "renewal" ? null : checked.other[callType];
+  if (ownOther && expected.has("other") && !blockText.toLowerCase().includes(ownOther.label.toLowerCase())) {
+    violations.push({ rule: "offer_missing", message: `The config's "other" offer is "${ownOther.label}", but the block never names it.` });
+  }
+  for (const label of new Set(checked.labels)) {
+    const phrase = new RegExp(`(^|[^\\p{L}])${escapeRegExp(label)}([^\\p{L}]|$)`, "iu");
+    for (const { text, template } of matched) {
+      if (!phrase.test(text)) continue;
+      const slotHere = template !== null && callType !== "renewal" && template.text.includes(`{${callType}_label}`);
+      const legitimate = slotHere && ownOther !== null && ownOther.label === label && expected.has("other");
+      const compilerWords = template !== null && phrase.test(template.text);
+      if (!legitimate && !compilerWords) {
+        violations.push({
+          rule: "offer_not_in_config",
+          sentence: text,
+          message: `Names "${label}", which this gym's config doesn't offer in this sentence on a ${callType} call.`,
+        });
+      }
     }
   }
 

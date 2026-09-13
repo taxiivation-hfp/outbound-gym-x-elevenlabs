@@ -8,6 +8,7 @@ import { configGuards } from "./configGuards";
 import { healthGuards } from "./healthGuards";
 import { memberGuards } from "./memberGuards";
 import { offerGuards } from "./offerGuards";
+import { otherOfferGuards } from "./otherOfferGuards";
 import { fixtureMember, isoOffset } from "./fixtures";
 
 /**
@@ -468,7 +469,7 @@ const guards: Guard[] = [
 ];
 
 export async function runGuards(): Promise<GuardResult[]> {
-  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards];
+  const all = [...guards, ...configGuards, ...memberGuards, ...healthGuards, ...offerGuards, ...otherOfferGuards];
   const results: GuardResult[] = [];
   for (const g of all) results.push(await runOne(g));
   return results;

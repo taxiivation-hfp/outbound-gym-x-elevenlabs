@@ -34,7 +34,7 @@
  * on a call that makes financial offers to real people.
  */
 
-export type TextKind = "gym_name" | "hours" | "place" | "tier_name";
+export type TextKind = "gym_name" | "hours" | "place" | "tier_name" | "offer_label";
 
 export interface TextProblem {
   /** Written for the operator, next to the field. */
@@ -62,6 +62,11 @@ const CHARACTERS: Record<TextKind, RegExp> = {
    * hyphens and ampersands. No digits, which could read as a second price.
    */
   tier_name: new RegExp(`^[${NAME_LETTERS} '’&\\-]+$`, "u"),
+  /**
+   * What an "other" offer is ("protein shake"). It sits inside an offer
+   * sentence exactly like a tier name, so it gets the same characters.
+   */
+  offer_label: new RegExp(`^[${NAME_LETTERS} '’&\\-]+$`, "u"),
 };
 
 const ALLOWED_DESCRIPTION: Record<TextKind, string> = {
@@ -69,15 +74,17 @@ const ALLOWED_DESCRIPTION: Record<TextKind, string> = {
   place: "letters, numbers, spaces and . ' & -",
   gym_name: "letters, numbers, spaces and . ' & ( ) / + -",
   tier_name: "letters, spaces and ' & -",
+  offer_label: "letters, spaces and ' & -",
 };
 
-const MAX_WORDS: Record<TextKind, number> = { hours: 24, place: 5, gym_name: 6, tier_name: 4 };
+const MAX_WORDS: Record<TextKind, number> = { hours: 24, place: 5, gym_name: 6, tier_name: 4, offer_label: 4 };
 
 const WHAT_IT_IS: Record<TextKind, string> = {
   hours: "days and times",
   place: "site name",
   gym_name: "name",
   tier_name: "membership name",
+  offer_label: "short name for the offer",
 };
 
 /**
@@ -179,6 +186,24 @@ const NOT_A_TIER_NAME: RegExp[] = [
   /\b(and|or|plus|with|but|then|also|including|includes)\b/i,
 ];
 
+/**
+ * Words with no place in an "other" offer's label. The label is spliced into
+ * "You are calling with something to give them from the gym: {label}", so it
+ * can only be a thing: not one of the offers that have their own typed field
+ * (a guest pass, a session, a discount, a cheaper plan), not a period or a
+ * price ("month", "half"), not a second thing joined on, not "everyone", and
+ * not the quiet times the winback block handles separately.
+ */
+const NOT_AN_OFFER_LABEL: RegExp[] = [
+  /\b(guest|pass|passes|session\w*|pt|personal train\w*|trainer\w*|coach\w*)\b/i,
+  /\b(membership\w*|plan|plans|tier\w*|rate|rates|concession\w*|access|off-?peak|cheap\w*|discount\w*|renew\w*)\b/i,
+  /\b(half|cost\w*|charg\w*|pric\w*|sav(e|es|ing|ings)|months?|weeks?|fortnights?|years?|days?|weekly|monthly|hours?)\b/i,
+  /\b(join\w*|fees?|first|intro\w*|unlimited|every|everyone|everybody|all|any|anyone)\b/i,
+  /\boff\b/i,
+  /\b(and|or|plus|with|but|then|also|including|includes)\b/i,
+  /\b(quiet\w*|busy|crowd\w*)\b/i,
+];
+
 /** A tier name ends in the noun that says what it is. */
 const TIER_NAME_ENDING = /\b(membership|plan|tier|option|rate|concession|access)$/i;
 
@@ -214,6 +239,7 @@ export function instructionPhrase(text: string, kind: TextKind = "hours"): strin
   const patterns: RegExp[] = [...ADDRESSES_A_MODEL, ...SPEAKS_TO_SOMEONE, ...OFFER_WORDS];
   if (kind !== "gym_name") patterns.push(FREE_WORDS);
   if (kind === "tier_name") patterns.push(...NOT_A_TIER_NAME);
+  if (kind === "offer_label") patterns.push(...NOT_AN_OFFER_LABEL);
   for (const pattern of patterns) {
     const match = pattern.exec(text);
     if (match) return match[0];
@@ -323,6 +349,10 @@ export function checkText(text: string, kind: TextKind): TextProblem | null {
   const words = text.split(" ").filter(Boolean).length;
   if (words > MAX_WORDS[kind]) {
     return { message: `Keep this to ${MAX_WORDS[kind]} words or fewer — a ${WHAT_IT_IS[kind]}, not a sentence.` };
+  }
+
+  if (kind === "offer_label" && /^(a|an|the|one|some|your|our|their)\b/i.test(text)) {
+    return { message: `Leave out "${text.split(" ")[0]}" — write just the thing, like "protein shake".` };
   }
 
   if ((kind === "gym_name" || kind === "place") && SENTENCE_BREAK_IN_NAME.test(text)) {

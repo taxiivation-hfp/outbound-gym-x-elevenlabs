@@ -216,6 +216,7 @@ export default function OnboardingFlow({
               saveState={saveState}
               onSave={save}
               configuredOffers={preview.configured}
+              validationFields={preview.fields}
             />
           </div>
         </div>

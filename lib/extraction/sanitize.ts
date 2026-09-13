@@ -1,7 +1,7 @@
 import {
-  FIELD_SPECS,
-  GYM_FIELD_KEYS,
+  EXTRACTABLE_SPECS,
   parseGymField,
+  type ExtractableFieldKey,
   type FieldSpec,
   type GymFieldKey,
   type GymFields,
@@ -43,7 +43,8 @@ export type FieldOutcome =
 export interface ExtractionReview {
   /** Only the filled values: what the review form starts with. */
   values: Partial<GymFields>;
-  outcomes: Record<GymFieldKey, FieldOutcome>;
+  /** One per field a document can fill (`EXTRACTABLE_SPECS`); an "other" offer's name and delivery have none. */
+  outcomes: Record<ExtractableFieldKey, FieldOutcome>;
   /** Keys the model returned that are not config fields. Never used. */
   ignored_keys: string[];
   summary: { filled: number; blank: number; unsupported: number; rejected: number };
@@ -251,17 +252,17 @@ function quoteSupports(spec: FieldSpec, value: unknown, quote: string, located: 
 }
 
 export function sanitizeExtraction(output: unknown, documentText: string): ExtractionReview {
-  const outcomes = {} as Record<GymFieldKey, FieldOutcome>;
+  const outcomes = {} as Record<ExtractableFieldKey, FieldOutcome>;
   const values: Partial<Record<GymFieldKey, unknown>> = {};
   const summary = { filled: 0, blank: 0, unsupported: 0, rejected: 0 };
-  const record = (key: GymFieldKey, outcome: FieldOutcome) => {
+  const record = (key: ExtractableFieldKey, outcome: FieldOutcome) => {
     outcomes[key] = outcome;
     summary[outcome.status] += 1;
     if (outcome.status === "filled") values[key] = outcome.value;
   };
 
   if (typeof output !== "object" || output === null || Array.isArray(output)) {
-    for (const key of GYM_FIELD_KEYS) record(key, { status: "blank" });
+    for (const spec of EXTRACTABLE_SPECS) record(spec.key as ExtractableFieldKey, { status: "blank" });
     return {
       values: {},
       outcomes,
@@ -272,14 +273,14 @@ export function sanitizeExtraction(output: unknown, documentText: string): Extra
   }
 
   const raw = output as Record<string, unknown>;
-  const known = new Set<string>(GYM_FIELD_KEYS);
+  const known = new Set<string>(EXTRACTABLE_SPECS.map((s) => s.key));
   const ignored = Object.keys(raw).filter((k) => !known.has(k));
   const documentForMatch = normaliseForMatch(documentText);
   /** The document lines each filled value was found on. */
   const sourceLines: Partial<Record<GymFieldKey, string>> = {};
 
-  for (const spec of FIELD_SPECS) {
-    const key = spec.key;
+  for (const spec of EXTRACTABLE_SPECS) {
+    const key = spec.key as ExtractableFieldKey;
     const entry = Object.prototype.hasOwnProperty.call(raw, key) ? raw[key] : undefined;
 
     if (entry === undefined || entry === null) {
@@ -310,6 +311,12 @@ export function sanitizeExtraction(output: unknown, documentText: string): Extra
         quote,
         reason: "The sentence this came from is addressed to an AI, not a fact about the gym, so it was ignored.",
       });
+      continue;
+    }
+
+    // "Something else" needs a name a person types; a document can't supply one.
+    if (spec.kind === "enum" && value === "other") {
+      record(key, { status: "rejected", quote, reason: "\"Something else\" needs its name typed on the form, so it isn't prefilled from a document." });
       continue;
     }
 

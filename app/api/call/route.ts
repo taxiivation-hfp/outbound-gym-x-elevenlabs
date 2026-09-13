@@ -5,7 +5,7 @@ import type { CallType } from "@/lib/callType";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
 import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
-import { evaluateEligibility, evaluateOffers, withholdOffers } from "@/lib/eligibility";
+import { evaluateEligibility, evaluateOffers, scheduleKey, withholdOffers } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
 import { compileIncentives, grantedOffers } from "@/lib/incentives";
 import { insertCallRecord } from "@/lib/callRecords";
@@ -142,7 +142,9 @@ export async function POST(req: NextRequest) {
     });
     // Recorded on the call so the next call's cooldowns know which offers this
     // block carried, and so send_text only texts an offer the agent was given.
-    offersAvailable = grantedOffers(compileIncentives(withholdOffers(gym, offers), callType));
+    offersAvailable = grantedOffers(compileIncentives(withholdOffers(gym, offers), callType))
+      .map((offer) => scheduleKey(offer, callType))
+      .filter((key): key is NonNullable<typeof key> => key !== null);
   } catch (err) {
     if (err instanceof IncentivesValidationError) {
       return NextResponse.json(

@@ -5,8 +5,10 @@ import type { ExtractionReview } from "@/lib/extraction/sanitize";
 import {
   FIELD_SPECS,
   fieldSpec,
+  type ExtractableFieldKey,
   type FieldErrors,
   type GymFieldKey,
+  type GymFields,
   type ReengagementPerk,
   type SchedulableOffer,
   type WinbackOffer,
@@ -15,6 +17,7 @@ import { formatMoney } from "@/lib/incentives";
 import { isDraftBlank, valueToDraft, type Draft } from "@/lib/onboardingDraft";
 import { AffixField, ChoiceField, ListField, TextField, type FieldChrome } from "./fields";
 import OfferScheduleField from "./OfferScheduleField";
+import OtherOfferFields from "./OtherOfferFields";
 import Provenance from "./Provenance";
 import { AdminDetail, Button, Literal, Notice, SectionTitle, focusRing } from "./ui";
 
@@ -75,7 +78,10 @@ export default function GymForm({
   saveState,
   onSave,
   configuredOffers,
+  validationFields,
 }: {
+  /** The parsed answers when they parse, for naming offers in the schedule. */
+  validationFields: GymFields | null;
   draft: Draft;
   onChange: <K extends keyof Draft>(key: K, value: Draft[K]) => void;
   /** The offers the answers so far configure: what the schedule may name. */
@@ -122,7 +128,7 @@ export default function GymForm({
 
   const chrome = (key: GymFieldKey, extra: Partial<FieldChrome> = {}): FieldChrome => {
     const spec = fieldSpec(key);
-    const outcome = review?.outcomes[key];
+    const outcome = (review?.outcomes as Partial<Record<GymFieldKey, ExtractionReview["outcomes"][ExtractableFieldKey]>> | undefined)?.[key];
     return {
       label: spec.label,
       required: spec.required,
@@ -162,7 +168,10 @@ export default function GymForm({
   };
 
   const flagged = review
-    ? FIELD_SPECS.filter((s) => review.outcomes[s.key].status === "unsupported" || review.outcomes[s.key].status === "rejected")
+    ? FIELD_SPECS.filter((s) => {
+        const status = (review.outcomes as Partial<Record<GymFieldKey, { status: string }>>)[s.key]?.status;
+        return status === "unsupported" || status === "rejected";
+      })
     : [];
 
   return (
@@ -346,9 +355,25 @@ export default function GymForm({
             options={[
               { value: "guest_pass", label: "Guest pass", note: "texted" },
               { value: "free_session", label: "Free session", note: "gym calls to book" },
+              { value: "other", label: "Something else" },
               { value: "none", label: "Nothing" },
             ]}
           />
+          {draft.reengagement_perk === "other" && (
+            <OtherOfferFields
+              slot="reengagement"
+              label={draft.reengagement_other_label}
+              delivery={draft.reengagement_other_delivery}
+              onLabel={(v) => onChange("reengagement_other_label", v)}
+              onDelivery={(v) => {
+                onChange("reengagement_other_delivery", v);
+                touch("reengagement_other_delivery");
+              }}
+              onBlur={() => touch("reengagement_other_label")}
+              labelError={errorFor("reengagement_other_label")}
+              deliveryError={errorFor("reengagement_other_delivery")}
+            />
+          )}
           <ChoiceField<WinbackOffer>
             name="winback_offer"
             layout="column"
@@ -361,9 +386,25 @@ export default function GymForm({
             options={[
               { value: "free_pt_session", label: "Free PT session", note: "gym calls to book" },
               { value: "guest_pass", label: "Guest pass", note: "texted" },
+              { value: "other", label: "Something else" },
               { value: "none", label: "Nothing" },
             ]}
           />
+          {draft.winback_offer === "other" && (
+            <OtherOfferFields
+              slot="winback"
+              label={draft.winback_other_label}
+              delivery={draft.winback_other_delivery}
+              onLabel={(v) => onChange("winback_other_label", v)}
+              onDelivery={(v) => {
+                onChange("winback_other_delivery", v);
+                touch("winback_other_delivery");
+              }}
+              onBlur={() => touch("winback_other_label")}
+              labelError={errorFor("winback_other_label")}
+              deliveryError={errorFor("winback_other_delivery")}
+            />
+          )}
           <fieldset className="space-y-3">
             <legend className="text-sm font-semibold text-white">
               Cheaper membership<span className="ml-1.5 text-xs font-normal text-zinc-400">optional</span>
@@ -396,6 +437,7 @@ export default function GymForm({
           <OfferScheduleField
             rows={draft.offer_schedule}
             configured={configuredOffers}
+            fields={validationFields}
             onChange={(rows) => onChange("offer_schedule", rows)}
             error={serverErrors.offer_schedule ?? (attempts > 0 ? formErrors.offer_schedule : undefined)}
           />

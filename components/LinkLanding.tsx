@@ -67,6 +67,14 @@ function incentiveCopy(offer: TextedOffer | null) {
       action: "Show this at the front desk",
     };
   }
+  if (offer?.kind === "other") {
+    return {
+      eyebrow: "From the gym",
+      heading: (gym: string) => `Something from ${gym}`,
+      body: `Your ${offer.label}, on the gym. Show this code at the front desk and the team will sort it out.`,
+      action: "Show this at the front desk",
+    };
+  }
   return COPY.incentive;
 }
 

@@ -10,6 +10,7 @@ import {
   type OfferSchedule,
   type SchedulableOffer,
 } from "@/lib/gymConfig";
+import type { OfferKind } from "@/lib/incentives";
 import type { Member } from "@/lib/types";
 
 /**
@@ -189,6 +190,12 @@ function offerLabel(offer: SchedulableOffer): string {
   return SCHEDULABLE_OFFER_LABEL[offer];
 }
 
+/** The schedule's key for an offer a compiled block grants on a call type. */
+export function scheduleKey(offer: OfferKind, callType: CallType): SchedulableOffer | null {
+  if (offer !== "other") return offer;
+  return callType === "reengagement" ? "reengagement_other" : callType === "winback" ? "winback_other" : null;
+}
+
 export function evaluateOffers(
   member: Member,
   history: CallHistory,
@@ -252,6 +259,16 @@ export function withholdOffers(gym: GymFields, eligibility: OfferEligibility | n
   if (withheld.cheaper_tier) {
     out.cheaper_tier_name = null;
     out.cheaper_tier_price = null;
+  }
+  if (withheld.reengagement_other && out.reengagement_perk === "other") {
+    out.reengagement_perk = null;
+    out.reengagement_other_label = null;
+    out.reengagement_other_delivery = null;
+  }
+  if (withheld.winback_other && out.winback_offer === "other") {
+    out.winback_offer = null;
+    out.winback_other_label = null;
+    out.winback_other_delivery = null;
   }
   return out;
 }

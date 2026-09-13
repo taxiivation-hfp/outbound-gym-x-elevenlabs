@@ -33,6 +33,7 @@ const MIGRATIONS = [
   "20260914020000_queue_runs.sql",
   "20260915000000_gym_health.sql",
   "20260915010000_offer_schedule.sql",
+  "20260915020000_other_offers.sql",
 ];
 
 let failures = 0;
@@ -126,6 +127,14 @@ async function main() {
   const offersColumn = await rejects(db, "insert into call_records (id, member_id, status, offers_available) values (gen_random_uuid(), 'M1', 'initiated', array['guest_pass'])");
   check("a call record stores the offers its block granted", !offersColumn);
   await db.exec("update gyms set offer_schedule = null where gym_id = 'southbank'; delete from call_records;");
+
+  console.log("\nOther offers");
+  const other = await rejects(db, "insert into gyms (gym_id, gym_name, reengagement_perk, reengagement_other_label, reengagement_other_delivery, offer_schedule, created_via) values ('shake-gym', 'Shake Gym', 'other', 'protein shake', 'link', '{\"reengagement_other\": \"quarterly\"}', 'manual')");
+  check("an \"other\" perk with its label, delivery and a schedule is stored", !other);
+  check("a label without \"other\" chosen is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_other_label, winback_other_delivery, created_via) values ('x9', 'X', 'towel', 'link', 'manual')"));
+  check("\"other\" without a delivery is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, created_via) values ('x10', 'X', 'other', 'towel', 'manual')"));
+  check("a label with digits is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, winback_other_delivery, created_via) values ('x11', 'X', 'other', '50 percent', 'link', 'manual')"));
+  check("an unknown delivery is refused", await rejects(db, "insert into gyms (gym_id, gym_name, winback_offer, winback_other_label, winback_other_delivery, created_via) values ('x12', 'X', 'other', 'towel', 'post', 'manual')"));
 
   console.log("\nMember data");
   check(

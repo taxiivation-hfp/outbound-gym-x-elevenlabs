@@ -5,7 +5,7 @@ import { gymOfRecentCall } from "@/lib/callRecords";
 import { resolveGym } from "@/lib/gymStore";
 import type { CallType } from "@/lib/callType";
 import { gymForMember, loadMember, type MemberSource } from "@/lib/memberSource";
-import { textedOffer, type TextedOffer } from "@/lib/textedOffer";
+import { textedOffer, textedOfferKey, type TextedOffer } from "@/lib/textedOffer";
 import type { Member } from "@/lib/types";
 
 /**
@@ -34,7 +34,13 @@ const LINK_TYPES = new Set<LinkType>(["renewal", "incentive", "booking"]);
  */
 function couponCode(memberId: string, linkType: LinkType, offer: TextedOffer | null): string {
   const prefix =
-    linkType === "incentive" ? (offer?.kind === "renewal_discount" ? "SAVE" : "GUEST") : { renewal: "RENEW", booking: "BOOK" }[linkType];
+    linkType === "incentive"
+      ? offer?.kind === "renewal_discount"
+        ? "SAVE"
+        : offer?.kind === "other"
+          ? "GIFT"
+          : "GUEST"
+      : { renewal: "RENEW", booking: "BOOK" }[linkType];
   return `${prefix}-${memberId.replace(/^M/, "")}`;
 }
 
@@ -44,16 +50,17 @@ function buildLink(baseUrl: string, member: Member, gymId: string, linkType: Lin
   url.searchParams.set("m", member.member_id);
   url.searchParams.set("gym", gymId);
   url.searchParams.set("code", couponCode(member.member_id, linkType, offer));
-  if (offer) url.searchParams.set("offer", offer.kind);
+  if (offer) url.searchParams.set("offer", textedOfferKey(offer));
   return url.toString();
 }
 
 function buildMessage(member: Member, gymName: string, linkType: LinkType, offer: TextedOffer | null, link: string): string {
   const name = firstName(member.name);
   if (linkType === "incentive") {
-    return offer?.kind === "renewal_discount"
-      ? `Hi ${name}, Charlie from ${gymName} — here's your ${offer.percent}% off your renewal: ${link}`
-      : `Hi ${name}, Charlie from ${gymName} — here's your guest pass, bring a mate in: ${link}`;
+    if (offer?.kind === "renewal_discount") return `Hi ${name}, Charlie from ${gymName} — here's your ${offer.percent}% off your renewal: ${link}`;
+    // The label passed the same text rules as every other config field.
+    if (offer?.kind === "other") return `Hi ${name}, Charlie from ${gymName} — here's your ${offer.label}: ${link}`;
+    return `Hi ${name}, Charlie from ${gymName} — here's your guest pass, bring a mate in: ${link}`;
   }
   return {
     renewal: `Hi ${name}, Charlie from ${gymName} here — here's the link to sort your renewal: ${link}`,
@@ -189,10 +196,10 @@ export async function POST(req: NextRequest) {
   // the agent's block, and isn't texted either: the call record lists what the
   // block granted.
   const texted = linkType === "incentive" ? textedOffer(gym, callType) : null;
-  const offer = texted && (offersAvailable === null || offersAvailable.includes(texted.kind)) ? texted : null;
+  const offer = texted && (offersAvailable === null || offersAvailable.includes(textedOfferKey(texted))) ? texted : null;
   if (linkType === "incentive" && !offer) {
     const detail = texted
-      ? `The ${texted.kind.replace(/_/g, " ")} was withheld from this call, so it isn't texted.`
+      ? `The ${textedOfferKey(texted).replace(/_/g, " ")} was withheld from this call, so it isn't texted.`
       : callType
       ? `${gym.gym_name}'s ${callType} incentives don't include anything texted as a link.`
       : "The call record doesn't say which kind of call this is, so there's no way to tell what the incentive is.";

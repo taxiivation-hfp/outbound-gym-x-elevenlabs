@@ -85,8 +85,8 @@ function reachedMember(row: RawRow): boolean {
  */
 const OFFERS_BY_CALL_TYPE: Record<string, SchedulableOffer[]> = {
   renewal: ["renewal_discount"],
-  reengagement: ["guest_pass", "free_session"],
-  winback: ["free_pt_session", "guest_pass", "cheaper_tier"],
+  reengagement: ["guest_pass", "free_session", "reengagement_other"],
+  winback: ["free_pt_session", "guest_pass", "cheaper_tier", "winback_other"],
 };
 
 /**

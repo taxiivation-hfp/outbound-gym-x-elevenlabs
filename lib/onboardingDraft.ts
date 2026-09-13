@@ -13,6 +13,7 @@ import {
   type FieldErrors,
   type GymFieldKey,
   type GymFields,
+  type OtherOfferDelivery,
   type ReengagementPerk,
   type WinbackOffer,
 } from "@/lib/gymConfig";
@@ -44,6 +45,10 @@ export interface Draft {
   winback_offer: WinbackOffer | null;
   cheaper_tier_name: string;
   cheaper_tier_price: string;
+  reengagement_other_label: string;
+  reengagement_other_delivery: OtherOfferDelivery | null;
+  winback_other_label: string;
+  winback_other_delivery: OtherOfferDelivery | null;
   /**
    * "Every [period], allow the agent to offer [offer]", one row each. A row is
    * in the form until it's removed, even half-filled, so a half-filled row
@@ -65,6 +70,10 @@ export function emptyDraft(): Draft {
     winback_offer: null,
     cheaper_tier_name: "",
     cheaper_tier_price: "",
+    reengagement_other_label: "",
+    reengagement_other_delivery: null,
+    winback_other_label: "",
+    winback_other_delivery: null,
     offer_schedule: [],
   };
 }
@@ -94,6 +103,13 @@ export function draftToInput(draft: Draft): Record<GymFieldKey, unknown> {
     winback_offer: draft.winback_offer,
     cheaper_tier_name: draft.cheaper_tier_name,
     cheaper_tier_price: numberInput(draft.cheaper_tier_price),
+    // An "other" offer's name and delivery are only asked while "Something
+    // else" is the choice; switching away from it hides them, and they aren't
+    // sent for a choice they don't belong to.
+    reengagement_other_label: draft.reengagement_perk === "other" ? draft.reengagement_other_label : null,
+    reengagement_other_delivery: draft.reengagement_perk === "other" ? draft.reengagement_other_delivery : null,
+    winback_other_label: draft.winback_offer === "other" ? draft.winback_other_label : null,
+    winback_other_delivery: draft.winback_offer === "other" ? draft.winback_other_delivery : null,
   };
 }
 
@@ -111,6 +127,8 @@ export function valueToDraft<K extends GymFieldKey>(key: K, value: unknown): Dra
       return (typeof value === "boolean" ? value : null) as Draft[K];
     case "reengagement_perk":
     case "winback_offer":
+    case "reengagement_other_delivery":
+    case "winback_other_delivery":
       return (typeof value === "string" ? value : null) as Draft[K];
     case "renewal_discount_percent":
       return (typeof value === "number" ? String(value) : "") as Draft[K];
@@ -194,6 +212,8 @@ export interface Preview {
   named: boolean;
   /** The offers the previewed config grants, which are the ones a schedule may name. */
   configured: SchedulableOffer[];
+  /** The config the preview compiled. */
+  fields: GymFields;
 }
 
 /**
@@ -225,7 +245,7 @@ export function previewDraft(draft: Draft): Preview {
     return { callType, text: compiled.text, sentences, offers, ok: result.ok, violations: result.violations };
   });
 
-  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs) };
+  return { excluded, tierIncomplete, blocks, facts: compileGymFacts(compileAs), named, configured: configuredOffers(compileAs), fields: compileAs };
 }
 
 export const OFFER_LABEL: Record<OfferKind, string> = {
@@ -234,4 +254,5 @@ export const OFFER_LABEL: Record<OfferKind, string> = {
   free_session: "free session",
   free_pt_session: "free PT session",
   cheaper_tier: "cheaper membership",
+  other: "offer of the gym's own",
 };

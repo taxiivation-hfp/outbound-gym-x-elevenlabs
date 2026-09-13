@@ -11,7 +11,8 @@
  */
 import {
   OFFER_PERIODS,
-  SCHEDULABLE_OFFER_LABEL,
+  scheduledOfferLabel,
+  type GymFields,
   type OfferPeriod,
   type SchedulableOffer,
 } from "@/lib/gymConfig";
@@ -32,7 +33,10 @@ export default function OfferScheduleField({
   configured,
   onChange,
   error,
+  fields,
 }: {
+  /** The answers so far, so an "other" offer is listed by the gym's own name for it. */
+  fields: GymFields | null;
   rows: Rows;
   configured: SchedulableOffer[];
   onChange: (rows: Rows) => void;
@@ -82,7 +86,7 @@ export default function OfferScheduleField({
               <option value="">choose…</option>
               {[...new Set([...configured, ...(stale ? [row.offer as SchedulableOffer] : [])])].map((o) => (
                 <option key={o} value={o} disabled={o !== row.offer && used.has(o)}>
-                  {SCHEDULABLE_OFFER_LABEL[o]}
+                  {scheduledOfferLabel(o, fields)}
                 </option>
               ))}
             </select>

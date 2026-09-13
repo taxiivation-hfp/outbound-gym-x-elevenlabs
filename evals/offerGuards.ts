@@ -189,7 +189,7 @@ export const offerGuards: Guard[] = [
     run: () => {
       const problems: string[] = [];
       const legacy = summarise([offeredRow(10, "winback", undefined)]).offersLastMade;
-      if (JSON.stringify(Object.keys(legacy).sort()) !== JSON.stringify(["cheaper_tier", "free_pt_session", "guest_pass"])) problems.push(`legacy winback spent ${JSON.stringify(legacy)}`);
+      if (JSON.stringify(Object.keys(legacy).sort()) !== JSON.stringify(["cheaper_tier", "free_pt_session", "guest_pass", "winback_other"])) problems.push(`legacy winback spent ${JSON.stringify(legacy)}`);
       if (Object.keys(summarise([offeredRow(10, "reengagement", [])]).offersLastMade).length > 0) problems.push("a block that granted nothing spent an offer");
       if (Object.keys(summarise([{ ...offeredRow(10, "reengagement", ["guest_pass"]), offer_made: false }]).offersLastMade).length > 0) problems.push("a call with no offer made spent one");
       if (Object.keys(summarise([{ ...offeredRow(10, "reengagement", ["guest_pass"]), reached_member: false, transcript: null, status: "failed" }]).offersLastMade).length > 0) problems.push("an unanswered dial spent an offer");
