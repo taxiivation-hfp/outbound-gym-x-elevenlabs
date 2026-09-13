@@ -104,14 +104,15 @@ regardless. Status:
    cancellation entry and had `upsell` refused. Nothing was left behind, and
    both seed gyms are unchanged. For another project, apply it in order after
    the pass-one migrations (`npm run db:verify`).
-2. **Synced on 13 September 2026.** `charlie-cancellation` is
+2. **Synced on 13 September 2026, twice.** `charlie-cancellation` is
    `agent_1601m2d9fhg1fx2vft4skxneahkm`, in `.env.local` as
-   `ELEVENLABS_AGENT_ID_CANCELLATION`. **Do not put it on Vercel yet.** The
-   first live run showed the agent making a second offer after a flat "no
-   thanks" — the one thing the cancellation call must never do — see the
-   report. Until the deployment has the variable, `/api/call` refuses every
-   cancellation call with a 500 naming it, which is the safe state; `main`
-   doesn't carry this branch anyway.
+   `ELEVENLABS_AGENT_ID_CANCELLATION` and nowhere else — setting it on Vercel
+   is yours to do. The first live run showed the agent making a second offer
+   after a flat "no thanks"; the Goal's ladder rule was inverted (offers stop
+   by default after any decline) and the second run passed all four ladder
+   scenarios. Until the deployment has the variable, `/api/call` refuses
+   every cancellation call with a 500 naming it. Listen to the first real
+   cancellation call: a simulated member says exactly what its persona says.
 3. **Give Southbank a freeze if you want the ladder on the live URL.** The seed
    is unchanged (Southbank has only the cheaper tier, so its flagged members get
    that one offer); the eval scenarios add the freeze through a config override.

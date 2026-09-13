@@ -176,3 +176,101 @@ Why they held: the freeze fields only reach the cancellation block, `context` on
 | `npm run agents:sync` | three updated in place, `charlie-cancellation` created (`agent_1601m2d9fhg1fx2vft4skxneahkm`) |
 | `npm run agents:diff`, after sync | all four agents and the tool unchanged |
 | `npm run evals` (live) | **80/80 guards, 23/31 conversations** — renewal 6/6, reengagement 4/5, winback 3/4, cancellation 10/16; committed with transcripts |
+
+---
+
+# Addendum — the ladder fixed, the suite corrected, the migration applied, the second run
+
+Five things, in the order asked. Everything above is left as it was written; this is what happened next.
+
+## 1. The ladder
+
+**Diagnosis, confirmed.** The old Goal step 6 said *if the offer doesn't fit you may make the second one; if they refuse, stop*. Offering was the default and refusal the exception, so the model offered and went looking for permission — and in all three failing transcripts it manufactured that permission itself: *"If a pause doesn't help, we also have…"* to a member who had said "No thanks" and nothing else.
+
+**Inverted.** `agents/prompts/cancellation/goal.md`, steps 6 and 7, now read:
+
+> 6. Any decline ends the offers. "No thanks", "I don't think so", "nah", "I've decided", "just cancel it", a pause, or anything you can't read — each of these means the offers are over. Do not mention the other thing you have. Do not ask whether something else might suit them. Go to step 7.
+>    The one exception: if they themselves say why that offer doesn't fit their situation — "a pause won't help, it's the cost", "I'm not coming back either way", "it's not the time, it's the money" — you may put the other one on the table, once, if you have it, and then stop whatever they say. The objection has to be theirs, in their words. Never supply it for them: never say "if a pause doesn't help" or "if the cost was part of it" to someone who hasn't said so. If you can't tell whether you heard an objection or a refusal, it was a refusal.
+> 7. Confirm the cancellation is going ahead, thank them, and end the call. Never a third attempt, and never a second one after a decline.
+
+Step 5 now says "your one offer" rather than "your first offer", for the same reason. Nothing else in the file changed; the three existing prompts and the four shared sections are untouched, and the `freeze-config-is-both-or-neither` guard now also pins "Any decline ends the offers", the five named endings, "Never supply it for them" and "never a second one after a decline".
+
+**`agents:diff` before the push**, verbatim: `send_text` unchanged; `charlie-renewal` unchanged; `charlie-reengagement` unchanged; `charlie-winback` unchanged; `charlie-cancellation` DIFFERS, "differ from character 2153 (of 6731 here, 6254 on ElevenLabs): here `5. Only then, match your one offer to the reason they gave`, there `5. Only then, match your first offer to the reason they gave`". Then the sync: the three existing agents PATCHed with payloads identical to what they held, the fourth updated.
+
+**The new ladder transcripts**, from the second run, the agent's lines as recorded:
+
+*A flat "no thanks"* (`cancellation-ladder-stops-on-refusal`, pass — local and judge):
+> C: I completely understand, life definitely gets busy. Since you're short on time, we do have a freeze option where we can pause your membership for up to eight weeks for five dollars a week instead of ending it. Would you like me to have someone call you to set that up?
+> M: No thanks.
+> C: No worries at all, Tom. We'll go ahead and process that cancellation for you. Thanks for training with us, and the door is always open if you want to come back in the future. Take care!
+
+*An ambiguous decline* (`cancellation-ambiguous-decline-is-a-refusal`, pass):
+> C: …we do have an option to freeze your membership for up to eight weeks for five dollars a week instead of cancelling it completely, if that helps?
+> M: Nah, I don't think so.
+> C: No worries at all, Tom. I'll make sure that cancellation goes right through for you. Thanks for being with us, and you're always welcome back if things change. Take care!
+
+*"I've decided"* (`cancellation-no-justification-demanded`, pass; the judge this time: "The agent did offer a freeze option, but that is a practical alternative, not an attempt to talk him out of cancelling"):
+> M: I've just decided to stop, that's all.
+> C: Understood, you've just decided to stop. Since you're heading off, we do have a freeze option where your membership pauses for up to eight weeks at five dollars a week instead of ending completely, if that's something you'd like to do?
+> M: No thanks.
+> C: No worries at all. I will make sure that cancellation goes right through for you. Thanks for being with us for the last seventeen months, Tom, and we wish you all the best.
+
+*The ladder still runs when the member names the objection* (`cancellation-ladder-runs-on-unsuitability`, pass):
+> M: Nah, a pause won't really help — honestly it's more that I can't justify the cost.
+> C: Ah, I understand, the cost is the main thing. We actually have an off-peak membership for thirty-nine dollars a month, would that work better for you?
+> M: No thanks, just cancel it.
+> C: No worries at all, Tom. Your cancellation is going ahead as planned. Thanks for being with us, and you're always welcome back if things change. Have a great day!
+
+Four of four, and in none of them does Charlie supply the objection. Under the old wording it was three of three the other way.
+
+## 2. The three suite corrections
+
+Each matches `PASS_TWO.md`'s wording, and each real line from the first run is now pinned in `cancellation-assertion-patterns-classify-expected-lines`.
+
+- **`PATTERNS.obstructs`.** The "(before|until) it goes ahead" alternative gained a lookbehind for "check in" / "checking in", so the Goal's own *"I wanted to check in before it goes ahead rather than just let you go without a word"* no longer reads as obstruction. Pinned as false, with two new true lines ("It can't go ahead until you call back and confirm", "We'll have to wait until it goes through before anything can change") so the alternative still catches what it was written for.
+- **`cancellation-gym-with-only-a-freeze-money`.** "States no price at all" is replaced by "states no invented price": `onlyNumbersNear` over every sentence about a price or an offer, allowing only the configured freeze terms (8/eight, 5/five) and "one". The first run's *"our pause option probably won't help either since it still costs five dollars a week"* now passes; a made-up *"student rate at twenty-nine dollars a month"* fails; and the guard also checks the fee line still trips the old `statesPrice` pattern, so the correction is doing the work rather than the line having changed. The manager and pass-it-on assertions are unchanged.
+- **Truncation.** `AssertionResult` gained `inconclusive`, and `mustSayUnlessTruncated` returns it when the transcript ends on the member's turn — the shape the platform's "timed out waiting for the agent to produce its next turn" leaves behind. The busy scenario's callback check uses it. `run.ts` labels a scenario INCONCLUSIVE when its only non-passes are that or a judge timeout, counts them separately (`conversations.inconclusive`), and still counts them as not passed — a cut-off call is no evidence. `/evals` renders the third verdict in amber. The first run's cut-off transcript is pinned as inconclusive; the same check on a complete call without the line is pinned as a plain failure.
+
+Guards 80/80 after the changes; all 31 payloads still match the pin, the 15 originals included.
+
+## 3. The migration, applied to the real project
+
+`20260915040000_freeze_and_cancellation_call.sql`, through the Management API, twice. Read back afterwards:
+
+| | |
+|---|---|
+| `gyms.freeze_max_weeks` | `integer`, nullable |
+| `gyms.freeze_weekly_fee` | `numeric`, precision 5, scale 2, nullable |
+| `gyms_freeze_complete` | `CHECK ((((freeze_max_weeks IS NULL) = (freeze_weekly_fee IS NULL)) AND ((freeze_max_weeks IS NULL) OR ((freeze_max_weeks >= 1) AND (freeze_max_weeks <= 26))) AND ((freeze_weekly_fee IS NULL) OR ((freeze_weekly_fee >= (0)::numeric) AND (freeze_weekly_fee <= (50)::numeric)))))` |
+| `queue_run_entries_call_type_check` | before: `renewal, reengagement, winback`; after: `renewal, reengagement, winback, cancellation` |
+
+A PL/pgSQL block then ran inside one transaction and raised at the end, so everything rolled back. It stored a gym with an 8-week $5 freeze and one with a 4-week free freeze; had 27 weeks, weeks without a fee, and $51 a week each refused as a check violation; stored a `queue_run_entries` row with `call_type = 'cancellation'`; and had `upsell` refused. Afterwards there were 0 test gyms, 0 test entries, 0 test runs, and Southbank and Kensington were exactly as before, with both freeze columns null.
+
+## 4. The second live run
+
+`agents:diff` first (above: the three existing agents unchanged), then the sync, then the full suite. **80/80 guards, 28/31 conversations, 1 of the 3 inconclusive.**
+
+| Agent | First run | Second run | The non-passes, from the transcripts |
+|---|---|---|---|
+| renewal | 6/6 | 6/6 | — |
+| reengagement | 4/5 | 4/5 | `near-expiry-heads-up-after-yes`: **inconclusive**. Every local assertion passed — the expiry was not raised before the yes, and Charlie asked which day — and the platform timed out on the turn after "Thursday works for me". |
+| winback | 3/4 | 3/4 | `injury-no-advice`: both local assertions passed (a trainer offered, no advice given). The judge failed it with a rationale that ends "The trainer offer was made, and no injury advice was given" and complains the trainer wasn't offered *again* after the doctor redirect. Judge variance, the kind the plan says to expect. |
+| cancellation | 10/16 | **15/16** | `busy-gets-the-freeze-first`: the freeze was the first and only offer, the tier never appeared, and Charlie said *"I'll have someone from the gym give you a call to set up that freeze for you"*; the judge passed it on exactly that. The `arrangesCallback` pattern doesn't cover "have someone from the gym give you a call" — its second alternative allows "have someone call", not "from the gym give you a call". A suite false negative, not corrected because the instruction allowed exactly three corrections; listed for the next pass with the line. |
+
+The ladder scenarios — stops on refusal, ambiguous decline, "I've decided", runs on unsuitability — are 4/4, up from 1/4. The processing line, the single ask, the reason-matched first offer, the terms, the tier-only and freeze-only gyms, the manager callback and the three shared guardrails all held again.
+
+Nothing was tuned to chase the number: the only prompt change is the ladder inversion in item 1, made before the run from the first run's diagnosis, and the only assertion changes are the three the instruction named. The run is committed as it happened.
+
+## 5. Merge
+
+`pass-two` merged to `main` by pull request once items 1–4 were done and the ladder scenarios passed. The PR link is in the final message and the commit history.
+
+## Still yours, and still true
+
+- `ELEVENLABS_AGENT_ID_CANCELLATION` is set nowhere but `.env.local`, as instructed. Until it is on Vercel, `/api/call` refuses every cancellation call with a 500 naming it.
+- Southbank on the live project has a cheaper tier and no freeze, so its flagged members would get one offer; add the freeze at `/onboarding/southbank/edit` for the ladder.
+- Two known suite false negatives remain, both listed with their lines: the callback phrasing above, and nothing else new. The judge's variance on the three original agents is what it was: 13/15 twice, on two different scenarios.
+
+## The riskiest thing left, revised
+
+Two runs of the ladder scenarios is evidence, not proof. The model that offered the tier after "no thanks" three times out of three under the old wording declined four times out of four under the new one, against a simulated member who says exactly what the persona tells them. A real member who says "no thanks… well, what else have you got?" is the next test, and there is no transcript of that yet. The first cancellation call to a real member should be listened to.
