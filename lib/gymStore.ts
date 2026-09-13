@@ -1,6 +1,7 @@
 import { DEFAULT_GYM_ID, gyms as seedGyms } from "@/lib/gyms";
 import { GYM_FIELD_KEYS, parseGymConfig, type GymConfig } from "@/lib/gymConfig";
 import { memberSource } from "@/lib/memberSource";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
@@ -248,16 +249,34 @@ export async function resolveGym(gymId: string | null | undefined): Promise<GymL
 export type CreatedVia = "manual" | "document";
 
 /**
- * A config as a row. `offer_schedule` is written only when the gym set one, so
- * a gym without a schedule still saves on a database that doesn't have the
- * column yet; one with a schedule fails there and says which migration to apply.
+ * Columns added by pass-one migrations. A config that doesn't use them is
+ * written without them, so saving an ordinary gym keeps working on a database
+ * one migration behind; a config that does use them fails there and names the
+ * migration to apply.
  */
+const LATER_COLUMNS: Array<{ keys: string[]; migration: string }> = [
+  { keys: ["offer_schedule"], migration: "supabase/migrations/20260915010000_offer_schedule.sql" },
+  {
+    keys: ["reengagement_other_label", "reengagement_other_delivery", "winback_other_label", "winback_other_delivery"],
+    migration: "supabase/migrations/20260915020000_other_offers.sql",
+  },
+];
+
+/** A config as a row, with every later column that holds nothing left out. */
 function gymRow(gym: GymConfig): Record<string, unknown> {
-  const { offer_schedule, ...rest } = gym;
-  return offer_schedule ? { ...rest, offer_schedule } : rest;
+  const row: Record<string, unknown> = { ...gym };
+  for (const { keys } of LATER_COLUMNS) {
+    for (const key of keys) if (row[key] === null || row[key] === undefined) delete row[key];
+  }
+  return row;
 }
 
-const SCHEDULE_MIGRATION = "supabase/migrations/20260915010000_offer_schedule.sql";
+function laterColumnProblem(error: { message: string }): string | null {
+  const later = LATER_COLUMNS.find(({ keys }) => keys.some((k) => error.message.includes(k)));
+  return later ? `This gym uses a setting the gyms table can't store yet. Apply ${later.migration}.` : null;
+}
+
+export type WriteClient = Pick<SupabaseClient, "from">;
 
 export type InsertResult =
   | { ok: true; gym: GymConfig }
@@ -265,14 +284,15 @@ export type InsertResult =
 
 /**
  * Writes a new gym. Insert only: onboarding creates gyms, it does not silently
- * overwrite one that exists.
+ * overwrite one that exists. Editing is `updateGym`, a different verb on
+ * purpose.
  */
-export async function insertGym(gym: GymConfig, createdVia: CreatedVia): Promise<InsertResult> {
+export async function insertGym(gym: GymConfig, createdVia: CreatedVia, client: WriteClient = supabaseAdmin): Promise<InsertResult> {
   if (!supabaseConfigured()) return { ok: false, status: 503, error: SEED_NOTICE_NO_SUPABASE };
 
   let error: { code?: string; message: string } | null;
   try {
-    ({ error } = await supabaseAdmin
+    ({ error } = await client
       .from("gyms")
       .insert({ ...gymRow(gym), created_via: createdVia })
       .abortSignal(AbortSignal.timeout(READ_TIMEOUT_MS * 2)));
@@ -285,9 +305,8 @@ export async function insertGym(gym: GymConfig, createdVia: CreatedVia): Promise
   }
   if (!error) return { ok: true, gym };
   if (isMissingTable(error)) return { ok: false, status: 503, error: SEED_NOTICE_NO_TABLE };
-  if (/offer_schedule/.test(error.message)) {
-    return { ok: false, status: 503, error: `This gym has an offer schedule, and the gyms table can't store one yet. Apply ${SCHEDULE_MIGRATION}.` };
-  }
+  const later = laterColumnProblem(error);
+  if (later) return { ok: false, status: 503, error: later };
   if (error.code === "23505") {
     return {
       ok: false,
@@ -303,4 +322,62 @@ export async function insertGym(gym: GymConfig, createdVia: CreatedVia): Promise
     };
   }
   return { ok: false, status: 500, error: `Could not save the gym: ${error.message}` };
+}
+
+export type UpdateResult =
+  | { ok: true; gym: GymConfig }
+  | { ok: false; status: 404 | 503 | 500; error: string };
+
+/**
+ * Replaces an existing gym's config with one that has already been parsed,
+ * compiled and validated. Every config column is written, so a field cleared on
+ * the form is cleared in the row — blank stays blank. The id and how the gym
+ * was first created don't change. A gym that doesn't exist is a 404: an edit
+ * never creates one.
+ */
+export async function updateGym(gym: GymConfig, client: WriteClient = supabaseAdmin): Promise<UpdateResult> {
+  if (!supabaseConfigured()) return { ok: false, status: 503, error: SEED_NOTICE_NO_SUPABASE };
+
+  const { gym_id: gymId, ...config } = gym;
+  const full: Record<string, unknown> = Object.fromEntries(GYM_FIELD_KEYS.map((k) => [k, config[k]]));
+  full.offer_schedule = gym.offer_schedule ?? null;
+
+  const write = async (row: Record<string, unknown>) => {
+    try {
+      const { data, error } = await client
+        .from("gyms")
+        .update(row)
+        .eq("gym_id", gymId)
+        .select("gym_id")
+        .abortSignal(AbortSignal.timeout(READ_TIMEOUT_MS * 2));
+      return { data: (data ?? []) as unknown[], error: error as { code?: string; message: string } | null, thrown: null as string | null };
+    } catch (err) {
+      return { data: [] as unknown[], error: null, thrown: err instanceof Error ? err.message : String(err) };
+    }
+  };
+
+  let result = await write(full);
+  // One migration behind and the config doesn't use the missing columns:
+  // clearing a column that doesn't exist is the same as leaving it out.
+  const usesLater = LATER_COLUMNS.some(({ keys }) => keys.some((k) => k in gymRow(gym)));
+  if (result.error && laterColumnProblem(result.error) && !usesLater) {
+    const laterKeys = new Set(LATER_COLUMNS.flatMap(({ keys }) => keys));
+    result = await write(Object.fromEntries(Object.entries(full).filter(([k]) => !laterKeys.has(k))));
+  }
+
+  if (result.thrown) {
+    return { ok: false, status: 503, error: `Could not reach the database, so the gym was not saved: ${result.thrown}` };
+  }
+  const { error } = result;
+  if (error) {
+    if (isMissingTable(error)) return { ok: false, status: 503, error: SEED_NOTICE_NO_TABLE };
+    const later = laterColumnProblem(error);
+    if (later) return { ok: false, status: 503, error: later };
+    if (error.code === "23514") {
+      return { ok: false, status: 500, error: `The database rejected this config against its constraints: ${error.message}` };
+    }
+    return { ok: false, status: 500, error: `Could not save the gym: ${error.message}` };
+  }
+  if (result.data.length === 0) return { ok: false, status: 404, error: `There is no gym "${gymId}" to edit.` };
+  return { ok: true, gym };
 }
