@@ -9,6 +9,7 @@
     "lint": "eslint",
     "evals": "tsx evals/run.ts",
     "evals:guards": "tsx evals/run.ts --guards-only",
+    "evals:extraction": "tsx evals/extraction.ts",
     "gyms:seed-sql": "node scripts/gym-seed-sql.mjs",
     "gyms:seed-check": "node scripts/gym-seed-sql.mjs --check",
     "agents:sync": "node scripts/sync-agents.mjs",
@@ -16,12 +17,16 @@
     "data:build": "python pipeline/generate_gym_data.py && python pipeline/build_scores.py && node scripts/copy-pipeline-output.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "@supabase/supabase-js": "^2.116.0",
+    "mammoth": "^1.12.3",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

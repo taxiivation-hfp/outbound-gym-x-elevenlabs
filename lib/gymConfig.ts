@@ -96,6 +96,8 @@ export type FieldKind = "text" | "text_list" | "boolean" | "integer" | "decimal"
 export interface FieldSpec {
   key: GymFieldKey;
   label: string;
+  /** The label as it reads inside a sentence or a list: "class booking". */
+  shortLabel: string;
   kind: FieldKind;
   required: boolean;
   /** Enum values, in display order. */
@@ -107,7 +109,11 @@ export interface FieldSpec {
    * it means rather than letting someone guess.
    */
   whenBlank: string | null;
-  /** A short example of a good value, shown as a placeholder. */
+  /**
+   * A short example of a good value, shown as a placeholder. Never a value any
+   * configured gym actually uses, and never for numbers, where a grey "20" reads
+   * as a discount already set.
+   */
   example?: string;
   /** What counts as the document stating this, for the extraction model. */
   extraction: string;
@@ -117,45 +123,50 @@ export const FIELD_SPECS: FieldSpec[] = [
   {
     key: "gym_name",
     label: "Gym name",
+    shortLabel: "gym name",
     kind: "text",
     required: true,
     whenBlank: null,
-    example: "Southbank Strength",
+    example: "Riverside Fitness",
     extraction: "The gym's trading name, exactly as the document writes it.",
   },
   {
     key: "opening_hours",
     label: "Opening hours",
+    shortLabel: "opening hours",
     kind: "text",
     required: false,
     whenBlank: "Charlie says he doesn't have the opening hours in front of him.",
-    example: "5am to 10pm weekdays, 7am to 7pm weekends",
+    example: "6am to 9pm weekdays, 8am to 1pm Saturdays",
     extraction:
       "The gym's opening hours as a short phrase, in the document's own terms. Null if the document gives no opening hours.",
   },
   {
     key: "quiet_hours",
     label: "Quiet times",
+    shortLabel: "quiet times",
     kind: "text",
     required: false,
     whenBlank: "Charlie has no quiet times to suggest. Asked, he says he doesn't have them in front of him.",
-    example: "weekdays before 8am and after 7pm",
+    example: "weekday afternoons between 1pm and 4pm",
     extraction:
       "Times the document itself describes as quiet, least busy or a good time to avoid crowds. An off-peak membership's access window is not a statement that the gym is quiet — do not use it. Null unless quiet times are stated.",
   },
   {
     key: "other_locations",
     label: "Other locations",
+    shortLabel: "other locations",
     kind: "text_list",
     required: false,
     whenBlank: "Charlie treats this as your only site. Asked about other locations, he'll say there aren't any.",
-    example: "Fortitude Valley",
+    example: "Coburg",
     extraction:
       "Names of the gym's other sites or branches that the document names. An empty list only if the document explicitly says this is the only location. Null if other locations are not mentioned.",
   },
   {
     key: "has_online",
     label: "Online training",
+    shortLabel: "online training",
     kind: "boolean",
     required: false,
     whenBlank: "Charlie won't offer online training. Asked, he says he doesn't have that in front of him.",
@@ -165,6 +176,7 @@ export const FIELD_SPECS: FieldSpec[] = [
   {
     key: "books_classes",
     label: "Charlie can book classes",
+    shortLabel: "class booking",
     kind: "boolean",
     required: false,
     whenBlank: "Charlie won't offer to book anyone into a class.",
@@ -173,18 +185,19 @@ export const FIELD_SPECS: FieldSpec[] = [
   },
   {
     key: "renewal_discount_percent",
-    label: "Renewal discount (%)",
+    label: "Renewal discount",
+    shortLabel: "renewal discount",
     kind: "integer",
     required: false,
     whenBlank:
       "No renewal save. If price is the problem, Charlie says he'll pass it on — no discount, and no offer to ask a manager.",
-    example: "20",
     extraction:
       "A percentage discount the document offers to existing members who renew, as a whole number (20 for \"20% off\"). Not a joining discount and not a discount for new members. Null unless a renewal discount is stated.",
   },
   {
     key: "reengagement_perk",
     label: "Perk for a member who's stopped coming",
+    shortLabel: "perk for a member who's stopped coming",
     kind: "enum",
     required: false,
     options: REENGAGEMENT_PERKS,
@@ -200,6 +213,7 @@ export const FIELD_SPECS: FieldSpec[] = [
   {
     key: "winback_offer",
     label: "Offer for a lapsed member",
+    shortLabel: "offer for a lapsed member",
     kind: "enum",
     required: false,
     options: WINBACK_OFFERS,
@@ -214,21 +228,22 @@ export const FIELD_SPECS: FieldSpec[] = [
   },
   {
     key: "cheaper_tier_name",
-    label: "Cheaper membership — name",
+    label: "Cheaper membership name",
+    shortLabel: "cheaper membership name",
     kind: "text",
     required: false,
     whenBlank: "Charlie won't mention a cheaper membership.",
-    example: "off-peak membership",
+    example: "concession membership",
     extraction:
       "The name of a lower-priced membership option the document presents as cheaper (off-peak, concession, student), as the document names it. Null if none is stated.",
   },
   {
     key: "cheaper_tier_price",
-    label: "Cheaper membership — $ a month",
+    label: "Cheaper membership price",
+    shortLabel: "cheaper membership price",
     kind: "decimal",
     required: false,
     whenBlank: null,
-    example: "39",
     extraction:
       "The monthly price in dollars of that cheaper option, as a number (39 for \"$39 a month\"). If the document only gives a weekly or fortnightly price, return null — do not convert it.",
   },
@@ -276,22 +291,22 @@ function parseText(
 ): FieldParse<string> {
   if (isBlank(value)) return { value: null };
   if (typeof value !== "string") {
-    return { value: null, error: `${label} must be text, but got ${describe(value)}.` };
+    return { value: null, error: `${label} needs to be written as text.` };
   }
   // What is checked is what is stored: normalised first, never after.
   const text = normaliseText(value);
   if (text.length > max) {
-    return { value: null, error: `${label} is ${text.length} characters; keep it under ${max}.` };
+    return { value: null, error: `That's ${text.length} characters. Keep it under ${max}.` };
   }
   const problem = checkText(text, kind);
   if (problem) return { value: null, error: problem.message };
   return { value: text };
 }
 
-function parseBoolean(value: unknown, label: string): FieldParse<boolean> {
+function parseBoolean(value: unknown): FieldParse<boolean> {
   if (value === undefined || value === null) return { value: null };
   if (typeof value !== "boolean") {
-    return { value: null, error: `${label} must be yes, no or blank, but got ${describe(value)}.` };
+    return { value: null, error: "Choose Yes, No or Not stated." };
   }
   return { value };
 }
@@ -301,7 +316,7 @@ function parseEnum<T extends string>(value: unknown, options: readonly T[], labe
   if (typeof value !== "string" || !(options as readonly string[]).includes(value)) {
     return {
       value: null,
-      error: `${label} must be one of ${options.join(", ")}, but got ${describe(value)}.`,
+      error: `Choose one of the options for ${label.toLowerCase()}, or Not stated.`,
     };
   }
   return { value: value as T };
@@ -310,10 +325,10 @@ function parseEnum<T extends string>(value: unknown, options: readonly T[], labe
 function parseLocations(value: unknown): FieldParse<string[]> {
   if (value === undefined || value === null) return { value: null };
   if (!Array.isArray(value)) {
-    return { value: null, error: `Other locations must be a list of site names, but got ${describe(value)}.` };
+    return { value: null, error: "Add each other location as its own site name." };
   }
   if (value.length > MAX_OTHER_LOCATIONS) {
-    return { value: null, error: `List at most ${MAX_OTHER_LOCATIONS} other locations.` };
+    return { value: null, error: `List ${MAX_OTHER_LOCATIONS} other locations at most.` };
   }
   const parsed: string[] = [];
   for (const entry of value) {
@@ -329,7 +344,7 @@ function parseLocations(value: unknown): FieldParse<string[]> {
   if (joined.length > LIMITS.fact) {
     return {
       value: null,
-      error: `Together the location names run to ${joined.length} characters; keep them under ${LIMITS.fact}.`,
+      error: `Together the site names run to ${joined.length} characters. Keep them under ${LIMITS.fact}, or shorten the names.`,
     };
   }
   // An explicitly empty list is the gym saying "no other sites"; a list of
@@ -340,15 +355,15 @@ function parseLocations(value: unknown): FieldParse<string[]> {
 function parseDiscount(value: unknown): FieldParse<number> {
   if (isBlank(value)) return { value: null };
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return { value: null, error: `Renewal discount must be a whole number of percent, but got ${describe(value)}.` };
+    return { value: null, error: "Enter a whole number, like 15 — no % sign needed." };
   }
-  if (!Number.isInteger(value)) return { value: null, error: "Renewal discount must be a whole number of percent." };
+  if (!Number.isInteger(value)) return { value: null, error: "Enter a whole number, like 15 — no decimals." };
   if (value === 0) {
     return { value: null, error: "0% isn't a discount — leave it blank if there's no renewal discount." };
   }
-  if (value < 0) return { value: null, error: "A renewal discount can't be negative." };
+  if (value < 0) return { value: null, error: "Enter a number above 0, like 15, or leave it blank." };
   if (value > RENEWAL_DISCOUNT_MAX) {
-    return { value: null, error: `Renewal discounts above ${RENEWAL_DISCOUNT_MAX}% aren't accepted here.` };
+    return { value: null, error: `Enter ${RENEWAL_DISCOUNT_MAX} or less, or leave it blank.` };
   }
   return { value };
 }
@@ -356,14 +371,14 @@ function parseDiscount(value: unknown): FieldParse<number> {
 function parsePrice(value: unknown): FieldParse<number> {
   if (isBlank(value)) return { value: null };
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return { value: null, error: `Cheaper membership price must be a number of dollars, but got ${describe(value)}.` };
+    return { value: null, error: "Enter the monthly price as a number, like 45 or 39.50." };
   }
-  if (value <= 0) return { value: null, error: "Cheaper membership price must be more than $0." };
+  if (value <= 0) return { value: null, error: "Enter a price above $0, or leave it blank." };
   if (value > TIER_PRICE_MAX) {
-    return { value: null, error: `Cheaper membership price must be under $${TIER_PRICE_MAX} a month.` };
+    return { value: null, error: `Enter a monthly price of $${TIER_PRICE_MAX} or less.` };
   }
   if (!hasAtMostTwoDecimals(value)) {
-    return { value: null, error: "Cheaper membership price can have at most two decimal places." };
+    return { value: null, error: "Use two decimal places at most, like 39.50." };
   }
   return { value };
 }
@@ -384,9 +399,9 @@ export function parseGymField(key: GymFieldKey, value: unknown): FieldParse<GymF
     case "other_locations":
       return parseLocations(value);
     case "has_online":
-      return parseBoolean(value, "Online training");
+      return parseBoolean(value);
     case "books_classes":
-      return parseBoolean(value, "Class booking");
+      return parseBoolean(value);
     case "renewal_discount_percent":
       return parseDiscount(value);
     case "reengagement_perk":
@@ -436,14 +451,14 @@ export function parseGymFields(
   }
 
   if (!errors.gym_name && value.gym_name === null) {
-    errors.gym_name = "Every gym needs a name — it's the first thing Charlie says.";
+    errors.gym_name = "Enter the gym's name — it's the first thing Charlie says.";
   }
 
   if (!errors.cheaper_tier_name && !errors.cheaper_tier_price) {
     if (value.cheaper_tier_name !== null && value.cheaper_tier_price === null) {
-      errors.cheaper_tier_price = "A cheaper membership needs a monthly price as well as a name, or neither.";
+      errors.cheaper_tier_price = "Add the monthly price for this membership, or clear its name.";
     } else if (value.cheaper_tier_name === null && value.cheaper_tier_price !== null) {
-      errors.cheaper_tier_name = "A cheaper membership needs a name as well as a price, or neither.";
+      errors.cheaper_tier_name = "Add a name for this membership, or clear its price.";
     }
   }
 

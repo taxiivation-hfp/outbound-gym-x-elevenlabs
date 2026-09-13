@@ -11,6 +11,8 @@
   /* The one accent. Used for the win state and nothing else, so that when it
      appears it means something. */
   --accent: #d6ff3d;
+  /* Native controls, autofill and scrollbars render dark to match. */
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -19,6 +21,23 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* DESIGN.md tokens. `signal` is the rationed lime: the primary action on a
+     screen and a win state, nothing else. */
+  --color-signal: var(--accent);
+  --color-signal-hover: #c2eb2b;
+  --color-hairline: #27272a;
+  --color-hairline-quiet: #18181b;
+  --color-surface: #09090b;
+  --color-ink: var(--foreground);
+  --color-ink-body: #d4d4d8;
+  --color-ink-secondary: #a1a1aa;
+}
+
+/* The sticky nav is ~57px tall; a focused field must never scroll underneath it
+   (WCAG 2.4.11). */
+html {
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -32,4 +51,58 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: #3f3f46 transparent;
+}
+
+/*
+ * Onboarding motion. Motion here only reports state: a stage that is working
+ * but has no percentage to show, and compiled prompt text that has just been
+ * rewritten by a change in the form.
+ */
+@keyframes stage-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* Ease-in-out on purpose, although the sweep loops: it leaves the left edge
+   slowly, so a stage that finishes in a couple of hundred milliseconds (the
+   check usually does) is gone before the sweep shows, instead of flashing it. */
+.stage-sweep {
+  animation: stage-sweep 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes stage-pulse {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0.7;
+  }
+}
+
+/* The preview's call text, when an answer has just rewritten it: the edge
+   lights at once and, after a short hold, fades back. It is set on every
+   keystroke that changes the text, so it is a transition, not a keyframe — a
+   new change catches it mid-fade and relights it rather than restarting a
+   flicker — and it never touches the text itself. */
+.compiled-text {
+  transition: border-color 600ms cubic-bezier(0.23, 1, 0.32, 1) 250ms;
+}
+
+.compiled-text[data-rewritten] {
+  border-color: var(--color-zinc-500);
+  transition-duration: 0ms;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No travel. A still, full bar would read as finished, so the track breathes
+     instead, never as bright as a finished stage's solid fill. */
+  .stage-sweep {
+    width: 100%;
+    animation: stage-pulse 1.2s ease-in-out infinite alternate;
+  }
 }

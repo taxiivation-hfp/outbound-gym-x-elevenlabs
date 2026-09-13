@@ -1,8 +1,23 @@
 import type { CallType, Routing } from "@/lib/callType";
 import { today } from "@/lib/clock";
-import type { GymFields } from "@/lib/gymConfig";
-import { incentivesFor, type Gym } from "@/lib/gyms";
+import { parseGymConfig, type FieldErrors, type GymFields } from "@/lib/gymConfig";
+import type { Gym } from "@/lib/gyms";
+import { compileIncentives } from "@/lib/incentives";
+import { assertValidIncentives } from "@/lib/validateIncentives";
 import type { Member } from "@/lib/types";
+
+/** A gym whose config fails validation at compile time. No payload is built for it. */
+export class GymConfigError extends Error {
+  readonly gymId: string;
+  readonly errors: FieldErrors;
+
+  constructor(gymId: string, errors: FieldErrors) {
+    super(`Gym "${gymId}" failed validation: ${Object.values(errors).join(" ")}`);
+    this.name = "GymConfigError";
+    this.gymId = gymId;
+    this.errors = errors;
+  }
+}
 
 /**
  * The one place where the app's vocabulary becomes the agent's vocabulary.
@@ -363,8 +378,18 @@ export interface CompileInput {
  * strings keeps what the agent reads identical to what is logged here.
  */
 export function compileVariables(input: CompileInput): Record<string, string> {
-  const { member, gym, routing, callType, attemptNumber = 1, priorCall, asOf } = input;
+  const { member, routing, callType, attemptNumber = 1, priorCall, asOf } = input;
   void asOf; // routing already carries the date arithmetic; kept for symmetry
+
+  // Every compile re-checks the gym and the incentives it produces, not just
+  // onboarding. A config that reached the database around the app, or a row
+  // that no longer passes rules added since it was saved, fails here — before a
+  // payload exists — rather than on a live call.
+  const checked = parseGymConfig(input.gym);
+  if (!checked.ok) throw new GymConfigError(String((input.gym as { gym_id?: unknown }).gym_id), checked.errors);
+  const gym = checked.value;
+  const incentives = compileIncentives(gym, callType).text;
+  assertValidIncentives(incentives, gym, callType);
 
   const timeLeft = compileTimeLeft(callType, routing.days_to_expiry);
 
@@ -380,7 +405,7 @@ export function compileVariables(input: CompileInput): Record<string, string> {
     renewal_price: formatPrice(member.renewal_fee),
     expiry_line: compileExpiryLine(routing.days_to_expiry, timeLeft),
     ...compileGymFacts(gym),
-    incentives: incentivesFor(gym, callType),
+    incentives,
   };
 }
 

@@ -23,6 +23,9 @@ import { hasCheaperTier, type GymFields } from "@/lib/gymConfig";
  *    reach a sentence are a validated integer, a validated price and a validated
  *    tier name — and a tier name is held to the tightest text rules in
  *    `lib/textSafety.ts`, because it sits inside an offer sentence.
+ *    `lib/validateIncentives.ts` checks every compiled block against this
+ *    registry and against the config it came from, independently of the choices
+ *    made here, and `compileVariables` runs it on every compile.
  *
  * The two gyms that predate onboarding compile to exactly the text they used to
  * carry by hand — a guard pins that — so the fifteen conversation scenarios that

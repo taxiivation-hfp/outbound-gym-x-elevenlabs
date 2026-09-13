@@ -80,7 +80,7 @@ const ADDRESSES_A_MODEL: RegExp[] = [
 /** Speaking to someone, or telling them what to do. */
 const SPEAKS_TO_SOMEONE: RegExp[] = [
   /\b(you|your|yours|you're|youre|you'll|youll|yourself|u)\b/i,
-  /\b(must|should|shall|do not|don't|dont|cannot|can't|cant|never|always)\b/i,
+  /\b(must|should|shall|do not|don't|dont|cannot|can't|cant)\b/i,
   /\b(say|says|said|saying|tell|tells|telling|told|mention\w*|respond\w*|repl(y|ies|ied|ying)|announc\w*|promis\w*|agree\w*|confirm\w*|charlie)\b/i,
 ];
 
@@ -169,12 +169,12 @@ export function looksLikeInstruction(text: string): boolean {
  */
 export function checkText(text: string, kind: TextKind): TextProblem | null {
   if (text !== normaliseText(text)) {
-    return { message: "Contains line breaks, odd spacing or stylised characters. Retype it as plain text." };
+    return { message: "Retype this as plain text — it has line breaks or stylised characters." };
   }
 
   if (WRITTEN_BLANK.test(text)) {
     return {
-      message: `Leave this empty rather than writing "${text}". An empty field is what tells Charlie to say he doesn't have it.`,
+      message: `Leave this empty instead of writing "${text}" — empty is what tells Charlie he doesn't have it.`,
     };
   }
 
@@ -182,13 +182,13 @@ export function checkText(text: string, kind: TextKind): TextProblem | null {
   if (!allowed.test(text)) {
     const bad = distinctDisallowed(text, allowed);
     return {
-      message: `Only ${ALLOWED_DESCRIPTION[kind]} are allowed here — remove ${bad.map((c) => `"${c}"`).join(", ")}.`,
+      message: `Remove ${bad.map((c) => `"${c}"`).join(", ")} — only ${ALLOWED_DESCRIPTION[kind]} can be used here.`,
     };
   }
 
   const words = text.split(" ").filter(Boolean).length;
   if (words > MAX_WORDS[kind]) {
-    return { message: `Keep this to ${MAX_WORDS[kind]} words or fewer — it's a name or a short fact, not a sentence.` };
+    return { message: `Keep this to ${MAX_WORDS[kind]} words or fewer — a name or a short fact, not a sentence.` };
   }
 
   if (kind === "gym_name" && SENTENCE_BREAK_IN_NAME.test(text)) {
@@ -208,8 +208,7 @@ export function checkText(text: string, kind: TextKind): TextProblem | null {
   if (phrase) {
     return {
       message:
-        `"${phrase}" reads like an instruction or an offer rather than a ${kind === "gym_name" ? "name" : "fact about the gym"}. ` +
-        "What Charlie may offer comes only from the typed offer fields; his wording is written by the app.",
+        `Charlie can't use "${phrase}" here. Write only the ${kind === "gym_name" ? "name" : "fact"} itself — anything Charlie may offer comes from the offer questions.`,
     };
   }
 

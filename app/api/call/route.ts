@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import membersData from "@/data/members_scored.json";
 import { getCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
-import { compileVariables } from "@/lib/compileVariables";
+import { compileVariables, GymConfigError } from "@/lib/compileVariables";
+import { IncentivesValidationError } from "@/lib/validateIncentives";
 import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
@@ -98,14 +99,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const dynamicVariables = compileVariables({
-    member,
-    gym,
-    routing: eligibility.routing,
-    callType,
-    attemptNumber: eligibility.attemptNumber,
-    priorCall: history.priorCall,
-  });
+  // The compiler re-validates the gym and the incentives block it writes on
+  // every compile. A failure here means the agent would have been told
+  // something the config doesn't back, so nothing is dialled.
+  let dynamicVariables: Record<string, string>;
+  try {
+    dynamicVariables = compileVariables({
+      member,
+      gym,
+      routing: eligibility.routing,
+      callType,
+      attemptNumber: eligibility.attemptNumber,
+      priorCall: history.priorCall,
+    });
+  } catch (err) {
+    if (err instanceof IncentivesValidationError) {
+      return NextResponse.json(
+        {
+          error: `The ${err.callType} incentives for this gym failed validation, so the call was not placed.`,
+          blocked_by: "incentives_validation",
+          violations: err.violations,
+        },
+        { status: 422 }
+      );
+    }
+    if (err instanceof GymConfigError) {
+      return NextResponse.json(
+        { error: "This gym's config failed validation, so the call was not placed.", blocked_by: "gym_config", errors: err.errors },
+        { status: 422 }
+      );
+    }
+    throw err;
+  }
 
   // The last check before a phone rings. Every number in this dataset is Faker
   // output — well-formed, and belonging to a stranger — so the route refuses to

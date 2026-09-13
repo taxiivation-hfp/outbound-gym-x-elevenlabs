@@ -1,7 +1,5 @@
 import gymsData from "@/data/gyms.json";
-import type { CallType } from "@/lib/callType";
 import { parseGymConfig, type GymConfig } from "@/lib/gymConfig";
-import { compileIncentives } from "@/lib/incentives";
 
 /**
  * The seed gyms, from `data/gyms.json`.
@@ -60,9 +58,4 @@ export const DEFAULT_GYM_ID = seed.defaultGymId;
 export function getGym(gymId?: string | null): Gym {
   const wanted = gymId ?? DEFAULT_GYM_ID;
   return gyms.find((g) => g.gym_id === wanted) ?? (gyms.find((g) => g.gym_id === DEFAULT_GYM_ID) as Gym);
-}
-
-/** The finished incentives text for one call type. */
-export function incentivesFor(gym: Gym, callType: CallType): string {
-  return compileIncentives(gym, callType).text;
 }
