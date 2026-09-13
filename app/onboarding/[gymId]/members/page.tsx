@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AppShell from "@/components/shell/AppShell";
 import Connectors from "@/components/onboarding/Connectors";
 import MemberImport, { type ColumnHelp } from "@/components/onboarding/MemberImport";
-import { AdminDetail, Notice } from "@/components/onboarding/ui";
+import { AdminDetail, Card, CardHeader, Notice, focusRing } from "@/components/onboarding/ui";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 import { routeMember } from "@/lib/callType";
 import { today } from "@/lib/clock";
@@ -23,6 +24,23 @@ function formatRanAt(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return `${d.toLocaleString("en-AU", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} UTC`;
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <h3 className="m-0 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">{children}</h3>;
+}
+
+function Tally({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
+  return (
+    <dl className="m-0 flex flex-col gap-1.5 text-[12.5px]">
+      {rows.map(([label, n]) => (
+        <div key={label} className="flex items-baseline justify-between gap-3">
+          <dt className="text-muted">{label}</dt>
+          <dd className="m-0 font-bold tabular-nums text-ink">{n.toLocaleString("en-AU")}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 /**
@@ -76,94 +94,101 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
   const lastRun = lastRunRead ? await lastRunRead : null;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
-      <Link href="/onboarding" className="text-sm font-semibold text-zinc-400 transition-colors hover:text-white">
-        <span aria-hidden="true">←</span> Set up a gym
-      </Link>
-      <header className="mt-4 max-w-3xl">
-        <h1 className="text-3xl font-black uppercase tracking-tight text-balance sm:text-4xl">Member data</h1>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-zinc-400">
-          For <span className="text-zinc-200">{gymName}</span>. Upload the three tables your platform already exports —
-          the same files you&apos;d send an accountant. Each file is checked before anything is written, and imported
-          whole or not at all.
-        </p>
-      </header>
+    <AppShell current="setup" title={gymName} eyebrow="Member data">
+      <div className="min-h-0 flex-1 overflow-auto pr-0.5">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <p className="text-[12.5px] text-muted">
+              <Link href="/onboarding" className={`rounded-sm font-semibold text-accent-ink hover:text-ink ${focusRing}`}>
+                <span aria-hidden="true">←</span> Voice agent setup
+              </Link>
+              {gym.ok && (
+                <>
+                  {" · "}
+                  <Link href={`/onboarding/${gymId}/edit`} className={`rounded-sm font-semibold text-accent-ink hover:text-ink ${focusRing}`}>
+                    Edit {gymName}
+                  </Link>
+                </>
+              )}
+            </p>
 
-      <div className="mt-8 grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <section aria-labelledby="upload-title" className="min-w-0">
-          <h2 id="upload-title" className="sr-only">
-            Upload CSV files
-          </h2>
-          {!gym.ok && (
-            <div className="mb-4">
-              <Notice tone="fault" title="This gym's config can't be used">
-                {gym.error}
-              </Notice>
-            </div>
-          )}
-          {gym.ok && !uploadsAvailable && (
-            <div className="mb-4">
-              <Notice tone="caution" title="Uploads aren't available on this deployment yet">
-                Member data is stored in Supabase against the gyms table, which hasn&apos;t been created here. Apply{" "}
-                <code className="font-mono break-all">supabase/migrations/20260914000000_create_gyms.sql</code> and{" "}
-                <code className="font-mono break-all">20260914010000_member_data.sql</code>. The checks below still show exactly what each file
-                needs.
-              </Notice>
-            </div>
-          )}
-          {dataError && (
-            <div className="mb-4">
-              <Notice tone="caution" title="Member data isn't readable yet">
-                {dataError}
-              </Notice>
-            </div>
-          )}
-          {uploadsAvailable && !dataError && !writesEnabled && (
-            <div className="mb-4">
-              <Notice tone="caution" title="Imports are switched off here">
-                <p>Files can be checked, but nothing can be imported until your admin switches imports on.</p>
-                <AdminDetail>{ONBOARDING_WRITES_OFF}</AdminDetail>
-              </Notice>
-            </div>
-          )}
-          <MemberImport gymId={gymId} columns={columns} uploadsAvailable={uploadsAvailable && !dataError} importAvailable={writesEnabled} />
-        </section>
+            <Card labelledBy="upload-title" prominent>
+              <CardHeader id="upload-title" title="Member data" note="three CSVs, checked before anything is written" />
+              <p className="mb-4 max-w-[68ch] text-[13px] leading-[1.55] text-muted text-pretty">
+                For <span className="font-semibold text-ink-2">{gymName}</span>. Upload the three tables your platform already
+                exports — the same files you&apos;d send an accountant. Each file is checked before anything is written, and
+                imported whole or not at all.
+              </p>
 
-        <aside aria-labelledby="imported-title" className="xl:sticky xl:top-20 xl:self-start">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5">
-            <h2 id="imported-title" className="text-lg font-black uppercase tracking-tight text-white">
-              In Supabase now
-            </h2>
-            {counts ? (
-              <dl className="mt-3 grid grid-cols-3 gap-3">
-                {(
-                  [
-                    ["Members", counts.members],
-                    ["Contracts", counts.contracts],
-                    ["Check-ins", counts.checkins],
-                  ] as const
-                ).map(([label, n]) => (
-                  <div key={label}>
-                    <dt className="text-xs text-zinc-400">{label}</dt>
-                    <dd className="mt-0.5 text-xl font-black tabular-nums text-white">{n.toLocaleString("en-AU")}</dd>
-                  </div>
-                ))}
-              </dl>
-            ) : (
-              <p className="mt-2 text-sm text-zinc-400">Nothing can be counted until the tables exist.</p>
-            )}
+              <div className="mb-4 flex flex-col gap-2.5 empty:hidden">
+                {!gym.ok && (
+                  <Notice tone="fault" title="This gym's config can't be used">
+                    {gym.error}
+                  </Notice>
+                )}
+                {gym.ok && !uploadsAvailable && (
+                  <Notice tone="caution" title="Uploads aren't available on this deployment yet">
+                    Member data is stored in Supabase against the gyms table, which hasn&apos;t been created here. Apply{" "}
+                    <code className="font-mono break-all">supabase/migrations/20260914000000_create_gyms.sql</code> and{" "}
+                    <code className="font-mono break-all">20260914010000_member_data.sql</code>. The checks below still show exactly
+                    what each file needs.
+                  </Notice>
+                )}
+                {dataError && (
+                  <Notice tone="caution" title="Member data isn't readable yet">
+                    {dataError}
+                  </Notice>
+                )}
+                {uploadsAvailable && !dataError && !writesEnabled && (
+                  <Notice tone="caution" title="Imports are switched off here">
+                    <p>Files can be checked, but nothing can be imported until your admin switches imports on.</p>
+                    <AdminDetail>{ONBOARDING_WRITES_OFF}</AdminDetail>
+                  </Notice>
+                )}
+              </div>
 
-            {routing && (
-              <div className="mt-5 border-t border-zinc-900 pt-4">
-                <h3 className="text-sm font-semibold text-white">Who the router would call</h3>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                  Measured against {asOf.toISOString().slice(0, 10)}
-                  {liveClock ? " (today)" : " — the frozen dataset date, not today. Set DATASET_CLOCK=live for a real gym's data"}
-                  . Call history isn&apos;t applied here; the queue and the call route apply it.
-                </p>
-                <dl className="mt-3 space-y-1.5 text-sm">
+              <MemberImport gymId={gymId} columns={columns} uploadsAvailable={uploadsAvailable && !dataError} importAvailable={writesEnabled} />
+
+              <div className="mt-[26px]">
+                <Connectors />
+              </div>
+            </Card>
+          </div>
+
+          <aside aria-labelledby="imported-title" className="min-w-0 lg:sticky lg:top-0">
+            <div className="flex flex-col gap-3.5 rounded-2xl border border-line-strong bg-surface p-[18px] shadow-window">
+              <h2 id="imported-title" className="m-0 font-display text-[17px] font-bold tracking-[-0.02em] text-ink">
+                In Supabase now
+              </h2>
+              {counts ? (
+                <dl className="m-0 grid grid-cols-3 gap-3">
                   {(
                     [
+                      ["Members", counts.members],
+                      ["Contracts", counts.contracts],
+                      ["Check-ins", counts.checkins],
+                    ] as const
+                  ).map(([label, n]) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.06em] text-dim">{label}</dt>
+                      <dd className="m-0 font-display text-[22px] font-bold tabular-nums tracking-[-0.02em] text-ink">{n.toLocaleString("en-AU")}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="text-[12.5px] text-dim">Nothing can be counted until the tables exist.</p>
+              )}
+
+              {routing && (
+                <div className="flex flex-col gap-2 border-t border-line pt-[13px]">
+                  <Eyebrow>Who the router would call</Eyebrow>
+                  <p className="text-[11.5px] leading-[1.45] text-dim text-pretty">
+                    Measured against {asOf.toISOString().slice(0, 10)}
+                    {liveClock ? " (today)" : " — the frozen dataset date, not today. Set DATASET_CLOCK=live for a real gym's data"}.
+                    Call history isn&apos;t applied here; the queue and the call route apply it.
+                  </p>
+                  <Tally
+                    rows={[
                       ["Renewal", routing.renewal],
                       ["Reengagement", routing.reengagement],
                       ["Winback", routing.winback],
@@ -171,66 +196,50 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
                       ["Never called — auto-renews", routing.autoRenew],
                       ["Nothing due", routing.notDue],
                       ["No contract on file", routing.unrouted],
-                    ] as const
-                  ).map(([label, n]) => (
-                    <div key={label} className="flex justify-between gap-3">
-                      <dt className="text-zinc-400">{label}</dt>
-                      <dd className="tabular-nums text-zinc-200">{n.toLocaleString("en-AU")}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
+                    ]}
+                  />
+                </div>
+              )}
 
-            {lastRun && (
-              <div className="mt-5 border-t border-zinc-900 pt-4">
-                <h3 className="text-sm font-semibold text-white">Nightly recompute</h3>
-                {lastRun.run ? (
-                  <>
-                    <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                      Last ran {formatRanAt(lastRun.run.ran_at)}, measured against {lastRun.run.as_of}
-                      {lastRun.run.clock === "live" ? " (the date it ran)" : " (the frozen dataset date)"}.
-                    </p>
-                    <dl className="mt-3 space-y-1.5 text-sm">
-                      {(
-                        [
+              {lastRun && (
+                <div className="flex flex-col gap-2 border-t border-line pt-[13px]">
+                  <Eyebrow>Nightly recompute</Eyebrow>
+                  {lastRun.run ? (
+                    <>
+                      <p className="text-[11.5px] leading-[1.45] text-dim text-pretty">
+                        Last ran {formatRanAt(lastRun.run.ran_at)}, measured against {lastRun.run.as_of}
+                        {lastRun.run.clock === "live" ? " (the date it ran)" : " (the frozen dataset date)"}.
+                      </p>
+                      <Tally
+                        rows={[
                           ["Due a call", lastRun.run.counts.due],
                           ["Never called — auto-renews", lastRun.run.counts.auto_renew],
                           ["Blocked by call history", lastRun.run.counts.do_not_contact + lastRun.run.counts.cooldown + lastRun.run.counts.max_attempts],
-                        ] as const
-                      ).map(([label, n]) => (
-                        <div key={label} className="flex justify-between gap-3">
-                          <dt className="text-zinc-400">{label}</dt>
-                          <dd className="tabular-nums text-zinc-200">{n.toLocaleString("en-AU")}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    {lastRun.run.history_error && (
-                      <p className="mt-2 text-xs leading-relaxed text-amber-200">
-                        <span className="font-semibold text-amber-300">Check this:</span> that run was recorded with a
-                        problem — {lastRun.run.history_error}. Calls still re-check everything when they are placed.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">{lastRun.notice}</p>
-                )}
-              </div>
-            )}
+                        ]}
+                      />
+                      {lastRun.run.history_error && (
+                        <p className="rounded-[9px] border border-flag bg-flag-wash px-[11px] py-2 text-[11.5px] leading-[1.45] text-ink-2">
+                          <strong className="text-flag-ink">Check this:</strong> that run was recorded with a problem —{" "}
+                          {lastRun.run.history_error}. Calls still re-check everything when they are placed.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[11.5px] leading-[1.45] text-dim">{lastRun.notice}</p>
+                  )}
+                </div>
+              )}
 
-            <p className="mt-5 border-t border-zinc-900 pt-4 text-xs leading-relaxed text-zinc-400">
-              The queue uses these members when the deployment sets{" "}
-              <code className="font-mono text-zinc-300">MEMBER_SOURCE=supabase</code> and{" "}
-              <code className="font-mono text-zinc-300 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>. Until then it uses the
-              synthetic dataset.
-            </p>
-          </div>
-        </aside>
+              <p className="border-t border-line pt-[13px] text-[11.5px] leading-[1.45] text-dim text-pretty">
+                The queue uses these members when the deployment sets{" "}
+                <code className="font-mono text-ink-2">MEMBER_SOURCE=supabase</code> and{" "}
+                <code className="font-mono text-ink-2 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>. Until then it uses the
+                synthetic dataset.
+              </p>
+            </div>
+          </aside>
+        </div>
       </div>
-
-      <div className="mt-12">
-        <Connectors />
-      </div>
-    </main>
+    </AppShell>
   );
 }

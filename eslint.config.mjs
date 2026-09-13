@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The approved HTML mockups and the design tool's runtime they load.
+    "docs/design/mockups/**",
   ]),
 ]);
 

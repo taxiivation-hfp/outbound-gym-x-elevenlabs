@@ -1,27 +1,54 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { fieldSpec } from "@/lib/gymConfig";
-import { OFFER_LABEL, type Preview } from "@/lib/onboardingDraft";
+import { CALL_TYPE_TINT } from "@/components/calls/format";
+import type { CallType } from "@/lib/callType";
+import { OFFER_PERIOD_LABEL, fieldSpec, hasCheaperTier, scheduledOfferLabel, type GymFieldKey, type GymFields } from "@/lib/gymConfig";
+import { OFFER_LABEL, isDraftBlank, type Draft, type Preview } from "@/lib/onboardingDraft";
 import { callTypeLabel } from "@/lib/labels";
 import { formatMoney } from "@/lib/incentives";
+import { UNLIMITED_ON_CANCELLATION } from "./OfferScheduleField";
+import { Pill } from "./ui";
 
 /**
  * The architecture on one screen: typed answers on the left, the exact text
  * the agent receives on the right, compiled by the same code a live call uses
  * and checked by the same validator. No sentence in this panel was typed by a
  * person or written by a model, and no branch in it lives in a prompt.
- *
- * Ordered like the form — facts about the gym, then what Charlie may offer — so
- * the part being edited is the part in view.
  */
 
 /** Who each block is for, in the form's own words. */
-const AUDIENCE: Record<string, string> = {
+const AUDIENCE: Record<CallType, string> = {
   renewal: "members due to renew",
   reengagement: "members who've stopped coming",
   winback: "members whose membership has ended",
   cancellation: "members who have asked to cancel",
+};
+
+/**
+ * The answers each call type's block is compiled from (see
+ * `incentiveSentenceIds` in lib/incentives.ts). A pair is one answer with two
+ * halves, and counts as unsaid only when both halves are blank; a half-filled
+ * pair is named by the warnings above instead. `readWhen` narrows an answer to
+ * the branch of `incentiveSentenceIds` that actually reads it.
+ */
+const READS: Record<CallType, Array<{ label: string; keys: GymFieldKey[]; readWhen?: (fields: GymFields) => boolean }>> = {
+  renewal: [{ label: fieldSpec("renewal_discount_percent").shortLabel, keys: ["renewal_discount_percent"] }],
+  reengagement: [{ label: fieldSpec("reengagement_perk").shortLabel, keys: ["reengagement_perk"] }],
+  winback: [
+    { label: fieldSpec("winback_offer").shortLabel, keys: ["winback_offer"] },
+    { label: "cheaper membership", keys: ["cheaper_tier_name", "cheaper_tier_price"] },
+    {
+      label: fieldSpec("quiet_hours").shortLabel,
+      keys: ["quiet_hours"],
+      // Only the winback block with no offer and no cheaper membership mentions quiet times.
+      readWhen: (f) => (f.winback_offer === null || f.winback_offer === "none") && !hasCheaperTier(f),
+    },
+  ],
+  cancellation: [
+    { label: "membership freeze", keys: ["freeze_max_weeks", "freeze_weekly_fee"] },
+    { label: "cheaper membership", keys: ["cheaper_tier_name", "cheaper_tier_price"] },
+  ],
 };
 
 const FACT_ROWS: Array<{ key: keyof Preview["facts"]; label: string }> = [
@@ -38,7 +65,7 @@ export const PREVIEW_TITLE_ID = "preview-title";
  * One call's compiled text. Typing a price or a membership name rewrites it on
  * every keystroke, so the words themselves never fade or remount — they stay
  * readable mid-edit. What marks a rewrite is the block's edge, which shows
- * which of the three blocks the change landed in (see `.compiled-text` in
+ * which of the four blocks the change landed in (see `.compiled-text` in
  * globals.css). The first render isn't a rewrite and isn't marked.
  */
 function CompiledText({ text }: { text: string }) {
@@ -59,90 +86,105 @@ function CompiledText({ text }: { text: string }) {
   return (
     <p
       ref={ref}
-      className="compiled-text mt-2 rounded-xl border border-zinc-900 bg-black px-3.5 py-3 font-mono text-[0.8125rem] leading-[1.65] text-zinc-300 wrap-anywhere"
+      className="compiled-text m-0 rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13px] leading-[1.6] text-ink-2 text-pretty wrap-anywhere"
     >
       {text}
     </p>
   );
 }
 
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <h3 className="m-0 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">{children}</h3>;
+}
+
 export default function PromptPreview({
   preview,
+  draft,
   showWarnings,
   discount,
   tierName,
   tierPrice,
 }: {
   preview: Preview;
+  /** The draft the preview was compiled from, to say which answers are still unsaid. */
+  draft: Draft;
   /** False while someone is mid-way through typing a value. */
   showWarnings: boolean;
   discount: number | null;
   tierName: string | null;
   tierPrice: number | null;
 }) {
+  const unsaid = (callType: CallType) =>
+    READS[callType]
+      .filter((r) => (r.readWhen ? r.readWhen(preview.fields) : true) && r.keys.every((k) => isDraftBlank(draft, k)))
+      .map((r) => r.label);
+
+  // Offer cadence: every offer the answers configure, with its limit from the
+  // schedule rows, and any row that names an offer the answers no longer grant.
+  const rowFor = (offer: string) => draft.offer_schedule.find((r) => r.offer === offer);
+  const cadence = preview.configured.map((offer) => {
+    const row = rowFor(offer);
+    const freq = !row ? "no limit" : !row.period ? "not chosen yet" : row.period === "never" ? "never" : `every ${OFFER_PERIOD_LABEL[row.period]}`;
+    // A cancellation call applies no limit (lib/eligibility.ts), so a limit on
+    // the offer that call carries says where it stops.
+    const except = offer === UNLIMITED_ON_CANCELLATION && row?.period ? "not on cancellations" : null;
+    return { key: offer, offer: scheduledOfferLabel(offer, preview.fields), freq, except, quiet: freq === "never" || freq === "no limit" };
+  });
+  // Ignored only once both selects are chosen; a half-chosen row blocks the save instead (draftSchedule).
+  const ignored = draft.offer_schedule.filter((r) => r.offer !== "" && r.period !== "" && !preview.configured.includes(r.offer)).length;
+
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5">
-      <h2 id={PREVIEW_TITLE_ID} className="text-lg font-black uppercase tracking-tight text-white">
-        What Charlie will be told
-      </h2>
-      <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-zinc-400">
-        The facts are your answers, word for word. The offer text for each call is written by the app from your
-        answers — none of it is typed by a person or written by AI — and checked before it can be used.
+    <div className="flex flex-col gap-3.5 rounded-2xl border border-line-strong bg-surface p-[18px] shadow-window">
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <h2 id={PREVIEW_TITLE_ID} className="m-0 font-display text-[17px] font-bold tracking-[-0.02em] text-ink">
+          What the agent will say
+        </h2>
+        <span className="ml-auto text-[11.5px] text-dim">rewritten as you type</span>
+      </div>
+      <p className="-mt-1.5 text-[12px] leading-[1.5] text-muted text-pretty">
+        The offer text Charlie receives for each call, written by the app from your answers — none of it typed by a person
+        or written by AI — and checked before it can be used.
       </p>
 
       {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete || preview.freezeIncomplete) && (
-        <ul className="mt-4 space-y-1 text-xs leading-relaxed text-amber-200">
+        <ul className="m-0 flex list-none flex-col gap-1 rounded-[11px] border border-flag bg-flag-wash px-3 py-2.5 text-[11.5px] leading-[1.45] text-ink-2">
           {preview.excluded.length > 0 && (
             <li>
-              <span className="font-semibold text-amber-300">Check this:</span> treated as not stated until fixed —{" "}
+              <strong className="text-flag-ink">Check this:</strong> treated as not stated until fixed —{" "}
               {preview.excluded.map((k) => fieldSpec(k).shortLabel).join(", ")}.
             </li>
           )}
           {preview.tierIncomplete && (
             <li>
-              <span className="font-semibold text-amber-300">Check this:</span> the cheaper membership needs both a name
-              and a monthly price before Charlie can mention it.
+              <strong className="text-flag-ink">Check this:</strong> the cheaper membership needs both a name and a monthly
+              price before Charlie can mention it.
             </li>
           )}
           {preview.freezeIncomplete && (
             <li>
-              <span className="font-semibold text-amber-300">Check this:</span> the freeze needs both its longest pause
-              and a weekly fee (0 if it&apos;s free) before Charlie can offer it.
+              <strong className="text-flag-ink">Check this:</strong> the freeze needs both its longest pause and a weekly fee
+              (0 if it&apos;s free) before Charlie can offer it.
             </li>
           )}
         </ul>
       )}
 
-      <div className="mt-5">
-        <h3 className="text-sm font-semibold text-white">Facts Charlie may state</h3>
-        <dl className="mt-2 divide-y divide-zinc-900 rounded-xl border border-zinc-900 bg-black px-3.5">
-          {FACT_ROWS.map((row) => (
-            <div key={row.key} className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-3">
-              <dt className="text-xs text-zinc-400">{row.label}</dt>
-              <dd className="font-mono text-xs leading-relaxed text-zinc-300 wrap-anywhere">{preview.facts[row.key]}</dd>
-            </div>
-          ))}
-          <div className="grid grid-cols-1 gap-0.5 py-2 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-3">
-            <dt className="text-xs text-zinc-400">Renewal price</dt>
-            <dd className="text-xs leading-relaxed text-zinc-400">From each member&apos;s own contract.</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="mt-6 space-y-5 border-t border-zinc-900 pt-5">
-        {preview.blocks.map((block) => (
-          <div key={block.callType}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-sm font-semibold text-white">
-                {callTypeLabel[block.callType]} call{" "}
-                <span className="font-normal text-zinc-400">· {AUDIENCE[block.callType]}</span>
+      {preview.blocks.map((block) => {
+        const tint = CALL_TYPE_TINT[block.callType];
+        const left = unsaid(block.callType);
+        return (
+          <div key={block.callType} className="flex flex-col gap-[9px] rounded-xl border border-line bg-canvas p-3.5">
+            <div className="flex flex-wrap items-center gap-x-[9px] gap-y-1">
+              <h3 className={`m-0 rounded-md px-[9px] py-[3px] text-[10.5px] font-bold uppercase tracking-[0.11em] ${tint.bg} ${tint.ink}`}>
+                {callTypeLabel[block.callType]}
               </h3>
-              <p className={`text-xs font-semibold ${block.ok ? "text-signal" : "text-red-300"}`}>
-                {block.ok ? "Checked" : "Failed the check"}
-              </p>
+              <span className="text-[11.5px] text-dim">{AUDIENCE[block.callType]}</span>
+              <span className="ml-auto">
+                <Pill tone={block.ok ? "accent" : "flag"}>{block.ok ? "checked" : "failed the check"}</Pill>
+              </span>
             </div>
             <CompiledText text={block.text} />
-            <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">
+            <p className="text-[11.5px] leading-[1.45] text-muted text-pretty">
               {block.offers.length === 0 ? (
                 "Offers nothing, and tells Charlie not to offer anything."
               ) : (
@@ -165,18 +207,58 @@ export default function PromptPreview({
                 </>
               )}
             </p>
-            <p className="mt-0.5 text-[11px] text-zinc-400">
-              Sent to Charlie as <code className="font-mono">{"{{incentives}}"}</code>
-            </p>
+            {left.length > 0 && (
+              <p className="text-[11.5px] leading-[1.45] text-dim text-pretty">Left out because you haven&apos;t said: {left.join(", ")}.</p>
+            )}
             {!block.ok && (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-red-300">
+              <ul className="m-0 list-disc space-y-1 pl-5 text-[11.5px] text-flag-ink">
                 {block.violations.map((v, i) => (
                   <li key={`${v.rule}-${i}`}>{v.message}</li>
                 ))}
               </ul>
             )}
           </div>
-        ))}
+        );
+      })}
+      <p className="-mt-1 text-[11px] text-dim">
+        Each block reaches Charlie as <code className="font-mono">{"{{incentives}}"}</code> on that call. Renewal prices come from each
+        member&apos;s own contract.
+      </p>
+
+      <div className="flex flex-col gap-2 border-t border-line pt-[13px]">
+        <Eyebrow>Facts Charlie may state</Eyebrow>
+        <dl className="m-0 flex flex-col gap-1.5">
+          {FACT_ROWS.map((row) => (
+            <div key={row.key} className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2.5 text-[12px]">
+              <dt className="text-dim">{row.label}</dt>
+              <dd className="m-0 font-mono text-[11.5px] leading-relaxed text-ink-2 wrap-anywhere">{preview.facts[row.key]}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div className="flex flex-col gap-[7px] border-t border-line pt-[13px]">
+        <Eyebrow>Offer cadence</Eyebrow>
+        {cadence.length === 0 ? (
+          <p className="text-[12px] text-dim">No offers configured, so there is nothing to limit.</p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-[7px] p-0">
+            {cadence.map((c) => (
+              <li key={c.key} className="flex items-baseline gap-[9px] text-[12.5px]">
+                <span className="min-w-0 flex-1 text-ink-2 wrap-anywhere">{c.offer}</span>
+                <span className="text-right">
+                  <span className={`text-[11.5px] font-bold uppercase tracking-[0.05em] ${c.quiet ? "text-dim" : "text-accent-ink"}`}>{c.freq}</span>
+                  {c.except && <span className="block text-[11px] text-dim">{c.except}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {ignored > 0 && (
+          <p className="text-[11.5px] text-flag-ink">
+            {ignored} limit{ignored === 1 ? " names an offer" : "s name offers"} the answers no longer configure, so {ignored === 1 ? "it is" : "they are"} ignored.
+          </p>
+        )}
       </div>
     </div>
   );

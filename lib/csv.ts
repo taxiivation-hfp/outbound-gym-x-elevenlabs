@@ -1,4 +1,8 @@
 /**
+ * Owns: parsing CSV text into a header and rows with line-numbered errors, plus header normalising.
+ * Not here: mapping those columns onto members, contracts and check-ins, which lives in lib/memberImport.ts.
+ */
+/**
  * A CSV reader for gym-platform exports.
  *
  * RFC 4180, plus the things real exports do: a UTF-8 byte-order mark from

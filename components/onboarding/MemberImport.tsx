@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ImportIssue, ImportKind } from "@/lib/memberImport";
-import { Button, Notice } from "./ui";
+import { Button, Notice, Pill, type PillTone } from "./ui";
 
 /**
  * The three CSV uploads, in the order they have to happen: members first,
@@ -41,6 +41,16 @@ type SlotState =
   | { phase: "importing"; file: File; preview: PreviewSummary }
   | { phase: "imported"; file: File; preview: PreviewSummary; written: number; alreadyPresent: number };
 
+/** The slot's state chip: what has actually happened to a file on this page, nothing more. */
+const SLOT_BADGE: Record<SlotState["phase"], { label: string; tone: PillTone }> = {
+  idle: { label: "no file chosen", tone: "ghost" },
+  checking: { label: "checking", tone: "plain" },
+  checked: { label: "checked, not imported", tone: "plain" },
+  rejected: { label: "not imported", tone: "flag" },
+  importing: { label: "importing", tone: "plain" },
+  imported: { label: "imported", tone: "accent" },
+};
+
 const TITLES: Record<ImportKind, { title: string; what: string; rule: string }> = {
   members: {
     title: "Members",
@@ -73,7 +83,7 @@ export default function MemberImport({
 }) {
   const kinds: ImportKind[] = ["members", "contracts", "checkins"];
   return (
-    <ol className="space-y-4">
+    <ol className="m-0 flex list-none flex-col gap-3 p-0">
       {kinds.map((kind, index) => (
         <Slot
           key={kind}
@@ -149,31 +159,17 @@ function Slot({
 
   const busy = state.phase === "checking" || state.phase === "importing";
   const preview = "preview" in state ? state.preview : null;
+  const badge = SLOT_BADGE[state.phase];
 
   return (
-    <li className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 max-w-[65ch]">
-          <h3 className="text-base font-bold text-white">
-            <span className="mr-2 tabular-nums text-zinc-400">{index}</span>
-            {copy.title}
-          </h3>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-            {copy.what} {copy.rule}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-            Columns:{" "}
-            {columns.map((c, i) => (
-              <span key={c.key}>
-                {i > 0 ? ", " : ""}
-                <code className="font-mono text-zinc-200">{c.key}</code>
-                {c.required ? "" : " (optional)"}
-              </span>
-            ))}
-            . Dates as YYYY-MM-DD.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <li className="flex flex-col gap-[11px] rounded-xl border border-line bg-canvas p-[15px]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h3 className="m-0 text-[13.5px] font-bold text-ink">
+          <span className="mr-2 tabular-nums text-dim">{index}</span>
+          {copy.title}
+        </h3>
+        <Pill tone={badge.tone}>{badge.label}</Pill>
+        <div className="ml-auto flex flex-none items-center gap-2">
           <input
             ref={input}
             type="file"
@@ -192,21 +188,53 @@ function Slot({
           </Button>
         </div>
       </div>
+      <p className="max-w-[70ch] text-[12.5px] leading-[1.5] text-muted text-pretty">
+        {copy.what} {copy.rule}
+      </p>
+      <p className="text-[11.5px] leading-[1.5] text-dim">
+        Columns:{" "}
+        {columns.map((c, i) => (
+          <span key={c.key}>
+            {i > 0 ? " · " : ""}
+            <code className="font-mono text-ink-2">{c.key}</code>
+            {c.required ? "" : " (optional)"}
+          </span>
+        ))}
+        . Dates as YYYY-MM-DD.
+      </p>
 
-      <div aria-live="polite" className="mt-4 empty:mt-0">
-        {state.phase === "checking" && <p className="text-sm text-zinc-300">Checking {state.file.name}…</p>}
+      <div aria-live="polite" className="flex flex-col gap-2.5 empty:hidden">
+        {state.phase === "checking" && <p className="text-[12.5px] text-ink-2">Checking {state.file.name}…</p>}
 
         {preview && (
-          <div className="space-y-3">
-            <p className="text-sm text-zinc-300">
-              <code className="font-mono text-zinc-200">{state.phase !== "idle" ? state.file.name : ""}</code>:{" "}
-              {preview.row_count.toLocaleString("en-AU")} rows
-              {preview.duplicate_rows > 0 ? `, ${preview.duplicate_rows.toLocaleString("en-AU")} exact duplicates collapsed` : ""}
-              {preview.ok ? `, ${preview.importable_rows.toLocaleString("en-AU")} ready to import.` : "."}
-            </p>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-xs sm:grid-cols-[9rem_1fr]">
-              <dt className="text-zinc-400">Read as</dt>
-              <dd className="text-zinc-300">
+          <div className="flex flex-col gap-2.5 border-t border-line pt-3">
+            <div className="flex flex-wrap items-baseline gap-x-[18px] gap-y-1">
+              <span className="text-[12.5px]">
+                <strong className="font-display text-[16px] tracking-[-0.02em] text-ink">{preview.row_count.toLocaleString("en-AU")}</strong>{" "}
+                <span className="text-dim">rows read</span>
+              </span>
+              {preview.ok && (
+                <span className="text-[12.5px]">
+                  <strong className="font-display text-[16px] tracking-[-0.02em] text-accent-ink">
+                    {preview.importable_rows.toLocaleString("en-AU")}
+                  </strong>{" "}
+                  <span className="text-dim">ready to import</span>
+                </span>
+              )}
+              {preview.issue_count > 0 && (
+                <span className="text-[12.5px]">
+                  <strong className="font-display text-[16px] tracking-[-0.02em] text-flag-ink">{preview.issue_count.toLocaleString("en-AU")}</strong>{" "}
+                  <span className="text-dim">problem{preview.issue_count === 1 ? "" : "s"}</span>
+                </span>
+              )}
+              {preview.duplicate_rows > 0 && (
+                <span className="text-[12.5px] text-dim">{preview.duplicate_rows.toLocaleString("en-AU")} exact duplicates collapsed</span>
+              )}
+              <code className="font-mono text-[11.5px] text-dim wrap-anywhere">{state.phase !== "idle" ? state.file.name : ""}</code>
+            </div>
+            <dl className="m-0 grid grid-cols-1 gap-x-6 gap-y-1 text-[11.5px] sm:grid-cols-[6rem_1fr]">
+              <dt className="text-dim">Read as</dt>
+              <dd className="m-0 text-ink-2">
                 {Object.entries(preview.matched_columns).map(([header, label], i) => (
                   <span key={header}>
                     {i > 0 ? " · " : ""}
@@ -216,14 +244,14 @@ function Slot({
               </dd>
               {preview.ignored_columns.length > 0 && (
                 <>
-                  <dt className="text-zinc-400">Ignored</dt>
-                  <dd className="text-zinc-300">
+                  <dt className="text-dim">Ignored</dt>
+                  <dd className="m-0 text-ink-2">
                     {preview.ignored_columns.map((c) => (
                       <code key={c} className="mr-2 font-mono">
                         {c}
                       </code>
                     ))}
-                    <span className="text-zinc-400">— not needed, not stored.</span>
+                    <span className="text-dim">— not needed, not stored.</span>
                   </dd>
                 </>
               )}
@@ -232,34 +260,34 @@ function Slot({
         )}
 
         {state.phase === "rejected" && (
-          <div className="mt-3 space-y-3">
+          <div className="flex flex-col gap-2.5">
             <Notice tone="fault" title="Not imported">
               {state.message}
             </Notice>
-            {state.preview && state.preview.issues.length > 0 && <IssueTable issues={state.preview.issues} total={state.preview.issue_count} />}
+            {state.preview && state.preview.issues.length > 0 && <IssueList issues={state.preview.issues} total={state.preview.issue_count} />}
           </div>
         )}
 
         {state.phase === "checked" &&
           (importAvailable ? (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button variant="primary" onClick={commit}>
                 Import {state.preview.importable_rows.toLocaleString("en-AU")} {copy.title.toLowerCase()}
               </Button>
-              <p className="text-xs text-zinc-400">Nothing has been written yet.</p>
+              <p className="text-[11.5px] text-dim">Nothing has been written yet.</p>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-amber-200">
-              <span className="font-semibold text-amber-300">This file is ready, but importing is switched off here.</span>{" "}
-              Nothing was written. Ask your admin to switch imports on.
+            <p className="text-[12.5px] text-ink-2">
+              <strong className="text-flag-ink">This file is ready, but importing is switched off here.</strong> Nothing was
+              written. Ask your admin to switch imports on.
             </p>
           ))}
 
-        {state.phase === "importing" && <p className="mt-3 text-sm text-zinc-300">Importing…</p>}
+        {state.phase === "importing" && <p className="text-[12.5px] text-ink-2">Importing…</p>}
 
         {state.phase === "imported" && (
-          <p className="mt-3 text-sm text-zinc-300" role="status">
-            <span className="font-semibold text-signal">Imported.</span>{" "}
+          <p className="text-[12.5px] text-ink-2" role="status">
+            <strong className="text-accent-ink">Imported.</strong>{" "}
             {kind === "members"
               ? `${state.written.toLocaleString("en-AU")} new members added${
                   state.alreadyPresent > 0 ? `, ${state.alreadyPresent.toLocaleString("en-AU")} already here updated from this file` : ""
@@ -278,30 +306,44 @@ function Slot({
   );
 }
 
-function IssueTable({ issues, total }: { issues: ImportIssue[]; total: number }) {
+/** Every problem with its line: what to fix, and where. */
+function IssueList({ issues, total }: { issues: ImportIssue[]; total: number }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-800">
-      <table className="w-full min-w-[32rem] divide-y divide-zinc-900 text-left text-xs">
-        <caption className="px-3 py-2 text-left text-zinc-400">
-          {total > issues.length ? `The first ${issues.length} of ${total.toLocaleString("en-AU")} problems` : `${total} problem${total === 1 ? "" : "s"}`}
-        </caption>
-        <thead className="text-zinc-400">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-semibold">Line</th>
-            <th scope="col" className="px-3 py-2 font-semibold">Column</th>
-            <th scope="col" className="px-3 py-2 font-semibold">What to fix</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-900">
-          {issues.map((issue, i) => (
-            <tr key={`${issue.line}-${issue.column}-${i}`} className="align-top">
-              <td className="px-3 py-2 tabular-nums text-zinc-300">{issue.line ?? "—"}</td>
-              <td className="px-3 py-2 text-zinc-300">{issue.column ?? "—"}</td>
-              <td className="px-3 py-2 leading-relaxed text-zinc-200">{issue.message}</td>
+    <div className="flex flex-col gap-1.5">
+      <p className="text-[11.5px] text-dim">
+        {total > issues.length ? `The first ${issues.length} of ${total.toLocaleString("en-AU")} problems` : `${total} problem${total === 1 ? "" : "s"}`}
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[32rem] border-separate border-spacing-y-1 text-left text-[12px]">
+          <caption className="sr-only">Problems in the file, by line</caption>
+          <thead className="text-[10.5px] uppercase tracking-[0.08em] text-dim">
+            <tr>
+              <th scope="col" className="px-[11px] py-1 font-bold">
+                Line
+              </th>
+              <th scope="col" className="px-[11px] py-1 font-bold">
+                Column
+              </th>
+              <th scope="col" className="px-[11px] py-1 font-bold">
+                What to fix
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {issues.map((issue, i) => (
+              <tr key={`${issue.line}-${issue.column}-${i}`} className="align-baseline">
+                <td className="rounded-l-[9px] border-y border-l border-line bg-surface px-[11px] py-[7px] text-[11px] font-bold tabular-nums text-flag-ink">
+                  {issue.line ?? "—"}
+                </td>
+                <td className="border-y border-line bg-surface px-[11px] py-[7px] text-dim">{issue.column ?? "—"}</td>
+                <td className="rounded-r-[9px] border-y border-r border-line bg-surface px-[11px] py-[7px] leading-relaxed text-ink-2">
+                  {issue.message}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,7 @@
+/**
+ * Owns: judging each extracted field as filled, blank, unsupported or rejected against a verbatim quote.
+ * Not here: the free-text and addressed-to-an-AI rules it applies, which live in lib/textSafety.ts.
+ */
 import {
   EXTRACTABLE_SPECS,
   parseGymField,

@@ -14,6 +14,10 @@ import { Button, Notice } from "./ui";
  * is the model call. Check is the deterministic sanitiser. A failed stage stops
  * the row, says what failed, and offers the manual path — never a partial
  * prefill presented as if it worked.
+ *
+ * Rendered inside the "Start from a document" card, above the form it fills.
+ * Finishing doesn't touch the form: a person presses "Fill the form from it",
+ * and is told first if that replaces answers already typed.
  */
 
 export interface ReadResult {
@@ -64,8 +68,11 @@ export default function DocumentReader({
   onDone,
   onManual,
   onChooseAnother,
+  replacing,
 }: {
   file: File;
+  /** Answers already in the form, which filling it from the document would replace. */
+  replacing: number;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
   onDone: (result: ReadResult) => void;
   onManual: () => void;
@@ -186,7 +193,7 @@ export default function DocumentReader({
         const flagged = review.summary.unsupported + review.summary.rejected;
         update("check", {
           status: "done",
-          fact: `${review.summary.filled} of 11 backed by the document${flagged ? ` · ${flagged} to check` : ""}`,
+          fact: `${review.summary.filled} of ${Object.keys(review.outcomes).length} backed by the document${flagged ? ` · ${flagged} to check` : ""}`,
         });
         setResult({ fileName: doc.file_name, review, model: extracted.model });
       } catch (err) {
@@ -207,27 +214,26 @@ export default function DocumentReader({
   }, [file, update]);
 
   const inFlight = !failure && !result;
+  const flagged = result ? result.review.summary.unsupported + result.review.summary.rejected : 0;
 
   return (
-    <section aria-labelledby="reading-title" className="max-w-4xl">
-      <h2 ref={headingRef} tabIndex={-1} id="reading-title" className="text-lg font-black uppercase tracking-tight text-white outline-none">
-        Reading <span className="font-mono text-base normal-case tracking-normal text-zinc-300 wrap-anywhere">{file.name}</span>
-      </h2>
-      <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-zinc-400">
-        Nothing is saved from this. Every answer is checked against the document itself, then put in front of you to
-        confirm.
-      </p>
-
-      <div className="mt-5">
-        <StageProgress stages={stages} failureMessage={failure?.message ?? null} />
+    <div aria-labelledby="reading-title" role="group" className="flex flex-col gap-[18px]">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h3 ref={headingRef} tabIndex={-1} id="reading-title" className="m-0 text-[14px] font-bold text-ink outline-none">
+          {result ? "Read " : failure ? "Couldn't finish reading " : "Reading "}
+          <span className="font-mono text-[12.5px] font-semibold text-ink-2 wrap-anywhere">{file.name}</span>
+        </h3>
+        <span className="text-[12px] text-dim">Nothing is saved from this. Every answer is checked against the document itself.</span>
       </div>
 
+      <StageProgress stages={stages} failureMessage={failure?.message ?? null} />
+
       {failure && (
-        <div ref={failureRef} tabIndex={-1} className="mt-5 space-y-4 outline-none">
+        <div ref={failureRef} tabIndex={-1} className="flex flex-col gap-3 outline-none">
           <Notice tone="fault" title={`${stages.find((s) => s.key === failure.stage)?.label} failed`}>
             {failure.message}
           </Notice>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2.5">
             <Button variant="primary" onClick={onManual}>
               Fill it in by hand
             </Button>
@@ -237,27 +243,34 @@ export default function DocumentReader({
       )}
 
       {result && (
-        <div className="mt-5 flex flex-wrap items-center gap-4">
-          <Button ref={reviewButton} variant="primary" onClick={() => onDone(result)}>
-            Review the answers
-          </Button>
-          <p className="text-sm text-zinc-400">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-line pt-4">
+          <span className="text-[13px] font-bold text-ink">
             {result.review.summary.filled} filled from the document, {result.review.summary.blank} not in it
-            {result.review.summary.unsupported + result.review.summary.rejected > 0
-              ? `, ${result.review.summary.unsupported + result.review.summary.rejected} to check`
-              : ""}
-            . Nothing is saved yet.
-          </p>
+            {flagged > 0 ? `, ${flagged} to check` : ""}
+          </span>
+          <span className="text-[12.5px] text-dim">
+            {replacing > 0
+              ? `This replaces the ${replacing} answer${replacing === 1 ? "" : "s"} in the form below. Nothing is saved yet.`
+              : "Each answer shows the sentence it came from. Nothing is saved yet."}
+          </span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button variant="quiet" onClick={onChooseAnother}>
+              Choose another file
+            </Button>
+            <Button ref={reviewButton} variant="primary" onClick={() => onDone(result)}>
+              Fill the form from it
+            </Button>
+          </div>
         </div>
       )}
 
       {inFlight && (
-        <div className="mt-5">
+        <div>
           <Button variant="quiet" onClick={onManual}>
-            Stop and fill it in by hand
+            Stop reading
           </Button>
         </div>
       )}
-    </section>
+    </div>
   );
 }

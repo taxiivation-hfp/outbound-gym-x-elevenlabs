@@ -1,3 +1,7 @@
+/**
+ * Owns: the fixed sentence registry, and compiling typed gym config into each call type's incentives block.
+ * Not here: checking a compiled block against its config independently, in lib/validateIncentives.ts.
+ */
 import type { CallType } from "@/lib/callType";
 import { hasCheaperTier, hasFreeze, type GymFields } from "@/lib/gymConfig";
 

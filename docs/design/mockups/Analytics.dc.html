@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0c0e0a; }
+  * { box-sizing:border-box; }
+  a { color:var(--accent-ink); text-decoration:none; }
+  a:hover { color:var(--ink); text-decoration:underline; }
+  button:focus-visible, [role="row"]:focus-visible { outline:2px solid var(--accent-line); outline-offset:-2px; }
+  ::selection { background:var(--accent); color:var(--on-accent); }
+  ::-webkit-scrollbar { width:11px; height:11px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--line-strong); border:3px solid var(--surface); border-radius:8px; }
+  @keyframes liveblink { 0%,70%{opacity:1} 85%{opacity:.2} 100%{opacity:1} }
+  @keyframes livering { 0%{box-shadow:0 0 0 0 var(--bar); opacity:.5} 70%{box-shadow:0 0 0 7px transparent; opacity:0} 100%{box-shadow:0 0 0 0 transparent; opacity:0} }
+  @keyframes panelIn { from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:none} }
+  @keyframes lineIn { from{opacity:0; transform:translateY(3px)} to{opacity:1; transform:none} }
+  .queue__row { transition:background .14s ease, box-shadow .14s ease; }
+  .queue__row:active { transform:translateY(0.5px); }
+  .q button { transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .q nav button:hover, .queue__bar button:hover { transform:translateY(-1px); }
+  .q[data-theme="light"] {
+    --canvas:#eef0e9; --surface:#ffffff; --surface-2:#f8f9f3; --panel:#f9faf4; --panel-edge:#e6e8dd;
+    --line:#e0e2d8; --line-strong:#cdd1c0; --cell-line:#e9ebe1; --row-line:#eef0e7;
+    --row-hover:#f6f8ee; --row-open:#f2f3ed; --row-excl:#f6f7f1;
+    --ink:#1a1d16; --ink-2:#3a3f33; --muted:#5d6455; --dim:#656c60; --faint:#767d6c;
+    --accent:#d5e49b; --accent-line:#a7bc77; --accent-ink:#4c5b2c; --accent-wash:#f2f3ed; --on-accent:#2b3318; --bar:#a9c069;
+    --flag:#a34b3e; --flag-ink:#93463a; --flag-wash:#f9efec; --flag-open:#f3e5e1; --on-flag:#ffffff;
+    --control-bg:#f0f1ea; --control-line:#dcdfd2;
+    --t-renew-bg:#e7eed2; --t-renew-ink:#48562a; --t-reeng-bg:#dfeae6; --t-reeng-ink:#2c554c;
+    --t-winb-bg:#f3e6d3; --t-winb-ink:#6a4e2b; --t-off-bg:#ebede4; --t-off-ink:#6b7266;
+    --shadow:0 1px 2px rgba(26,29,22,0.12);
+    --window:0 24px 48px -28px rgba(26,29,22,0.4), 0 2px 8px rgba(26,29,22,0.06); color-scheme:light;
+  }
+  .q[data-theme="dark"] {
+    --canvas:#0c0e0a; --surface:#14170f; --surface-2:#101309; --panel:#181b13; --panel-edge:#2a2e21;
+    --line:#242920; --line-strong:#333a28; --cell-line:#20251a; --row-line:#1a1e14;
+    --row-hover:#1b2013; --row-open:#1f2319; --row-excl:#101209;
+    --ink:#eef1e4; --ink-2:#c9cfbc; --muted:#a2aa94; --dim:#949c85; --faint:#868e76;
+    --accent:#bcd47f; --accent-line:#6e8b45; --accent-ink:#c2d491; --accent-wash:#1c1f17; --on-accent:#181d0e; --bar:#a3bd6b;
+    --flag:#c96a57; --flag-ink:#e2a091; --flag-wash:#261510; --flag-open:#301b15; --on-flag:#241009;
+    --control-bg:#1a1e13; --control-line:#2c3222;
+    --t-renew-bg:#222814; --t-renew-ink:#bfd296; --t-reeng-bg:#14241f; --t-reeng-ink:#9cc4b9;
+    --t-winb-bg:#2a2114; --t-winb-ink:#d2b48d; --t-off-bg:#181c12; --t-off-ink:#7f8773;
+    --shadow:0 1px 3px rgba(0,0,0,0.6);
+    --window:0 28px 56px -30px rgba(0,0,0,0.85), 0 2px 10px rgba(0,0,0,0.4); color-scheme:dark;
+  }
+</style>
+</helmet>
+<main class="q" data-theme="{{ theme }}" style="height:100dvh; min-width:980px; display:flex; flex-direction:column; background:var(--canvas); color:var(--ink); font-family:'Figtree',system-ui,sans-serif; font-size:13px; -webkit-font-smoothing:antialiased; overflow:hidden;">
+
+  <header class="queue__bar" style="flex:0 0 auto; height:70px; display:flex; align-items:center; gap:26px; padding:0 14px; background:var(--surface); border-bottom:1px solid var(--line-strong); white-space:nowrap;">
+    <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:1px;">
+      <h1 style="margin:0; font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.03em; line-height:1.05;">Ironworks</h1>
+      <span style="font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim);">Overview</span>
+    </div>
+
+    <div style="flex:0 0 auto; display:flex; align-items:center; gap:7px; height:30px; padding:0 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+      <span aria-hidden="true" style="position:relative; width:7px; height:7px; border-radius:50%; background:var(--bar); animation:liveblink 3.2s infinite;"><span aria-hidden="true" style="position:absolute; inset:0; border-radius:50%; animation:livering 2.4s infinite;"></span></span>
+      <span style="font-size:12px; font-weight:700; color:var(--accent-ink);">Agent live</span>
+      <span style="font-size:12px; color:var(--accent-ink); opacity:0.75;">{{ nowLabel }}</span>
+    </div>
+
+    <div style="flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:11.5px; color:var(--dim);">{{ asOf }}</span>
+      <div role="group" aria-label="Layout variant" style="display:flex; gap:2px; padding:3px; background:var(--control-bg); border:1px solid var(--line); border-radius:10px;">
+        <button type="button" onClick="{{ setA }}" aria-pressed="{{ isA }}" style="{{ tabAStyle }}">A · mosaic</button>
+        <button type="button" onClick="{{ setB }}" aria-pressed="{{ isB }}" style="{{ tabBStyle }}">B · sections</button>
+      </div>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="Toggle colour theme" style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:var(--control-bg); border:1px solid var(--line); border-radius:10px; color:var(--muted); font-size:14px; cursor:pointer;" style-hover="color:var(--ink); border-color:var(--line-strong);">{{ themeGlyph }}</button>
+    </div>
+  </header>
+
+  <div style="flex:1 1 auto; min-height:0; display:flex; gap:14px; padding:14px;">
+    <aside class="queue__nav" aria-label="Sections" style="{{ navStyle }}">
+      <button type="button" onClick="{{ toggleNav }}" aria-expanded="{{ navOpen }}" aria-label="Expand or collapse navigation" style="{{ navToggle }}">
+        <span aria-hidden="true" style="{{ navToggleGlyph }}">‹</span><span style="{{ navLabel }}">Collapse</span>
+      </button>
+      <nav style="display:flex; flex-direction:column; gap:3px; padding:8px 8px 0 8px;">
+        <a href="Analytics.dc.html" aria-current="page" style="{{ navActive }}" style-hover="">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><rect x="2.2" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="2.2" y="8.8" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="8.8" width="5" height="5" rx="1.2"></rect></svg>
+          <span style="{{ navLabel }}">Overview</span>
+        </a>
+        <a href="Call Queue.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 4h12M2 8h12M2 12h12"></path><circle cx="13.2" cy="4" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+          <span style="{{ navLabel }}">Call queue</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="6" cy="6" r="2.4"></circle><path d="M2 13c0-2.2 1.8-3.6 4-3.6s4 1.4 4 3.6"></path><path d="M11 5.2a2.2 2.2 0 0 1 0 4.1"></path><path d="M12 13c0-1.6-.6-2.7-1.6-3.3"></path></svg>
+          <span style="{{ navLabel }}">Members</span>
+          <span style="{{ navCount }}">498</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M3 3.8h2.4l1 2.6-1.5 1.1a7.4 7.4 0 0 0 3.6 3.6l1.1-1.5 2.6 1V13a9.6 9.6 0 0 1-9.2-9.2Z"></path></svg>
+          <span style="{{ navLabel }}">Call log</span>
+        </a>
+        <a href="Setup.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 8h1.6M5 5v6M8 3v10M11 5.5v5M14 8h-1.6"></path></svg>
+          <span style="{{ navLabel }}">Voice agent</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M5.5 2.5 4 13.5M11.5 2.5 10 13.5M2.5 5.5h11M2 10.5h11"></path></svg>
+          <span style="{{ navLabel }}">Numbers</span>
+        </a>
+      </nav>
+      <div style="margin-top:auto; display:flex; flex-direction:column; gap:3px; padding:8px; border-top:1px solid var(--line);">
+        <a href="Evals.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 8.6 5 11l3-4 2.6 2.4 3-4.4"></path><path d="M2.5 13.5h11"></path></svg>
+          <span style="{{ navLabel }}">Evals</span>
+        </a>
+        <a href="About.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="8" cy="8" r="5.8"></circle><path d="M8 7v4.2M8 4.9v.2"></path></svg>
+          <span style="{{ navLabel }}">About</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 5h11M2.5 11h11"></path><circle cx="6" cy="5" r="1.7"></circle><circle cx="10.5" cy="11" r="1.7"></circle></svg>
+          <span style="{{ navLabel }}">Settings</span>
+        </a>
+      </div>
+    </aside>
+
+    <section aria-label="Analytics" style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column; background:var(--canvas); overflow:auto;">
+      <div style="{{ boardStyle }}">
+    <div style="{{ wrap_h1 }}">
+      <h2 style="{{ sectionHeadStyle }}">Gym health</h2>
+      <span style="{{ sectionSubStyle }}">membership, revenue and use</span>
+      <span aria-hidden="true" style="{{ sectionRuleStyle }}"></span>
+    </div>
+    <section style="grid-area:kpi; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:14px;">
+        <div style="display:flex; align-items:stretch; min-height:78px; margin:0 -14px -6px; padding:0;">
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">Active members</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ activeMembers }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ activeSub }}</span>
+        </div>
+        <div aria-hidden="true" style="width:1px; background:var(--line); margin:6px 0;"></div>
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">MRR</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ mrr }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ mrrDelta }}</span>
+        </div>
+        <div aria-hidden="true" style="width:1px; background:var(--line); margin:6px 0;"></div>
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">Revenue / member</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ rpm }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ rpmDelta }}</span>
+        </div>
+        <div aria-hidden="true" style="width:1px; background:var(--line); margin:6px 0;"></div>
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">90-day retention</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ retention }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ retentionDelta }}</span>
+        </div>
+        <div aria-hidden="true" style="width:1px; background:var(--line); margin:6px 0;"></div>
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">Monthly churn</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ churn }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ churnDelta }}</span>
+        </div>
+        <div aria-hidden="true" style="width:1px; background:var(--line); margin:6px 0;"></div>
+        <div style="flex:1 1 0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:2px 18px;">
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">Visits / member / wk</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.025em; color:var(--ink);">{{ vpm }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ vpmDelta }}</span>
+        </div>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:busy; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line-strong); border-radius:14px; box-shadow:var(--window); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:15px 16px 11px;">
+        <h3 style="margin:0; font-size:13.5px; font-weight:700; letter-spacing:0.01em; text-transform:uppercase; color:var(--ink);">When the gym is busy</h3>
+        <span style="font-size:11.5px; color:var(--dim);">visits by weekday and hour · last 8 weeks</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 16px 16px;">
+        <div style="display:flex; flex-direction:column; gap:3px; min-width:0;">
+          <div style="display:grid; grid-template-columns:36px minmax(0,1fr) 50px; gap:10px; align-items:center;">
+            <span></span>
+            <div style="display:grid; grid-template-columns:repeat(18,minmax(0,1fr)); gap:2px; font-size:9.5px; font-weight:600; color:var(--dim);">
+              <span style="text-align:center;">5a</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">8a</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">11a</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">2p</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">5p</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">8p</span>
+              <span style="text-align:center;"></span>
+              <span style="text-align:center;">10p</span>
+            </div>
+            <span style="font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); text-align:right;">Wk</span>
+          </div>
+          <sc-for list="{{ heat }}" as="d" hint-placeholder-count="7">
+            <div style="display:grid; grid-template-columns:36px minmax(0,1fr) 50px; gap:10px; align-items:center;">
+              <span style="font-size:11px; font-weight:700; color:var(--dim);">{{ d.day }}</span>
+              <div style="display:grid; grid-template-columns:repeat(18,minmax(0,1fr)); gap:2px;">
+                <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="18">
+                  <div title="{{ c.title }}" style="{{ c.style }}"></div>
+                </sc-for>
+              </div>
+              <span style="font-size:12px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2);">{{ d.total }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex; align-items:center; gap:14px; margin-top:9px; padding-top:10px; border-top:1px solid var(--line);">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:10.5px; color:var(--dim);">quiet</span>
+              <sc-for list="{{ heatLegend }}" as="l" hint-placeholder-count="5">
+                <span style="{{ l.style }}"></span>
+              </sc-for>
+              <span style="font-size:10.5px; color:var(--dim);">busy</span>
+            </div>
+            <span style="font-size:12px; color:var(--ink-2);">{{ peakNote }}</span>
+            <span style="margin-left:auto; font-size:12px; color:var(--dim);">{{ deadNote }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:churn; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Monthly churn</h3>
+        <span style="font-size:11.5px; color:var(--dim);">6 months</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:8px;">
+          <span style="font-family:'Archivo',sans-serif; font-size:26px; font-weight:700; line-height:1; letter-spacing:-0.025em;">{{ churn }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ churnDelta }}</span>
+        </div>
+        <svg viewBox="0 0 260 72" preserveAspectRatio="none" style="width:100%; flex:1 1 auto; min-height:76px; overflow:visible;" aria-label="Churn trend">
+          <polyline points="{{ churnArea }}" fill="var(--accent-wash)" stroke="none"></polyline>
+          <polyline points="{{ churnLine }}" fill="none" stroke="var(--bar)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+          <circle cx="{{ churnDotX }}" cy="{{ churnDotY }}" r="3" fill="var(--bar)"></circle>
+        </svg>
+        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:10px; font-weight:600; color:var(--dim);">
+          <span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:visits; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Visits / member / week</h3>
+        <span style="font-size:11.5px; color:var(--dim);">6 months</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px;">
+          <span style="font-family:'Archivo',sans-serif; font-size:26px; font-weight:700; line-height:1; letter-spacing:-0.025em;">{{ vpm }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">{{ vpmDelta }}</span>
+        </div>
+        <div style="flex:1 1 auto; display:flex; align-items:flex-end; gap:6px; min-height:92px;">
+          <sc-for list="{{ visitBars }}" as="b" hint-placeholder-count="6">
+            <div style="flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:5px;">
+              <span style="font-size:10.5px; font-weight:600; color:var(--ink-2); font-variant-numeric:tabular-nums;">{{ b.v }}</span>
+              <div style="{{ b.style }}"></div>
+              <span style="font-size:10px; font-weight:600; color:var(--dim);">{{ b.m }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:segments; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">How members use the gym</h3>
+        <span style="font-size:11.5px; color:var(--dim);">380 active</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; margin-bottom:12px;">
+          <sc-for list="{{ segments }}" as="s" hint-placeholder-count="4">
+            <div style="{{ s.barStyle }}"></div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ segments }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--row-line);">
+            <span style="{{ s.dotStyle }}"></span>
+            <span style="flex:1 1 auto; min-width:0; font-size:12.5px; color:var(--ink-2);">{{ s.label }}</span>
+            <span style="font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ s.count }}</span>
+            <span style="width:38px; text-align:right; font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums;">{{ s.pct }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    <section style="grid-area:terms; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Fixed terms ending</h3>
+        <span style="font-size:11.5px; color:var(--dim);">contract end dates ahead</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+          <sc-for list="{{ termsList }}" as="t" hint-placeholder-count="3">
+            <div style="flex:1 1 0; display:flex; flex-direction:column; gap:4px; padding:9px 11px; background:var(--control-bg); border-radius:10px;">
+              <span style="font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim);">{{ t.label }}</span>
+              <span style="font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; line-height:1; letter-spacing:-0.02em;">{{ t.n }}</span>
+              <div style="height:3px; background:var(--row-line); border-radius:2px; overflow:hidden;"><div style="{{ t.barStyle }}"></div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:12px; color:var(--muted); text-wrap:pretty;">{{ termsNote }}</div>
+      </div>
+    </section>
+    <section style="grid-area:risk; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Revenue at risk</h3>
+        <span style="font-size:11.5px; color:var(--dim);">by call type · monthly fees in play</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <sc-for list="{{ riskList }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; gap:5px; padding:7px 0;">
+            <div style="display:flex; align-items:baseline; gap:8px;">
+              <span style="flex:1 1 auto; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ r.ink }};">{{ r.label }}</span>
+              <span style="font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ r.amount }}</span>
+              <span style="width:54px; text-align:right; font-size:11.5px; color:var(--dim);">{{ r.members }}</span>
+            </div>
+            <div style="height:7px; background:var(--row-line); border-radius:4px; overflow:hidden;"><div style="{{ r.barStyle }}"></div></div>
+          </div>
+        </sc-for>
+        <div style="display:flex; align-items:baseline; gap:8px; margin-top:9px; padding-top:10px; border-top:1px solid var(--line);">
+          <span style="flex:1 1 auto; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim);">Total</span>
+          <span style="font-family:'Archivo',sans-serif; font-size:20px; font-weight:700; letter-spacing:-0.02em;">{{ riskTotal }}</span>
+        </div>
+      </div>
+    </section>
+    <div style="{{ wrap_h2 }}">
+      <h2 style="{{ sectionHeadStyle }}">Why members leave</h2>
+      <span style="{{ sectionSubStyle }}">102 reasons captured in the last 90 days</span>
+      <span aria-hidden="true" style="{{ sectionRuleStyle }}"></span>
+    </div>
+    <section style="grid-area:themes; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line-strong); border-radius:14px; box-shadow:var(--window); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:15px 16px 11px;">
+        <h3 style="margin:0; font-size:13.5px; font-weight:700; letter-spacing:0.01em; text-transform:uppercase; color:var(--ink);">In members’ own words</h3>
+        <span style="font-size:11.5px; color:var(--dim);">themes from 102 exit and call notes · last 90 days</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 16px 16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap:2px 18px;">
+          <sc-for list="{{ themeList }}" as="t" hint-placeholder-count="8">
+            <div style="display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; align-items:start; padding:10px 0; border-bottom:1px solid var(--row-line);">
+              <span style="font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; line-height:1; letter-spacing:-0.03em; text-align:right; color:var(--ink);">{{ t.count }}</span>
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <span style="font-size:13px; font-weight:700; color:var(--ink);">{{ t.name }}</span>
+                  <span style="{{ t.trendStyle }}">{{ t.trend }}</span>
+                </div>
+                <span style="font-size:12.5px; line-height:1.45; color:var(--muted); text-wrap:pretty;">{{ t.quote }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:reasons; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Why members leave</h3>
+        <span style="font-size:11.5px; color:var(--dim);">102 reasons · last 90 days</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-between;">
+        <sc-for list="{{ reasonList }}" as="r" hint-placeholder-count="7">
+          <div style="display:grid; grid-template-columns:96px minmax(0,1fr) 34px 40px; gap:10px; align-items:center; padding:5px 0;">
+            <span style="font-size:12.5px; color:var(--ink-2);">{{ r.label }}</span>
+            <div style="height:9px; background:var(--row-line); border-radius:5px; overflow:hidden;"><div style="{{ r.barStyle }}"></div></div>
+            <span style="text-align:right; font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ r.n }}</span>
+            <span style="text-align:right; font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums;">{{ r.pct }}</span>
+          </div>
+        </sc-for>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:reasonstime; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Reasons over time</h3>
+        <span style="font-size:11.5px; color:var(--dim);">last 6 months</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="flex:1 1 auto; display:flex; align-items:flex-end; gap:10px; min-height:120px;">
+          <sc-for list="{{ reasonMonths }}" as="m" hint-placeholder-count="6">
+            <div style="flex:1 1 0; display:flex; flex-direction:column; align-items:stretch; gap:6px;">
+              <span style="font-size:10.5px; font-weight:600; text-align:center; color:var(--ink-2); font-variant-numeric:tabular-nums;">{{ m.total }}</span>
+              <div style="{{ m.colStyle }}">
+                <sc-for list="{{ m.segs }}" as="s" hint-placeholder-count="7">
+                  <div title="{{ s.title }}" style="{{ s.style }}"></div>
+                </sc-for>
+              </div>
+              <span style="font-size:10px; font-weight:600; text-align:center; color:var(--dim);">{{ m.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:11px; padding-top:10px; border-top:1px solid var(--line);">
+          <sc-for list="{{ reasonLegend }}" as="l" hint-placeholder-count="7">
+            <span style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--dim);"><span style="{{ l.dotStyle }}"></span>{{ l.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    <div style="{{ wrap_h3 }}">
+      <h2 style="{{ sectionHeadStyle }}">Call programme</h2>
+      <span style="{{ sectionSubStyle }}">what the agent did and what it cost</span>
+      <span aria-hidden="true" style="{{ sectionRuleStyle }}"></span>
+    </div>
+    <section style="grid-area:outcomes; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Call outcomes</h3>
+        <span style="font-size:11.5px; color:var(--dim);">214 calls · last 30 days</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="flex:1 1 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap:0 22px; align-content:space-between;">
+          <sc-for list="{{ outcomeList }}" as="o" hint-placeholder-count="10">
+            <div style="display:grid; grid-template-columns:88px minmax(0,1fr) 30px; gap:10px; align-items:center; padding:5px 0;">
+              <span style="font-size:12.5px; color:var(--ink-2);">{{ o.label }}</span>
+              <div style="height:9px; background:var(--row-line); border-radius:5px; overflow:hidden;"><div style="{{ o.barStyle }}"></div></div>
+              <span style="text-align:right; font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ o.n }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+    <section style="grid-area:sentiment; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Sentiment of members called</h3>
+        <span style="font-size:11.5px; color:var(--dim);">214 calls · last 30 days</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px;">
+          <span style="font-family:'Archivo',sans-serif; font-size:26px; font-weight:700; line-height:1; letter-spacing:-0.025em;">{{ sentPos }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">positive · {{ sentDelta }}</span>
+        </div>
+        <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; margin-bottom:12px;">
+          <sc-for list="{{ sentList }}" as="s" hint-placeholder-count="3">
+            <div style="{{ s.barStyle }}"></div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ sentList }}" as="s" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; gap:9px; padding:4px 0;">
+            <span style="{{ s.dotStyle }}"></span>
+            <span style="flex:1 1 auto; font-size:12.5px; color:var(--ink-2);">{{ s.label }}</span>
+            <span style="font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ s.pct }}</span>
+            <span style="width:34px; text-align:right; font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums;">{{ s.n }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    <section style="grid-area:today; display:flex; flex-direction:column; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;">
+      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 14px 9px;">
+        <h3 style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Today’s queue</h3>
+        <span style="font-size:11.5px; color:var(--dim);">scheduled for the agent</span>
+      </div>
+      <div style="flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px 14px;">
+        <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:11px;">
+          <span style="font-family:'Archivo',sans-serif; font-size:30px; font-weight:700; line-height:1; letter-spacing:-0.03em;">{{ todayCalls }}</span>
+          <span style="font-size:11.5px; color:var(--dim);">calls</span>
+          <span style="margin-left:auto; font-family:'Archivo',sans-serif; font-size:20px; font-weight:700; letter-spacing:-0.02em;">{{ todayCost }}</span>
+        </div>
+        <sc-for list="{{ todayList }}" as="t" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid var(--row-line);">
+            <span style="flex:1 1 auto; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ t.ink }};">{{ t.label }}</span>
+            <span style="font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;">{{ t.n }}</span>
+          </div>
+        </sc-for>
+        <div style="margin-top:auto; padding-top:11px; font-size:12px; color:var(--muted); text-wrap:pretty;">{{ todayNote }}</div>
+      </div>
+    </section>
+      </div>
+    </section>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1560,&quot;height&quot;:980},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dark&quot;,&quot;Light&quot;],&quot;default&quot;:&quot;Dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;A&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+const MONTHS = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+const CHURN = [5.8, 5.4, 5.1, 4.9, 4.7, 4.6];
+const VPM = [1.6, 1.7, 1.7, 1.8, 1.9, 1.9];
+const REASONS = [
+  ['Time', 31], ['Money', 24], ['Injury', 14], ['Motivation', 12], ['Moved', 9], ['Gym issue', 7], ['Other', 5]
+];
+const REASON_MONTHS = [
+  [6, 5, 2, 3, 2, 1, 1], [5, 4, 3, 2, 1, 2, 1], [5, 4, 2, 2, 2, 1, 0],
+  [5, 3, 2, 2, 1, 1, 1], [5, 4, 3, 2, 2, 1, 1], [5, 4, 2, 1, 1, 1, 1]
+];
+const THEMES = [
+  [6, 'Price increase', 'the April change came with no warning and nobody flagged it', 2],
+  [4, 'Crowding in the evenings', 'you queue twenty minutes for a rack at six', 1],
+  [4, 'Injury, waiting on physio', 'shoulder is not right, cannot lift until it clears', 0],
+  [3, 'Parking', 'after 5:30 there is nowhere to leave the car', 1],
+  [3, 'Shift pattern changed', 'moved to nights, the hours no longer work', 0],
+  [3, 'Class times', 'the only spin class I want is mid-afternoon', -1],
+  [2, 'Changing rooms', 'two showers out of six were down all month', -1],
+  [2, 'Moved out of the area', 'I am in Salford now, it is a 30 minute drive', 0]
+];
+const SEGMENTS = [
+  ['Frequent — 2+ visits a week', 132], ['Occasional — under 2 a week', 141],
+  ['Inactive after a habit', 61], ['Inactive, never regular', 46]
+];
+const OUTCOMES = [
+  ['No answer', 41], ['Callback', 26], ['Renewed', 34], ['Considering', 19], ['Recovered', 18],
+  ['Committed', 15], ['Frozen', 11], ['Booked', 12], ['Lost', 19], ['Opted out', 9]
+];
+const SOFT = ['No answer', 'Lost', 'Opted out'];
+const WEEK = [['Mon', 1.0], ['Tue', 0.96], ['Wed', 1.03], ['Thu', 0.93], ['Fri', 0.82], ['Sat', 0.7], ['Sun', 0.62]];
+const WEEKDAY = [20, 88, 72, 40, 26, 20, 16, 22, 24, 14, 16, 30, 66, 100, 86, 54, 30, 12];
+const WEEKEND = [6, 14, 36, 96, 80, 62, 48, 36, 30, 26, 22, 20, 24, 26, 20, 12, 8, 4];
+const HOUR_LABELS = ['5–6am', '6–7am', '7–8am', '8–9am', '9–10am', '10–11am', '11am–12', '12–1pm', '1–2pm', '2–3pm', '3–4pm', '4–5pm', '5–6pm', '6–7pm', '7–8pm', '8–9pm', '9–10pm', '10–11pm'];
+
+const RAMP_D = ['#8fa86b', '#7d9cae', '#b08a6a', '#9a8fb3', '#6fa393', '#b39a6a', '#7c8272'];
+const RAMP_L = ['#7d9455', '#6b8798', '#9b7550', '#84789e', '#4f8a78', '#9c8450', '#6f7565'];
+const SEG_D = ['#a3bd6b', '#7d9cae', '#b08a6a', '#5f6657'];
+const SEG_L = ['#7d9455', '#6b8798', '#9b7550', '#a6ad9b'];
+const THEME_KEY = 'ironworks.queue.theme';
+
+const AREAS_A = [
+  '"kpi kpi kpi kpi"',
+  '"busy busy busy themes"',
+  '"churn visits segments themes"',
+  '"terms risk reasons themes"',
+  '"reasonstime reasonstime outcomes outcomes"',
+  '"sentiment today outcomes outcomes"'
+].join(' ');
+const AREAS_B = [
+  '"h1 h1 h1 h1"',
+  '"kpi kpi kpi kpi"',
+  '"busy busy busy busy"',
+  '"churn visits segments terms"',
+  '"h2 h2 h2 h2"',
+  '"themes themes themes themes"',
+  '"reasons reasons reasonstime reasonstime"',
+  '"h3 h3 h3 h3"',
+  '"outcomes outcomes sentiment today"',
+  '"outcomes outcomes risk risk"'
+].join(' ');
+
+class Component extends DCLogic {
+  state = { variant: 'A', theme: null, nav: true };
+
+  componentDidMount() {
+    this.setState({ theme: this.props.theme === 'Light' ? 'light' : 'dark' });
+    this.onKeyDown = e => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'd' || e.key === 'D') this.toggleTheme();
+    };
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKeyDown); }
+
+  theme() { return this.state.theme || (this.props.theme === 'Light' ? 'light' : 'dark'); }
+  toggleTheme() {
+    const next = this.theme() === 'dark' ? 'light' : 'dark';
+    try { window.localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    this.setState({ theme: next });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const dark = this.theme() === 'dark';
+    const ramp = dark ? RAMP_D : RAMP_L;
+    const segColors = dark ? SEG_D : SEG_L;
+    const heatRGB = dark ? '163,189,107' : '96,124,54';
+    const variant = s.variant;
+
+    const heat = WEEK.map(([day, mult], di) => {
+      const base = di < 5 ? WEEKDAY : WEEKEND;
+      const cells = base.map((v, hi) => {
+        const val = Math.round(v * mult);
+        const a = (0.035 + Math.pow(val / 100, 1.45) * 0.95).toFixed(3);
+        const peak = val >= 92;
+        return {
+          title: day + ' ' + HOUR_LABELS[hi] + ' · ' + Math.round(val * 1.15) + ' visits',
+          style: 'height:21px; border-radius:3px; background:rgba(' + heatRGB + ',' + a + ');' +
+            (peak ? ' box-shadow:0 0 0 1.5px var(--accent-ink);' : '') + ' transition:background .2s;'
+        };
+      });
+      const total = Math.round(base.reduce((n, v) => n + v * mult, 0) * 1.15);
+      return { day: day, cells: cells, total: total };
+    });
+    const heatLegend = [0.08, 0.3, 0.52, 0.74, 0.96].map(a => ({
+      style: 'width:16px; height:9px; border-radius:2px; background:rgba(' + heatRGB + ',' + a + ');'
+    }));
+
+    const cy = v => (72 - ((v - 4.2) / 1.8) * 62).toFixed(1);
+    const cx = i => (i * (260 / 5)).toFixed(1);
+    const linePts = CHURN.map((v, i) => cx(i) + ',' + cy(v)).join(' ');
+
+    const themeList = THEMES.map(([count, name, quote, tr]) => ({
+      count: count, name: name, quote: '“' + quote + '”',
+      trend: tr > 0 ? '▲ up' : tr < 0 ? '▼ down' : '— flat',
+      trendStyle: 'font-size:10.5px; font-weight:700; letter-spacing:0.04em; color:' +
+        (tr > 0 ? 'var(--flag-ink)' : tr < 0 ? 'var(--accent-ink)' : 'var(--dim)') + ';'
+    }));
+
+    const segTotal = SEGMENTS.reduce((n, r) => n + r[1], 0);
+    const segments = SEGMENTS.map(([label, count], i) => ({
+      label: label, count: count, pct: Math.round(count / segTotal * 100) + '%',
+      barStyle: 'width:' + (count / segTotal * 100).toFixed(1) + '%; background:' + segColors[i] + ';',
+      dotStyle: 'width:9px; height:9px; border-radius:3px; flex:0 0 auto; background:' + segColors[i] + ';'
+    }));
+
+    const rMax = REASONS[0][1];
+    const rTotal = REASONS.reduce((n, r) => n + r[1], 0);
+    const reasonList = REASONS.map(([label, n], i) => ({
+      label: label, n: n, pct: Math.round(n / rTotal * 100) + '%',
+      barStyle: 'height:100%; width:' + (n / rMax * 100).toFixed(1) + '%; border-radius:5px; background:' + ramp[i] + '; transition:width .5s ease;'
+    }));
+    const reasonLegend = REASONS.map(([label], i) => ({
+      label: label, dotStyle: 'width:8px; height:8px; border-radius:2px; background:' + ramp[i] + ';'
+    }));
+    const monthMax = Math.max.apply(null, REASON_MONTHS.map(m => m.reduce((n, v) => n + v, 0)));
+    const reasonMonths = REASON_MONTHS.map((m, mi) => {
+      const total = m.reduce((n, v) => n + v, 0);
+      return {
+        label: MONTHS[mi], total: total,
+        colStyle: 'display:flex; flex-direction:column-reverse; gap:1px; height:' + (total / monthMax * 118).toFixed(0) + 'px; border-radius:4px; overflow:hidden;',
+        segs: m.map((v, ri) => ({
+          title: REASONS[ri][0] + ' · ' + v,
+          style: 'flex:' + v + ' 1 0; min-height:' + (v ? 2 : 0) + 'px; background:' + ramp[ri] + ';'
+        }))
+      };
+    });
+
+    const oMax = Math.max.apply(null, OUTCOMES.map(o => o[1]));
+    const outcomeList = OUTCOMES.map(([label, n]) => ({
+      label: label, n: n,
+      barStyle: 'height:100%; width:' + (n / oMax * 100).toFixed(1) + '%; border-radius:5px; background:' +
+        (SOFT.indexOf(label) > -1 ? 'var(--t-off-ink)' : 'var(--bar)') + '; transition:width .5s ease;'
+    }));
+
+    const sentRaw = [['Positive', 58, 124], ['Neutral', 29, 62], ['Negative', 13, 28]];
+    const sentColors = ['var(--bar)', 'var(--t-off-ink)', 'var(--flag)'];
+    const sentList = sentRaw.map(([label, pct, n], i) => ({
+      label: label, pct: pct + '%', n: n,
+      barStyle: 'width:' + pct + '%; background:' + sentColors[i] + ';',
+      dotStyle: 'width:9px; height:9px; border-radius:3px; flex:0 0 auto; background:' + sentColors[i] + ';'
+    }));
+
+    const riskRaw = [['Renewal', 3160, 40, 'var(--t-renew-ink)'], ['Reengagement', 3320, 42, 'var(--t-reeng-ink)'], ['Winback', 3400, 43, 'var(--t-winb-ink)']];
+    const riskMax = 3400;
+    const riskList = riskRaw.map(([label, amt, n, ink]) => ({
+      label: label, amount: '$' + amt.toLocaleString(), members: n + ' members', ink: ink,
+      barStyle: 'height:100%; width:' + (amt / riskMax * 100).toFixed(1) + '%; border-radius:4px; background:' + ink + '; transition:width .5s ease;'
+    }));
+
+    const termsList = [['14 days', 18, 96], ['30 days', 37, 96], ['90 days', 96, 96]].map(([label, n, max]) => ({
+      label: label, n: n,
+      barStyle: 'height:100%; width:' + (n / max * 100).toFixed(0) + '%; background:var(--bar); border-radius:2px;'
+    }));
+
+    const todayList = [['Renewal', 40, 'var(--t-renew-ink)'], ['Reengagement', 42, 'var(--t-reeng-ink)'], ['Winback', 43, 'var(--t-winb-ink)']]
+      .map(([label, n, ink]) => ({ label: label, n: n, ink: ink }));
+
+    const sectionOn = variant === 'B';
+    return {
+      theme: this.theme(), themeGlyph: dark ? '☀' : '☾',
+      toggleTheme: () => this.toggleTheme(),
+      isA: variant === 'A', isB: variant === 'B',
+      setA: () => this.setState({ variant: 'A' }), setB: () => this.setState({ variant: 'B' }),
+      tabAStyle: this.tab(variant === 'A'), tabBStyle: this.tab(variant === 'B'),
+      nowLabel: 'Sun 13 Sep · 08:41',
+      asOf: 'data through 13 Sep 08:41',
+
+      navOpen: s.nav,
+      toggleNav: () => this.setState(st => ({ nav: !st.nav })),
+      noop: e => e.preventDefault(),
+      navStyle: 'flex:0 0 auto; width:' + (s.nav ? 208 : 58) + 'px; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; transition:width .22s cubic-bezier(.2,.8,.2,1);',
+      navToggle: 'display:flex; align-items:center; gap:10px; height:38px; margin:8px 8px 0 8px; padding:0 ' + (s.nav ? '10px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; background:transparent; border:none; border-radius:9px; color:var(--dim); font:inherit; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;',
+      navToggleGlyph: 'display:inline-block; font-size:15px; line-height:1; transition:transform .22s; transform:rotate(' + (s.nav ? 0 : 180) + 'deg);',
+      navLabel: s.nav ? 'flex:1 1 auto; white-space:nowrap; overflow:hidden; text-align:left;' : 'display:none;',
+      navCount: 'flex:0 0 auto; font-size:11px; font-weight:700; color:var(--dim);' + (s.nav ? '' : ' display:none;'),
+      navItem: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; color:var(--muted); font-size:12.5px; font-weight:600; text-decoration:none; cursor:pointer; transition:background .15s, color .15s;',
+      navActive: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; background:var(--control-bg); box-shadow:inset 2px 0 0 var(--bar); color:var(--ink); font-size:12.5px; font-weight:700; text-decoration:none; cursor:pointer;',
+
+      boardStyle: 'display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); grid-template-areas:' +
+        (variant === 'A' ? AREAS_A : AREAS_B) + '; gap:14px; align-content:start; min-width:1040px; padding-bottom:6px;',
+      wrap_h1: sectionOn ? 'grid-area:h1; display:flex; align-items:baseline; gap:12px; padding:6px 2px 0;' : 'display:none;',
+      wrap_h2: sectionOn ? 'grid-area:h2; display:flex; align-items:baseline; gap:12px; padding:6px 2px 0;' : 'display:none;',
+      wrap_h3: sectionOn ? 'grid-area:h3; display:flex; align-items:baseline; gap:12px; padding:6px 2px 0;' : 'display:none;',
+      sectionHeadStyle: sectionOn
+        ? "margin:0; font-family:'Archivo',sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.02em; color:var(--ink);"
+        : 'display:none;',
+      sectionSubStyle: sectionOn ? 'font-size:12px; color:var(--dim);' : 'display:none;',
+      sectionRuleStyle: sectionOn ? 'flex:1 1 auto; height:1px; background:var(--line-strong);' : 'display:none;',
+
+      activeMembers: '380', activeSub: '145 auto-renewing · 235 rolling',
+      mrr: '$30,200', mrrDelta: '+$820 vs Aug',
+      rpm: '$79', rpmDelta: '+$2 vs Aug',
+      retention: '86%', retentionDelta: '+1.2 pts vs Q2',
+      churn: '4.6%', churnDelta: '−1.2 pts since Apr',
+      vpm: '1.9', vpmDelta: '+0.3 since Apr',
+
+      heat: heat, heatLegend: heatLegend,
+      peakNote: 'Peak Wed 6–7pm · 118 visits, and 6–7am weekdays',
+      deadNote: 'Quietest 2–3pm weekdays',
+      churnLine: linePts,
+      churnArea: '0,72 ' + linePts + ' 260,72',
+      churnDotX: cx(5), churnDotY: cy(CHURN[5]),
+      visitBars: VPM.map((v, i) => ({
+        v: v.toFixed(1), m: MONTHS[i],
+        style: 'width:100%; height:' + ((v / 2.1) * 100).toFixed(1) + '%; min-height:6px; border-radius:4px 4px 2px 2px; background:' + (i === 5 ? 'var(--bar)' : 'var(--t-off-ink)') + '; transition:height .5s ease;'
+      })),
+      segments: segments,
+      termsList: termsList, termsNote: '96 fixed terms end within 90 days. 18 of them are inside two weeks and 11 of those have no auto-renew.',
+      riskList: riskList, riskTotal: '$9,880',
+      themeList: themeList,
+      reasonList: reasonList, reasonMonths: reasonMonths, reasonLegend: reasonLegend,
+      outcomeList: outcomeList,
+      sentList: sentList, sentPos: '58%', sentDelta: '+4 pts vs Aug',
+      todayCalls: '125', todayCost: '$41.25', todayList: todayList,
+      todayNote: 'Estimated at $0.33 a call and 78 seconds average. Cost to date this month: $706.'
+    };
+  }
+
+  tab(on) {
+    return 'height:28px; padding:0 13px; border:none; border-radius:7px; cursor:pointer; font:inherit; white-space:nowrap; flex:0 0 auto; font-size:12.5px; font-weight:' + (on ? 700 : 600) +
+      '; background:' + (on ? 'var(--surface)' : 'transparent') + '; box-shadow:' + (on ? 'var(--shadow)' : 'none') + '; color:' + (on ? 'var(--ink)' : 'var(--dim)') + ';';
+  }
+}
+</script>
+</body>
+</html>

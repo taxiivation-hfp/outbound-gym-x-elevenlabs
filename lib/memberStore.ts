@@ -1,3 +1,7 @@
+/**
+ * Owns: Supabase access for uploaded members: the import RPCs, counts, and loading one gym's members.
+ * Not here: validating the CSV (lib/memberImport.ts) or deriving the Member shape from rows (lib/memberData.ts).
+ */
 import {
   buildMember,
   type ContractRecord,

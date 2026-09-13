@@ -1,3 +1,8 @@
+/**
+ * Owns: the lazily built, server-only service-role Supabase client every lib/ store uses.
+ * Not here: table reads and writes live in the stores, e.g. lib/callRecords.ts, lib/gymStore.ts,
+ * lib/memberStore.ts.
+ */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**

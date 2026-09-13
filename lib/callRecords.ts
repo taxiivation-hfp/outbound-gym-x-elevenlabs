@@ -1,3 +1,7 @@
+/**
+ * Owns: call_records writes that survive a schema a migration behind, and the all-rows and recent-call reads.
+ * Not here: a member's history read and its summary for the next call, which live in lib/callHistory.ts.
+ */
 import type { CallType } from "@/lib/callType";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 

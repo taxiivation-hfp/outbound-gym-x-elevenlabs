@@ -1,3 +1,7 @@
+/**
+ * Owns: picking the member source (dataset or one gym's upload) and which gym a member may be called as.
+ * Not here: the Supabase queries for uploaded members, which live in lib/memberStore.ts.
+ */
 import membersData from "@/data/members_scored.json";
 import { today } from "@/lib/clock";
 import { loadGymMember, loadGymMembers } from "@/lib/memberStore";

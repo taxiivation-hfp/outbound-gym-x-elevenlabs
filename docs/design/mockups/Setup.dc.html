@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0c0e0a; }
+  * { box-sizing:border-box; }
+  a { color:var(--accent-ink); text-decoration:none; }
+  a:hover { color:var(--ink); text-decoration:underline; }
+  button:focus-visible, [role="row"]:focus-visible { outline:2px solid var(--accent-line); outline-offset:-2px; }
+  ::selection { background:var(--accent); color:var(--on-accent); }
+  ::-webkit-scrollbar { width:11px; height:11px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--line-strong); border:3px solid var(--surface); border-radius:8px; }
+  @keyframes liveblink { 0%,70%{opacity:1} 85%{opacity:.2} 100%{opacity:1} }
+  @keyframes livering { 0%{box-shadow:0 0 0 0 var(--bar); opacity:.5} 70%{box-shadow:0 0 0 7px transparent; opacity:0} 100%{box-shadow:0 0 0 0 transparent; opacity:0} }
+  @keyframes panelIn { from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:none} }
+  @keyframes lineIn { from{opacity:0; transform:translateY(3px)} to{opacity:1; transform:none} }
+  .queue__row { transition:background .14s ease, box-shadow .14s ease; }
+  .queue__row:active { transform:translateY(0.5px); }
+  .q button { transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .q nav button:hover, .queue__bar button:hover { transform:translateY(-1px); }
+  .q[data-theme="light"] {
+    --canvas:#eef0e9; --surface:#ffffff; --surface-2:#f8f9f3; --panel:#f9faf4; --panel-edge:#e6e8dd;
+    --line:#e0e2d8; --line-strong:#cdd1c0; --cell-line:#e9ebe1; --row-line:#eef0e7;
+    --row-hover:#f6f8ee; --row-open:#f2f3ed; --row-excl:#f6f7f1;
+    --ink:#1a1d16; --ink-2:#3a3f33; --muted:#5d6455; --dim:#656c60; --faint:#767d6c;
+    --accent:#d5e49b; --accent-line:#a7bc77; --accent-ink:#4c5b2c; --accent-wash:#f2f3ed; --on-accent:#2b3318; --bar:#a9c069;
+    --flag:#a34b3e; --flag-ink:#93463a; --flag-wash:#f9efec; --flag-open:#f3e5e1; --on-flag:#ffffff;
+    --control-bg:#f0f1ea; --control-line:#dcdfd2;
+    --t-renew-bg:#e7eed2; --t-renew-ink:#48562a; --t-reeng-bg:#dfeae6; --t-reeng-ink:#2c554c;
+    --t-winb-bg:#f3e6d3; --t-winb-ink:#6a4e2b; --t-off-bg:#ebede4; --t-off-ink:#6b7266;
+    --shadow:0 1px 2px rgba(26,29,22,0.12);
+    --window:0 24px 48px -28px rgba(26,29,22,0.4), 0 2px 8px rgba(26,29,22,0.06); color-scheme:light;
+  }
+  .q[data-theme="dark"] {
+    --canvas:#0c0e0a; --surface:#14170f; --surface-2:#101309; --panel:#181b13; --panel-edge:#2a2e21;
+    --line:#242920; --line-strong:#333a28; --cell-line:#20251a; --row-line:#1a1e14;
+    --row-hover:#1b2013; --row-open:#1f2319; --row-excl:#101209;
+    --ink:#eef1e4; --ink-2:#c9cfbc; --muted:#a2aa94; --dim:#949c85; --faint:#868e76;
+    --accent:#bcd47f; --accent-line:#6e8b45; --accent-ink:#c2d491; --accent-wash:#1c1f17; --on-accent:#181d0e; --bar:#a3bd6b;
+    --flag:#c96a57; --flag-ink:#e2a091; --flag-wash:#261510; --flag-open:#301b15; --on-flag:#241009;
+    --control-bg:#1a1e13; --control-line:#2c3222;
+    --t-renew-bg:#222814; --t-renew-ink:#bfd296; --t-reeng-bg:#14241f; --t-reeng-ink:#9cc4b9;
+    --t-winb-bg:#2a2114; --t-winb-ink:#d2b48d; --t-off-bg:#181c12; --t-off-ink:#7f8773;
+    --shadow:0 1px 3px rgba(0,0,0,0.6);
+    --window:0 28px 56px -30px rgba(0,0,0,0.85), 0 2px 10px rgba(0,0,0,0.4); color-scheme:dark;
+  }
+</style>
+</helmet>
+<main class="q" data-theme="{{ theme }}" style="height:100dvh; min-width:980px; display:flex; flex-direction:column; background:var(--canvas); color:var(--ink); font-family:'Figtree',system-ui,sans-serif; font-size:13px; -webkit-font-smoothing:antialiased; overflow:hidden;">
+
+  <header class="queue__bar" style="flex:0 0 auto; height:70px; display:flex; align-items:center; gap:26px; padding:0 14px; background:var(--surface); border-bottom:1px solid var(--line-strong); white-space:nowrap;">
+    <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:1px;">
+      <h1 style="margin:0; font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.03em; line-height:1.05;">Ironworks</h1>
+      <span style="font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim);">Voice agent setup</span>
+    </div>
+    <div style="flex:0 0 auto; display:flex; align-items:center; gap:7px; height:30px; padding:0 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+      <span aria-hidden="true" style="position:relative; width:7px; height:7px; border-radius:50%; background:var(--bar); animation:liveblink 3.2s infinite;"><span aria-hidden="true" style="position:absolute; inset:0; border-radius:50%; animation:livering 2.4s infinite;"></span></span>
+      <span style="font-size:12px; font-weight:700; color:var(--accent-ink);">Agent live</span>
+      <span style="font-size:12px; color:var(--accent-ink); opacity:0.75;">calling from what’s below</span>
+    </div>
+    <div style="flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:10px;">
+      <span style="{{ dirtyStyle }}">{{ dirtyLabel }}</span>
+      <button type="button" onClick="{{ save }}" style="{{ saveStyle }}">{{ saveLabel }}</button>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="Toggle colour theme" style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:var(--control-bg); border:1px solid var(--line); border-radius:10px; color:var(--muted); font-size:14px; cursor:pointer;" style-hover="color:var(--ink); border-color:var(--line-strong);">{{ themeGlyph }}</button>
+    </div>
+  </header>
+
+  <div style="flex:1 1 auto; min-height:0; display:flex; gap:14px; padding:14px;">
+    <aside class="queue__nav" aria-label="Sections" style="{{ navStyle }}">
+      <button type="button" onClick="{{ toggleNav }}" aria-expanded="{{ navOpen }}" aria-label="Expand or collapse navigation" style="{{ navToggle }}">
+        <span aria-hidden="true" style="{{ navToggleGlyph }}">‹</span><span style="{{ navLabel }}">Collapse</span>
+      </button>
+      <nav style="display:flex; flex-direction:column; gap:3px; padding:8px 8px 0 8px;">
+        <a href="Analytics.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><rect x="2.2" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="2.2" y="8.8" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="8.8" width="5" height="5" rx="1.2"></rect></svg>
+          <span style="{{ navLabel }}">Overview</span>
+        </a>
+        <a href="Call Queue.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 4h12M2 8h12M2 12h12"></path><circle cx="13.2" cy="4" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+          <span style="{{ navLabel }}">Call queue</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="6" cy="6" r="2.4"></circle><path d="M2 13c0-2.2 1.8-3.6 4-3.6s4 1.4 4 3.6"></path><path d="M11 5.2a2.2 2.2 0 0 1 0 4.1"></path><path d="M12 13c0-1.6-.6-2.7-1.6-3.3"></path></svg>
+          <span style="{{ navLabel }}">Members</span>
+          <span style="{{ navCount }}">498</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M3 3.8h2.4l1 2.6-1.5 1.1a7.4 7.4 0 0 0 3.6 3.6l1.1-1.5 2.6 1V13a9.6 9.6 0 0 1-9.2-9.2Z"></path></svg>
+          <span style="{{ navLabel }}">Call log</span>
+        </a>
+        <a href="Setup.dc.html" aria-current="page" style="{{ navActive }}" style-hover="">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 8h1.6M5 5v6M8 3v10M11 5.5v5M14 8h-1.6"></path></svg>
+          <span style="{{ navLabel }}">Voice agent</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M5.5 2.5 4 13.5M11.5 2.5 10 13.5M2.5 5.5h11M2 10.5h11"></path></svg>
+          <span style="{{ navLabel }}">Numbers</span>
+        </a>
+      </nav>
+      <div style="margin-top:auto; display:flex; flex-direction:column; gap:3px; padding:8px; border-top:1px solid var(--line);">
+        <a href="Evals.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 8.6 5 11l3-4 2.6 2.4 3-4.4"></path><path d="M2.5 13.5h11"></path></svg>
+          <span style="{{ navLabel }}">Evals</span>
+        </a>
+        <a href="About.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="8" cy="8" r="5.8"></circle><path d="M8 7v4.2M8 4.9v.2"></path></svg>
+          <span style="{{ navLabel }}">About</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 5h11M2.5 11h11"></path><circle cx="6" cy="5" r="1.7"></circle><circle cx="10.5" cy="11" r="1.7"></circle></svg>
+          <span style="{{ navLabel }}">Settings</span>
+        </a>
+      </div>
+    </aside>
+
+    <div style="flex:1 1 auto; min-width:0; display:flex; gap:16px; overflow:auto; padding-right:2px;">
+      <div style="flex:1 1 auto; min-width:560px; display:flex; flex-direction:column; gap:16px;">
+    <section aria-labelledby="doc-h" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line-strong); border-radius:16px; box-shadow:var(--window); padding:22px;">
+      <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
+        <h2 id="doc-h" style="margin:0; font-family:'Archivo',sans-serif; font-size:19px; font-weight:700; letter-spacing:-0.02em;">Start from a document</h2>
+        <span style="font-size:12.5px; color:var(--dim);">or fill the form in yourself, below</span>
+        <span style="margin-left:auto; font-size:12px; color:var(--dim);">{{ docStatus }}</span>
+      </div>
+      <p style="margin:0 0 16px; max-width:62ch; font-size:13px; line-height:1.55; color:var(--muted); text-wrap:pretty;">A price list, a membership agreement, a tariff sheet — whatever you already have. PDF or Word, up to 20MB.</p>
+
+      <div onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="{{ dropStyle }}">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:7px;">
+          <span aria-hidden="true" style="{{ dropGlyph }}">⇪</span>
+          <span style="font-size:14px; font-weight:700; color:var(--ink);">{{ dropTitle }}</span>
+          <span style="font-size:12.5px; color:var(--dim);">{{ dropSub }}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;">
+          <label style="{{ browseStyle }}">Choose a file<input type="file" accept=".pdf,.doc,.docx" onChange="{{ onPick }}" style="position:absolute; width:1px; height:1px; opacity:0;"></label>
+          <button type="button" onClick="{{ useSample }}" style="height:34px; padding:0 14px; background:transparent; border:1px solid var(--control-line); border-radius:9px; color:var(--muted); font:inherit; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink); border-color:var(--line-strong);">Use the sample price list</button>
+        </div>
+      </div>
+        <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; margin-top:18px;">
+          <sc-for list="{{ stages }}" as="st" hint-placeholder-count="4">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="{{ st.dot }}">{{ st.glyph }}</span>
+                <span style="{{ st.label }}">{{ st.name }}</span>
+              </div>
+              <div style="height:4px; border-radius:3px; background:var(--row-line); overflow:hidden;"><div style="{{ st.bar }}"></div></div>
+              <span style="font-size:11px; color:var(--dim); min-height:15px;">{{ st.note }}</span>
+            </div>
+          </sc-for>
+        </div>
+      <sc-if value="{{ docDone }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:18px; padding-top:16px; border-top:1px solid var(--line);">
+          <span style="font-size:13px; font-weight:700; color:var(--ink);">{{ extractSummary }}</span>
+          <span style="font-size:12.5px; color:var(--dim);">{{ extractSub }}</span>
+          <button type="button" onClick="{{ resetDoc }}" style="margin-left:auto; height:30px; padding:0 12px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Clear and start over</button>
+        </div>
+      </sc-if>
+    </section>
+    <section aria-labelledby="det-h" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:22px;">
+      <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
+        <h2 id="det-h" style="margin:0; font-family:'Archivo',sans-serif; font-size:19px; font-weight:700; letter-spacing:-0.02em;">The gym’s details</h2>
+        <span style="margin-left:auto; font-size:12px; color:var(--dim);">{{ filledCount }}</span>
+      </div>
+      <p style="margin:0 0 20px; max-width:66ch; font-size:13px; line-height:1.55; color:var(--muted); text-wrap:pretty;">Leave anything blank that you haven’t decided or don’t offer. Blank means <em style="color:var(--ink-2); font-style:normal; font-weight:600;">you didn’t say</em> — never “no”. Each field tells you what the agent does when it’s empty.</p>
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(min(300px,100%),1fr)); gap:24px 26px;">
+      <div style="grid-column:span 2; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="name" style="font-size:12.5px; font-weight:700; color:var(--ink);">Gym name</label>
+          <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">required</span>
+        </div>
+        <input id="name" value="{{ f.name.value }}" onChange="{{ f.name.set }}" placeholder="Ironworks Gym" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">The agent opens every call with this name.</span>
+        <sc-if value="{{ f.name.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.name.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.name.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.name.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.name.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.name.useAnyway }}" style="{{ f.name.useStyle }}">{{ f.name.useLabel }}</button>
+              <button type="button" onClick="{{ f.name.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="hours" style="font-size:12.5px; font-weight:700; color:var(--ink);">Opening hours</label>
+          <span style="{{ f.hours.chip }}">{{ f.hours.chipLabel }}</span>
+        </div>
+        <input id="hours" value="{{ f.hours.value }}" onChange="{{ f.hours.set }}" placeholder="Mon–Fri 5:30–22:00, Sat–Sun 7:00–19:00" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent won’t quote hours, it offers to text them instead.</span>
+        <sc-if value="{{ f.hours.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.hours.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.hours.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.hours.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.hours.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.hours.useAnyway }}" style="{{ f.hours.useStyle }}">{{ f.hours.useLabel }}</button>
+              <button type="button" onClick="{{ f.hours.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="quiet" style="font-size:12.5px; font-weight:700; color:var(--ink);">Quiet times</label>
+          <span style="{{ f.quiet.chip }}">{{ f.quiet.chipLabel }}</span>
+        </div>
+        <input id="quiet" value="{{ f.quiet.value }}" onChange="{{ f.quiet.set }}" placeholder="Weekdays 10:00–16:00" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent says it doesn’t have that in front of it and offers to find out.</span>
+        <sc-if value="{{ f.quiet.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.quiet.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.quiet.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.quiet.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.quiet.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.quiet.useAnyway }}" style="{{ f.quiet.useStyle }}">{{ f.quiet.useLabel }}</button>
+              <button type="button" onClick="{{ f.quiet.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 2; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="locations" style="font-size:12.5px; font-weight:700; color:var(--ink);">Other locations</label>
+          <span style="{{ f.locations.chip }}">{{ f.locations.chipLabel }}</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:9px;">
+          <sc-if value="{{ f.locations.any }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-wrap:wrap; gap:7px;">
+              <sc-for list="{{ f.locations.items }}" as="l" hint-placeholder-count="2">
+                <span style="display:flex; align-items:center; gap:8px; height:32px; padding:0 6px 0 12px; background:var(--control-bg); border:1px solid var(--line); border-radius:9px; font-size:12.5px; font-weight:600;">{{ l.name }}<button type="button" onClick="{{ l.remove }}" aria-label="Remove location" style="width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; border-radius:6px; color:var(--dim); font:inherit; font-size:14px; cursor:pointer;" style-hover="background:var(--flag-wash); color:var(--flag-ink);">×</button></span>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex; gap:10px;">
+            <input id="locations" value="{{ f.locations.draft }}" onChange="{{ f.locations.setDraft }}" onKeyDown="{{ f.locations.onKey }}" placeholder="Deansgate" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s; flex:1 1 auto;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+            <button type="button" onClick="{{ f.locations.add }}" style="flex:0 0 auto; height:38px; padding:0 15px; background:var(--control-bg); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; white-space:nowrap; cursor:pointer;" style-hover="border-color:var(--accent-line);">Add site</button>
+          </div>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent treats this as the only site and won’t offer a transfer.</span>
+        <sc-if value="{{ f.locations.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.locations.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.locations.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.locations.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.locations.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.locations.useAnyway }}" style="{{ f.locations.useStyle }}">{{ f.locations.useLabel }}</button>
+              <button type="button" onClick="{{ f.locations.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="online" style="font-size:12.5px; font-weight:700; color:var(--ink);">Online training</label>
+          <span style="{{ f.online.chip }}">{{ f.online.chipLabel }}</span>
+        </div>
+        <div role="group" style="display:flex; gap:6px;">
+          <sc-for list="{{ f.online.options }}" as="o" hint-placeholder-count="3">
+            <button type="button" onClick="{{ o.onClick }}" aria-pressed="{{ o.on }}" style="{{ o.style }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Not stated: the agent says it can’t confirm and will have someone check.</span>
+        <sc-if value="{{ f.online.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.online.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.online.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.online.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.online.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.online.useAnyway }}" style="{{ f.online.useStyle }}">{{ f.online.useLabel }}</button>
+              <button type="button" onClick="{{ f.online.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="booking" style="font-size:12.5px; font-weight:700; color:var(--ink);">Class booking</label>
+          <span style="{{ f.booking.chip }}">{{ f.booking.chipLabel }}</span>
+        </div>
+        <div role="group" style="display:flex; gap:6px;">
+          <sc-for list="{{ f.booking.options }}" as="o" hint-placeholder-count="3">
+            <button type="button" onClick="{{ o.onClick }}" aria-pressed="{{ o.on }}" style="{{ o.style }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Not stated: the agent won’t explain how booking works.</span>
+        <sc-if value="{{ f.booking.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.booking.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.booking.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.booking.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.booking.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.booking.useAnyway }}" style="{{ f.booking.useStyle }}">{{ f.booking.useLabel }}</button>
+              <button type="button" onClick="{{ f.booking.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="discount" style="font-size:12.5px; font-weight:700; color:var(--ink);">Renewal discount</label>
+          <span style="{{ f.discount.chip }}">{{ f.discount.chipLabel }}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; width:180px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px;">
+          <input id="discount" value="{{ f.discount.value }}" onChange="{{ f.discount.set }}" inputMode="decimal" placeholder="0" style="flex:1 1 auto; min-width:0; height:36px; background:transparent; border:none; color:var(--ink); font:inherit; font-size:13px; outline:none;">
+          <span style="font-size:13px; font-weight:600; color:var(--dim);">% off</span>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent never offers a discount, even when asked directly.</span>
+        <sc-if value="{{ f.discount.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.discount.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.discount.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.discount.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.discount.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.discount.useAnyway }}" style="{{ f.discount.useStyle }}">{{ f.discount.useLabel }}</button>
+              <button type="button" onClick="{{ f.discount.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="perk" style="font-size:12.5px; font-weight:700; color:var(--ink);">Perk for members who’ve gone quiet</label>
+          <span style="{{ f.perk.chip }}">{{ f.perk.chipLabel }}</span>
+        </div>
+        <input id="perk" value="{{ f.perk.value }}" onChange="{{ f.perk.set }}" placeholder="One free PT session" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent asks what would help instead of offering anything.</span>
+        <sc-if value="{{ f.perk.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.perk.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.perk.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.perk.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.perk.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.perk.useAnyway }}" style="{{ f.perk.useStyle }}">{{ f.perk.useLabel }}</button>
+              <button type="button" onClick="{{ f.perk.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 2; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="lapsed" style="font-size:12.5px; font-weight:700; color:var(--ink);">Offer for members who’ve lapsed</label>
+          <span style="{{ f.lapsed.chip }}">{{ f.lapsed.chipLabel }}</span>
+        </div>
+        <input id="lapsed" value="{{ f.lapsed.value }}" onChange="{{ f.lapsed.set }}" placeholder="Two-week pass, no card needed" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent invites them back with no incentive attached.</span>
+        <sc-if value="{{ f.lapsed.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.lapsed.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.lapsed.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.lapsed.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.lapsed.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.lapsed.useAnyway }}" style="{{ f.lapsed.useStyle }}">{{ f.lapsed.useLabel }}</button>
+              <button type="button" onClick="{{ f.lapsed.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="cheap" style="font-size:12.5px; font-weight:700; color:var(--ink);">A cheaper membership</label>
+          <span style="{{ f.cheap.chip }}">{{ f.cheap.chipLabel }}</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <input id="cheap" value="{{ f.cheap.value }}" onChange="{{ f.cheap.set }}" placeholder="Off-peak" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s; flex:1 1 auto;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+          <div style="flex:0 0 130px; display:flex; align-items:center; gap:7px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px;">
+            <span style="font-size:13px; color:var(--dim);">{{ f.cheap.prefix }}</span>
+            <input value="{{ f.cheap.value2 }}" onChange="{{ f.cheap.set2 }}" placeholder="41" aria-label="A cheaper membership amount" style="flex:1 1 auto; min-width:0; height:36px; background:transparent; border:none; color:var(--ink); font:inherit; font-size:13px; outline:none;">
+            <span style="font-size:12px; color:var(--dim); white-space:nowrap;">{{ f.cheap.suffix }}</span>
+          </div>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent won’t suggest a cheaper plan if price comes up.</span>
+        <sc-if value="{{ f.cheap.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.cheap.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.cheap.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.cheap.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.cheap.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.cheap.useAnyway }}" style="{{ f.cheap.useStyle }}">{{ f.cheap.useLabel }}</button>
+              <button type="button" onClick="{{ f.cheap.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="grid-column:span 1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; gap:9px;">
+          <label for="freeze" style="font-size:12.5px; font-weight:700; color:var(--ink);">Freeze</label>
+          <span style="{{ f.freeze.chip }}">{{ f.freeze.chipLabel }}</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <input id="freeze" value="{{ f.freeze.value }}" onChange="{{ f.freeze.set }}" placeholder="Max weeks, e.g. 12" style="width:100%; height:38px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px; color:var(--ink); font:inherit; font-size:13px; outline:none; transition:border-color .15s, background .15s; flex:1 1 auto;" style-focus="border-color:var(--accent-line); background:var(--surface);">
+          <div style="flex:0 0 130px; display:flex; align-items:center; gap:7px; padding:0 12px; background:var(--canvas); border:1px solid var(--control-line); border-radius:10px;">
+            <span style="font-size:13px; color:var(--dim);">{{ f.freeze.prefix }}</span>
+            <input value="{{ f.freeze.value2 }}" onChange="{{ f.freeze.set2 }}" placeholder="5" aria-label="Freeze amount" style="flex:1 1 auto; min-width:0; height:36px; background:transparent; border:none; color:var(--ink); font:inherit; font-size:13px; outline:none;">
+            <span style="font-size:12px; color:var(--dim); white-space:nowrap;">{{ f.freeze.suffix }}</span>
+          </div>
+        </div>
+        <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">Blank: the agent doesn’t mention freezing as an option.</span>
+        <sc-if value="{{ f.freeze.srcOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px; padding:9px 11px; background:var(--accent-wash); border:1px solid var(--line); border-radius:9px;">
+            <span aria-hidden="true" style="font-size:11px; color:var(--accent-ink);">❝</span>
+            <div style="min-width:0; display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;">{{ f.freeze.srcText }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);">{{ f.freeze.srcWhere }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ f.freeze.warnOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:9px 11px; background:var(--flag-wash); border:1px solid var(--flag); border-radius:9px;">
+            <span style="font-size:11.5px; line-height:1.45; color:var(--ink-2); text-wrap:pretty;"><strong style="color:var(--flag-ink);">Couldn’t support this.</strong> {{ f.freeze.warnText }}</span>
+            <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+              <button type="button" onClick="{{ f.freeze.useAnyway }}" style="{{ f.freeze.useStyle }}">{{ f.freeze.useLabel }}</button>
+              <button type="button" onClick="{{ f.freeze.dismiss }}" style="height:28px; padding:0 11px; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:11.5px; font-weight:600; white-space:nowrap; cursor:pointer;" style-hover="color:var(--ink);">Leave blank</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      </div>
+    </section>
+    <section aria-labelledby="lim-h" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:22px;">
+      <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <h2 id="lim-h" style="margin:0; font-family:'Archivo',sans-serif; font-size:19px; font-weight:700; letter-spacing:-0.02em;">Offer limits</h2>
+        <span style="font-size:12.5px; color:var(--dim);">how often the agent may put each thing on the table</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ limitRows }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:11px 13px; background:var(--canvas); border:1px solid var(--line); border-radius:11px;">
+            <span style="font-size:13px; color:var(--muted);">Every</span>
+            <select value="{{ r.freq }}" onChange="{{ r.setFreq }}" aria-label="Frequency" style="{{ r.selStyle }}">
+              <option value="monthly">monthly</option>
+              <option value="quarterly">quarterly</option>
+              <option value="twice yearly">twice yearly</option>
+              <option value="yearly">yearly</option>
+              <option value="never">never</option>
+            </select>
+            <span style="font-size:13px; color:var(--muted);">allow the agent to offer</span>
+            <select value="{{ r.offer }}" onChange="{{ r.setOffer }}" aria-label="Offer" style="{{ r.selStyle }}">
+              <option value="the renewal discount">the renewal discount</option>
+              <option value="the quiet-member perk">the quiet-member perk</option>
+              <option value="the lapsed-member offer">the lapsed-member offer</option>
+              <option value="the cheaper membership">the cheaper membership</option>
+              <option value="a freeze">a freeze</option>
+            </select>
+            <span style="{{ r.stateStyle }}">{{ r.stateNote }}</span>
+            <button type="button" onClick="{{ r.remove }}" aria-label="Remove rule" style="margin-left:auto; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid var(--control-line); border-radius:8px; color:var(--dim); font:inherit; font-size:15px; cursor:pointer;" style-hover="border-color:var(--flag); color:var(--flag-ink);">×</button>
+          </div>
+        </sc-for>
+      </div>
+      <button type="button" onClick="{{ addLimit }}" style="align-self:flex-start; margin-top:12px; height:34px; padding:0 14px; background:var(--control-bg); border:1px solid var(--control-line); border-radius:9px; color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; white-space:nowrap; cursor:pointer;" style-hover="border-color:var(--accent-line);">Add a rule</button>
+    </section>
+    <section aria-labelledby="csv-h" style="display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:22px;">
+      <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <h2 id="csv-h" style="margin:0; font-family:'Archivo',sans-serif; font-size:19px; font-weight:700; letter-spacing:-0.02em;">Member data</h2>
+        <span style="font-size:12.5px; color:var(--dim);">three CSVs · re-upload any time, the newest wins</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ csvRows }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; gap:11px; padding:15px; background:var(--canvas); border:1px solid var(--line); border-radius:12px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <span style="font-size:13.5px; font-weight:700; color:var(--ink);">{{ c.name }}</span>
+              <span style="font-size:12px; color:var(--dim);">{{ c.cols }}</span>
+              <span style="{{ c.badge }}">{{ c.badgeLabel }}</span>
+              <button type="button" onClick="{{ c.validate }}" style="margin-left:auto; height:32px; padding:0 13px; background:{{ c.btnBg }}; border:1px solid var(--control-line); border-radius:9px; color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; white-space:nowrap; cursor:pointer;" style-hover="border-color:var(--accent-line);">{{ c.btnLabel }}</button>
+            </div>
+            <sc-if value="{{ c.done }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:9px;">
+                <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                  <span style="font-size:12.5px;"><strong style="font-family:'Archivo',sans-serif; font-size:16px; letter-spacing:-0.02em;">{{ c.parsed }}</strong> <span style="color:var(--dim);">rows parsed</span></span>
+                  <span style="font-size:12.5px;"><strong style="font-family:'Archivo',sans-serif; font-size:16px; letter-spacing:-0.02em; color:var(--flag-ink);">{{ c.rejected }}</strong> <span style="color:var(--dim);">rejected</span></span>
+                  <span style="font-size:12.5px; color:var(--dim);">{{ c.fileNote }}</span>
+                </div>
+                <sc-for list="{{ c.errors }}" as="e" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:baseline; gap:10px; padding:7px 11px; background:var(--surface); border:1px solid var(--line); border-radius:9px;">
+                    <span style="flex:0 0 auto; font-size:11px; font-weight:700; color:var(--flag-ink); font-variant-numeric:tabular-nums;">{{ e.n }}</span>
+                    <span style="flex:1 1 auto; min-width:0; font-size:12px; color:var(--ink-2); text-wrap:pretty;">{{ e.msg }}</span>
+                    <span style="flex:0 0 auto; font-size:11.5px; color:var(--dim);">{{ e.rows }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <h3 style="margin:26px 0 4px; font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Direct connections</h3>
+      <p style="margin:0 0 14px; max-width:64ch; font-size:12.5px; line-height:1.5; color:var(--muted);">None of these are built yet. What each one would need from you is listed so you can check you can get it.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(280px,100%),1fr)); gap:12px;">
+        <sc-for list="{{ integrations }}" as="i" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:15px; background:var(--canvas); border:1px dashed var(--line-strong); border-radius:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:13.5px; font-weight:700;">{{ i.name }}</span>
+              <span style="font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); padding:3px 8px; background:var(--control-bg); border-radius:999px;">not built</span>
+            </div>
+            <span style="font-size:11.5px; color:var(--dim);">we would need</span>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              <sc-for list="{{ i.fields }}" as="fl" hint-placeholder-count="5">
+                <span style="font-size:11.5px; padding:4px 9px; background:var(--control-bg); border-radius:7px; color:var(--ink-2);">{{ fl.v }}</span>
+              </sc-for>
+            </div>
+            <span style="font-size:11.5px; line-height:1.45; color:var(--muted); text-wrap:pretty;">{{ i.note }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+        <div aria-hidden="true" style="height:6px;"></div>
+      </div>
+    <aside aria-labelledby="prev-h" style="flex:0 0 430px; align-self:flex-start; position:sticky; top:0; display:flex; flex-direction:column; gap:12px; max-height:calc(100dvh - 126px); overflow:auto; padding-bottom:2px;">
+      <div style="display:flex; flex-direction:column; gap:14px; padding:18px; background:var(--surface); border:1px solid var(--line-strong); border-radius:16px; box-shadow:var(--window);">
+        <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
+          <h2 id="prev-h" style="margin:0; font-family:'Archivo',sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.02em;">What the agent will say</h2>
+          <span style="display:flex; align-items:center; gap:6px; margin-left:auto; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent-ink);"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:var(--bar); animation:liveblink 3.2s infinite;"></span>live</span>
+        </div>
+        <sc-for list="{{ previews }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; gap:9px; padding:14px; background:var(--canvas); border:1px solid var(--line); border-radius:12px;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <span style="{{ p.tag }}">{{ p.type }}</span>
+              <span style="font-size:11.5px; color:var(--dim);">{{ p.meta }}</span>
+            </div>
+            <p style="margin:0; font-size:13px; line-height:1.6; color:var(--ink-2); text-wrap:pretty;">
+<sc-for list="{{ p.segs }}" as="s" hint-placeholder-count="6"><span style="{{ s.style }}">{{ s.t }}</span></sc-for>
+            </p>
+            <sc-if value="{{ p.hasOmit }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:11.5px; line-height:1.45; color:var(--dim); text-wrap:pretty;">{{ p.omit }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex; flex-direction:column; gap:7px; padding-top:13px; border-top:1px solid var(--line);">
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--dim);">Offer cadence</span>
+          <sc-for list="{{ cadence }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex; align-items:baseline; gap:9px; font-size:12.5px;">
+              <span style="flex:1 1 auto; color:var(--ink-2);">{{ c.offer }}</span>
+              <span style="{{ c.style }}">{{ c.freq }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </aside>
+    </div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1560,&quot;height&quot;:980},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dark&quot;,&quot;Light&quot;],&quot;default&quot;:&quot;Dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+const FREQ = ['monthly', 'quarterly', 'twice yearly', 'yearly', 'never'];
+const OFFERS = ['the renewal discount', 'the quiet-member perk', 'the lapsed-member offer', 'the cheaper membership', 'a freeze'];
+const OFFER_KEY = { 'the renewal discount': 'discount', 'the quiet-member perk': 'perk', 'the lapsed-member offer': 'lapsed', 'the cheaper membership': 'cheap', 'a freeze': 'freeze' };
+const THEME_KEY = 'ironworks.queue.theme';
+
+const BLANK = {
+  name: 'Ironworks Gym', hours: '', quiet: '', online: '', booking: '', discount: '',
+  perk: '', lapsed: '', cheap: '', cheapPrice: '', freeze: '', freezeFee: '', locations: []
+};
+
+const EXTRACT = {
+  name: ['Ironworks Gym', 'Ironworks Gym — membership price list, effective 1 April 2026.', 'page 1 · header'],
+  hours: ['Mon–Fri 5:30–22:00, Sat–Sun 7:00–19:00', 'Staffed hours: Monday to Friday 5.30am to 10pm; weekends 7am to 7pm.', 'page 1 · “Access”'],
+  discount: ['10', 'Members who renew before their end date receive 10% off the following twelve months.', 'page 3 · “Renewals”'],
+  cheap: ['Off-peak', 'Off-peak membership, weekdays before 4pm: $41 per month.', 'page 2 · price table'],
+  freeze: ['12', 'Memberships may be frozen for up to 12 weeks at $5 per week.', 'page 4 · clause 7.2'],
+  online: ['yes', 'All tiers include access to the Ironworks app training library.', 'page 2 · “What’s included”']
+};
+const EXTRACT_EXTRA = { cheapPrice: '41', freezeFee: '5', locations: ['Deansgate'] };
+const LOC_SRC = ['Sites: Ancoats (main) and Deansgate.', 'page 1 · header'];
+
+const WARNINGS = {
+  quiet: ['The document says “quieter in the middle of the day” without hours. Too vague for the agent to quote as fact.', 'Quieter in the middle of the day'],
+  booking: ['A booking app is mentioned, but nothing says whether classes have to be booked.', 'yes'],
+  perk: ['Found in a staff-only margin note: “free PT session at the manager’s discretion”. Discretionary, so not a standing offer.', 'One free PT session'],
+  lapsed: ['Nothing in the document covers lapsed members — no joining-fee waiver, no win-back offer.', '']
+};
+
+const CSV = [
+  ['members.csv', 'id · name · phone · email · join date · plan · monthly fee', 492, 6,
+    [[4, 'Phone number missing or not dialable', 'rows 88, 214, 301, 455'], [2, 'Duplicate member id', 'rows 120, 121']],
+    '498 rows · 62 KB · read in 0.4s'],
+  ['contracts.csv', 'member id · term · start · end · auto-renew · monthly fee', 455, 12,
+    [[7, 'End date falls before start date', 'rows 31, 44, 96, 132, 188, 240, 402'], [5, 'Member id not found in members.csv', 'rows 12, 77, 210, 318, 431']],
+    '467 rows · 41 KB · read in 0.3s'],
+  ['checkins.csv', 'member id · timestamp · site', 41208, 96,
+    [[61, 'Timestamp not ISO 8601 — “14/08/2026 18:02”', '61 rows across Aug'], [35, 'Site not recognised — “Ancoats 2”', '35 rows in Jul–Aug']],
+    '41,304 rows · 2.1 MB · read in 2.8s']
+];
+
+const INTEGRATIONS = [
+  ['Mindbody', ['member id', 'contract term', 'end date', 'auto-renew flag', 'visit history', 'plan + monthly fee', 'cancellation requests'],
+    'Read-only API access would be enough. We would poll overnight, so the queue would be a day behind check-ins.'],
+  ['Glofox', ['member id', 'membership status', 'plan + price', 'class bookings', 'last visit'],
+    'Glofox has no field for why someone left, so exit reasons would still be typed here.'],
+  ['PushPress', ['member id', 'subscription state', 'plan + price', 'check-in log', 'mobile number'],
+    'Webhooks are available, so changes would reach the queue within a minute of happening.']
+];
+
+const val = (t) => ({ t: t, style: 'font-weight:700; color:var(--accent-ink); box-shadow:inset 0 -1px 0 var(--accent-line);' });
+const slot = (t) => ({ t: t, style: 'font-weight:600; color:var(--dim); box-shadow:inset 0 -1px 0 var(--line-strong);' });
+const txt = (t) => ({ t: t, style: 'color:var(--ink-2);' });
+
+class Component extends DCLogic {
+  state = {
+    f: Object.assign({}, BLANK), saved: Object.assign({}, BLANK), src: {}, warn: {},
+    stage: 0, file: '', drag: false, draft: '', justSaved: false,
+    limits: [{ freq: 'quarterly', offer: 'the renewal discount' }, { freq: 'monthly', offer: 'the quiet-member perk' }, { freq: 'never', offer: 'the cheaper membership' }],
+    csv: {}, theme: null, nav: true
+  };
+  timers = [];
+
+  componentDidMount() {
+    this.setState({ theme: this.props.theme === 'Light' ? 'light' : 'dark' });
+    this.onKeyDown = e => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'd' || e.key === 'D') this.toggleTheme();
+    };
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKeyDown);
+    this.timers.forEach(t => window.clearTimeout(t));
+  }
+  theme() { return this.state.theme || (this.props.theme === 'Light' ? 'light' : 'dark'); }
+  toggleTheme() {
+    const next = this.theme() === 'dark' ? 'light' : 'dark';
+    try { window.localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    this.setState({ theme: next });
+  }
+
+  setF(key, v) { this.setState(s => ({ f: Object.assign({}, s.f, { [key]: v }) })); }
+
+  run(file) {
+    this.timers.forEach(t => window.clearTimeout(t));
+    this.timers = [];
+    this.setState({ stage: 1, file: file, drag: false, src: {}, warn: {} });
+    [[2, 700], [3, 1500], [4, 2500]].forEach(([st, ms]) => {
+      this.timers.push(window.setTimeout(() => this.setState({ stage: st }), ms));
+    });
+    this.timers.push(window.setTimeout(() => this.apply(), 3300));
+  }
+
+  apply() {
+    const f = Object.assign({}, this.state.f), src = {};
+    Object.keys(EXTRACT).forEach(k => { f[k] = EXTRACT[k][0]; src[k] = [EXTRACT[k][1], EXTRACT[k][2]]; });
+    Object.keys(EXTRACT_EXTRA).forEach(k => { f[k] = EXTRACT_EXTRA[k]; });
+    src.locations = LOC_SRC;
+    const warn = {};
+    Object.keys(WARNINGS).forEach(k => { warn[k] = true; });
+    this.setState({ stage: 5, f: f, src: src, warn: warn });
+  }
+
+  reset() {
+    this.timers.forEach(t => window.clearTimeout(t));
+    this.setState({ stage: 0, file: '', src: {}, warn: {}, f: Object.assign({}, BLANK) });
+  }
+
+  useAnyway(key) {
+    const c = WARNINGS[key][1];
+    if (!c) return;
+    this.setState(s => {
+      const f = Object.assign({}, s.f, { [key]: c });
+      const warn = Object.assign({}, s.warn); delete warn[key];
+      const src = Object.assign({}, s.src, { [key]: ['Taken from the document against advice: ' + WARNINGS[key][0].split('.')[0] + '.', 'used anyway'] });
+      return { f: f, warn: warn, src: src };
+    });
+  }
+  dismissWarn(key) {
+    this.setState(s => { const warn = Object.assign({}, s.warn); delete warn[key]; return { warn: warn }; });
+  }
+
+  field(key, opts) {
+    const s = this.state, f = s.f;
+    const srcRow = s.src[key];
+    const filled = String(f[key] || '').length > 0;
+    const warnOn = !!s.warn[key];
+    const chipOn = filled ? (srcRow ? 'doc' : 'set') : 'blank';
+    const chipBg = chipOn === 'doc' ? 'var(--accent-wash)' : chipOn === 'set' ? 'var(--control-bg)' : 'transparent';
+    const chipInk = chipOn === 'doc' ? 'var(--accent-ink)' : chipOn === 'set' ? 'var(--muted)' : 'var(--dim)';
+    return Object.assign({
+      value: f[key] || '',
+      set: e => this.setF(key, e.target.value),
+      srcOn: !!srcRow && !warnOn, srcText: srcRow ? '“' + srcRow[0] + '”' : '', srcWhere: srcRow ? srcRow[1] : '',
+      warnOn: warnOn, warnText: warnOn ? WARNINGS[key][0] : '',
+      useAnyway: () => this.useAnyway(key),
+      dismiss: () => this.dismissWarn(key),
+      useLabel: warnOn && WARNINGS[key][1] ? 'Use “' + WARNINGS[key][1] + '” anyway' : 'Nothing found to use',
+      useStyle: 'height:28px; padding:0 11px; border-radius:8px; font:inherit; font-size:11.5px; font-weight:700; white-space:nowrap; border:1px solid ' +
+        (warnOn && WARNINGS[key][1] ? 'var(--accent-line); background:var(--accent); color:var(--on-accent); cursor:pointer;' : 'var(--control-line); background:transparent; color:var(--dim); cursor:not-allowed;'),
+      chip: 'font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:' + chipBg + '; color:' + chipInk + ';',
+      chipLabel: chipOn === 'doc' ? 'from document' : chipOn === 'set' ? 'set' : 'blank'
+    }, opts || {});
+  }
+
+  tri(key) {
+    const cur = this.state.f[key];
+    const opts = [['Yes', 'yes'], ['No', 'no'], ['Not stated', '']];
+    return Object.assign(this.field(key), {
+      options: opts.map(([label, v]) => {
+        const on = cur === v;
+        return {
+          label: label, on: on, onClick: () => this.setF(key, v),
+          style: 'height:34px; padding:0 14px; border-radius:9px; font:inherit; font-size:12.5px; font-weight:' + (on ? 700 : 600) + '; white-space:nowrap; cursor:pointer; border:1px solid ' +
+            (on ? 'var(--accent-line)' : 'var(--control-line)') + '; background:' + (on ? 'var(--accent-wash)' : 'var(--canvas)') + '; color:' + (on ? 'var(--accent-ink)' : 'var(--muted)') + ';'
+        };
+      })
+    });
+  }
+
+  previewBlocks() {
+    const f = this.state.f;
+    const gym = f.name || 'the gym';
+    const money = v => '$' + v;
+    const out = [];
+    const omit = [];
+
+    // Renewal
+    let r = [txt('Hi, is that '), slot('«member»'), txt('? I’m calling from '), val(gym), txt(' about your membership — it renews on '), slot('«renewal date»'), txt('. ')];
+    if (f.discount) r.push(txt('If you renew before then I can hold '), val(f.discount + '% off'), txt(' for the next twelve months. '));
+    else r.push(txt('I can’t put a discount on the table, but I can walk you through what’s included. '));
+    if (f.cheap && f.cheapPrice) r.push(txt('If the price is the sticking point, there’s also '), val(f.cheap), txt(' at '), val(money(f.cheapPrice) + ' a month'), txt('. '));
+    if (f.hours) r.push(txt('We’re open '), val(f.hours), txt('. '));
+    if (f.quiet) r.push(txt('It’s quietest '), val(f.quiet), txt('.'));
+    else r.push(txt('If they ask when it’s quiet: I don’t have that in front of me — I can text you the quiet hours.'));
+    const rOmit = [];
+    if (!f.discount) rOmit.push('renewal discount');
+    if (!f.cheap || !f.cheapPrice) rOmit.push('cheaper membership');
+    if (!f.hours) rOmit.push('opening hours');
+    out.push(['Renewal', 'ends within 30 days', r, rOmit]);
+
+    // Reengagement
+    let e = [txt('Hi '), slot('«member»'), txt(', it’s '), val(gym), txt(' — we haven’t seen you since '), slot('«last visit»'), txt('. Everything alright? ')];
+    if (f.perk) e.push(txt('I can put '), val(f.perk), txt(' on your account this month to get you back in. '));
+    else e.push(txt('What would make it easier to get back in? '));
+    if (f.freeze && f.freezeFee) e.push(txt('If something’s genuinely in the way, we can freeze for up to '), val(f.freeze + ' weeks'), txt(' at '), val(money(f.freezeFee) + ' a week'), txt('. '));
+    if (f.online === 'yes') e.push(txt('Your plan also includes '), val('online training'), txt(' you can do at home. '));
+    else if (f.online === 'no') e.push(txt('We don’t do online training, so it would be in the gym. '));
+    if (f.booking === 'yes') e.push(txt('Classes are bookable in the app. '));
+    else if (f.booking === 'no') e.push(txt('Classes are drop-in, no booking needed. '));
+    else e.push(txt('If they ask about booking classes: I can’t confirm how that works — I’ll have someone check and come back to you.'));
+    const eOmit = [];
+    if (!f.perk) eOmit.push('quiet-member perk');
+    if (!f.freeze || !f.freezeFee) eOmit.push('freeze');
+    if (!f.online) eOmit.push('online training');
+    if (!f.booking) eOmit.push('class booking');
+    out.push(['Reengagement', 'visits dropped off', e, eOmit]);
+
+    // Winback
+    let w = [txt('Hi '), slot('«member»'), txt(', it’s '), val(gym), txt('. Your membership lapsed on '), slot('«lapse date»'), txt(' — I wanted to see whether you’d come back. ')];
+    if (f.lapsed) w.push(txt('I can offer you '), val(f.lapsed), txt('. '));
+    else w.push(txt('I don’t have anything to sweeten it with, so I’ll be straight: has anything changed since you left? '));
+    if (f.locations.length) w.push(txt('We’re also at '), val(f.locations.join(' and ')), txt(', if that’s closer. '));
+    if (f.cheap && f.cheapPrice) w.push(txt('And if the full price was the problem, '), val(f.cheap), txt(' is '), val(money(f.cheapPrice) + ' a month'), txt('. '));
+    if (f.hours) w.push(txt('We’re open '), val(f.hours), txt('.'));
+    const wOmit = [];
+    if (!f.lapsed) wOmit.push('lapsed-member offer');
+    if (!f.locations.length) wOmit.push('other locations');
+    if (!f.cheap || !f.cheapPrice) wOmit.push('cheaper membership');
+    out.push(['Winback', 'lapsed members', w, wOmit]);
+
+    const tint = { Renewal: ['var(--t-renew-bg)', 'var(--t-renew-ink)'], Reengagement: ['var(--t-reeng-bg)', 'var(--t-reeng-ink)'], Winback: ['var(--t-winb-bg)', 'var(--t-winb-ink)'] };
+    return out.map(([type, meta, segs, om]) => ({
+      type: type, meta: meta, segs: segs,
+      tag: 'font-size:10.5px; font-weight:700; letter-spacing:0.11em; text-transform:uppercase; padding:3px 9px; border-radius:6px; background:' + tint[type][0] + '; color:' + tint[type][1] + ';',
+      hasOmit: om.length > 0,
+      omit: om.length ? 'Left out because you haven’t said: ' + om.join(', ') + '.' : ''
+    }));
+  }
+
+  renderVals() {
+    const s = this.state, f = s.f, dark = this.theme() === 'dark';
+    const stageNames = ['Upload', 'Read', 'Extract', 'Check'];
+    const stageNotes = [s.file || 'pdf or docx', '14 pages', '9 values found', '4 need you'];
+    const stages = stageNames.map((name, i) => {
+      const idx = i + 1;
+      const done = s.stage > idx, active = s.stage === idx;
+      return {
+        name: name, glyph: done ? '✓' : String(idx),
+        note: s.stage >= idx ? stageNotes[i] : '',
+        dot: 'width:20px; height:20px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:10.5px; font-weight:700; background:' +
+          (done ? 'var(--accent)' : active ? 'var(--accent-wash)' : 'var(--control-bg)') + '; color:' + (done ? 'var(--on-accent)' : active ? 'var(--accent-ink)' : 'var(--dim)') +
+          '; border:1px solid ' + (done || active ? 'var(--accent-line)' : 'var(--line)') + ';',
+        label: 'font-size:12px; font-weight:700; color:' + (s.stage >= idx ? 'var(--ink)' : 'var(--dim)') + ';',
+        bar: 'height:100%; border-radius:3px; background:var(--bar); transition:width .5s ease; width:' + (done ? 100 : active ? 55 : 0) + '%;'
+      };
+    });
+
+    const nFilled = Object.keys(s.src).length, nFlagged = Object.keys(s.warn).length;
+    const changed = Object.keys(BLANK).filter(k => String(s.f[k]) !== String(s.saved[k])).length;
+    const filled = ['hours', 'quiet', 'online', 'booking', 'discount', 'perk', 'lapsed', 'cheap', 'freeze'].filter(k => String(f[k] || '').length).length + (f.locations.length ? 1 : 0);
+
+    const limitRows = s.limits.map((row, i) => {
+      const key = OFFER_KEY[row.offer];
+      const blank = !String(f[key] || '').length;
+      return {
+        freq: row.freq, offer: row.offer,
+        setFreq: e => this.setState(st => { const l = st.limits.slice(); l[i] = Object.assign({}, l[i], { freq: e.target.value }); return { limits: l }; }),
+        setOffer: e => this.setState(st => { const l = st.limits.slice(); l[i] = Object.assign({}, l[i], { offer: e.target.value }); return { limits: l }; }),
+        remove: () => this.setState(st => ({ limits: st.limits.filter((_, j) => j !== i) })),
+        selStyle: 'height:34px; padding:0 10px; background:var(--surface); border:1px solid var(--control-line); border-radius:9px; color:var(--ink); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;',
+        stateNote: row.freq === 'never' ? 'never offered' : blank ? 'blank in the form — nothing to offer' : 'ready',
+        stateStyle: 'font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:' +
+          (row.freq === 'never' ? 'var(--control-bg)' : blank ? 'var(--flag-wash)' : 'var(--accent-wash)') + '; color:' +
+          (row.freq === 'never' ? 'var(--dim)' : blank ? 'var(--flag-ink)' : 'var(--accent-ink)') + ';'
+      };
+    });
+
+    const csvRows = CSV.map(([name, cols, parsed, rejected, errs, fileNote]) => {
+      const st = s.csv[name];
+      return {
+        name: name, cols: cols, done: !!st,
+        parsed: parsed.toLocaleString(), rejected: rejected, fileNote: fileNote,
+        errors: errs.map(([n, msg, rows]) => ({ n: n + '×', msg: msg, rows: rows })),
+        badge: 'font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:' +
+          (st ? 'var(--accent-wash)' : 'var(--control-bg)') + '; color:' + (st ? 'var(--accent-ink)' : 'var(--dim)') + ';',
+        badgeLabel: st ? 'validated just now' : 'not uploaded',
+        btnLabel: st ? 'Re-validate' : 'Upload and validate',
+        btnBg: st ? 'transparent' : 'var(--control-bg)',
+        validate: () => this.setState(sx => ({ csv: Object.assign({}, sx.csv, { [name]: true }) }))
+      };
+    });
+
+    return {
+      theme: this.theme(), themeGlyph: dark ? '☀' : '☾', toggleTheme: () => this.toggleTheme(),
+      navOpen: s.nav, toggleNav: () => this.setState(st => ({ nav: !st.nav })), noop: e => e.preventDefault(),
+      navStyle: 'flex:0 0 auto; width:' + (s.nav ? 208 : 58) + 'px; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; transition:width .22s cubic-bezier(.2,.8,.2,1);',
+      navToggle: 'display:flex; align-items:center; gap:10px; height:38px; margin:8px 8px 0 8px; padding:0 ' + (s.nav ? '10px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; background:transparent; border:none; border-radius:9px; color:var(--dim); font:inherit; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;',
+      navToggleGlyph: 'display:inline-block; font-size:15px; line-height:1; transition:transform .22s; transform:rotate(' + (s.nav ? 0 : 180) + 'deg);',
+      navLabel: s.nav ? 'flex:1 1 auto; white-space:nowrap; overflow:hidden; text-align:left;' : 'display:none;',
+      navCount: 'flex:0 0 auto; font-size:11px; font-weight:700; color:var(--dim);' + (s.nav ? '' : ' display:none;'),
+      navItem: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; color:var(--muted); font-size:12.5px; font-weight:600; text-decoration:none; cursor:pointer; transition:background .15s, color .15s;',
+      navActive: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; background:var(--control-bg); box-shadow:inset 2px 0 0 var(--bar); color:var(--ink); font-size:12.5px; font-weight:700; text-decoration:none; cursor:pointer;',
+
+      dirtyLabel: s.justSaved ? 'Saved just now' : changed ? changed + (changed === 1 ? ' unsaved change' : ' unsaved changes') : 'Last saved 11 Sep by Dan',
+      dirtyStyle: 'font-size:12px; font-weight:' + (changed && !s.justSaved ? 700 : 400) + '; color:' + (changed && !s.justSaved ? 'var(--ink)' : 'var(--dim)') + ';',
+      saveLabel: changed ? 'Save changes' : 'Saved',
+      saveStyle: 'height:34px; padding:0 15px; border-radius:10px; font:inherit; font-size:12.5px; font-weight:700; white-space:nowrap; border:1px solid ' +
+        (changed ? 'var(--accent-line); background:var(--accent); color:var(--on-accent); cursor:pointer;' : 'var(--line); background:var(--control-bg); color:var(--dim); cursor:default;'),
+      save: () => {
+        if (!changed) return;
+        this.setState({ saved: Object.assign({}, s.f), justSaved: true });
+        this.timers.push(window.setTimeout(() => this.setState({ justSaved: false }), 2600));
+      },
+
+      docStatus: s.stage === 0 ? 'nothing read yet' : s.stage === 5 ? 'read ' + (s.file || 'sample-price-list.pdf') : 'working on ' + (s.file || 'sample-price-list.pdf'),
+      dropStyle: 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:30px 22px; text-align:center; border-radius:14px; border:1.5px dashed ' +
+        (s.drag ? 'var(--accent-line)' : 'var(--line-strong)') + '; background:' + (s.drag ? 'var(--accent-wash)' : 'var(--canvas)') + '; transition:background .15s, border-color .15s;',
+      dropGlyph: 'font-size:22px; line-height:1; color:' + (s.drag ? 'var(--accent-ink)' : 'var(--dim)') + ';',
+      dropTitle: s.stage === 0 ? 'Drop a PDF or Word file here' : s.stage === 5 ? (s.file || 'sample-price-list.pdf') + ' — read' : (s.file || 'sample-price-list.pdf'),
+      dropSub: s.stage === 0 ? 'we read it once, fill the form, and never store the file' : s.stage === 5 ? nFilled + ' fields filled, ' + nFlagged + ' flagged for you below' : 'reading…',
+      browseStyle: 'position:relative; display:inline-flex; align-items:center; height:34px; padding:0 15px; background:var(--accent); border:1px solid var(--accent-line); border-radius:9px; color:var(--on-accent); font-size:12.5px; font-weight:700; white-space:nowrap; cursor:pointer;',
+      onDragOver: e => { e.preventDefault(); if (!s.drag) this.setState({ drag: true }); },
+      onDragLeave: e => { e.preventDefault(); this.setState({ drag: false }); },
+      onDrop: e => {
+        e.preventDefault();
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        this.run(file ? file.name : 'dropped-file.pdf');
+      },
+      onPick: e => { const file = e.target.files && e.target.files[0]; if (file) this.run(file.name); },
+      useSample: () => this.run('sample-price-list.pdf'),
+      resetDoc: () => this.reset(),
+      stages: stages,
+      docDone: s.stage === 5,
+      extractSummary: nFilled + (nFilled === 1 ? ' field' : ' fields') + ' filled from the document, ' + nFlagged + ' left for you',
+      extractSub: 'Every filled field shows the sentence it came from. Check them — the document wins nothing by default.',
+
+      filledCount: filled + ' of 10 optional fields filled',
+      f: {
+        name: this.field('name'),
+        hours: this.field('hours'),
+        quiet: this.field('quiet'),
+        online: this.tri('online'),
+        booking: this.tri('booking'),
+        discount: this.field('discount'),
+        perk: this.field('perk'),
+        lapsed: this.field('lapsed'),
+        cheap: Object.assign(this.field('cheap'), {
+          prefix: '$', suffix: '/mo', value2: f.cheapPrice,
+          set2: e => this.setF('cheapPrice', e.target.value)
+        }),
+        freeze: Object.assign(this.field('freeze'), {
+          prefix: '$', suffix: '/wk', value2: f.freezeFee,
+          set2: e => this.setF('freezeFee', e.target.value)
+        }),
+        locations: Object.assign(this.field('locations'), {
+          any: f.locations.length > 0,
+          items: f.locations.map((name, i) => ({ name: name, remove: () => this.setF('locations', f.locations.filter((_, j) => j !== i)) })),
+          draft: s.draft,
+          setDraft: e => this.setState({ draft: e.target.value }),
+          onKey: e => { if (e.key === 'Enter') { e.preventDefault(); if (s.draft.trim()) { this.setF('locations', f.locations.concat([s.draft.trim()])); this.setState({ draft: '' }); } } },
+          add: () => { if (s.draft.trim()) { this.setF('locations', f.locations.concat([s.draft.trim()])); this.setState({ draft: '' }); } },
+          chipLabel: f.locations.length ? (s.src.locations ? 'from document' : 'set') : 'blank'
+        })
+      },
+
+      limitRows: limitRows,
+      addLimit: () => this.setState(st => ({ limits: st.limits.concat([{ freq: 'yearly', offer: 'the lapsed-member offer' }]) })),
+      previews: this.previewBlocks(),
+      cadence: s.limits.map(row => ({
+        offer: row.offer.replace('the ', ''), freq: row.freq,
+        style: 'font-size:11.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:' + (row.freq === 'never' ? 'var(--dim)' : 'var(--accent-ink)') + ';'
+      })),
+      csvRows: csvRows,
+      integrations: INTEGRATIONS.map(([name, fields, note]) => ({ name: name, note: note, fields: fields.map(v => ({ v: v })) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

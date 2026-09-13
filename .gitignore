@@ -47,3 +47,10 @@ pipeline/__pycache__/
 next-env.d.ts
 
 .vercel
+
+# supabase cli
+supabase/.temp/
+
+# raw photo uploads from the design tool; unreferenced by the mockups (the
+# cropped team photos they use are in mockups/assets/ and public/team/)
+docs/design/mockups/uploads/

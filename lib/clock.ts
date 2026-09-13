@@ -1,3 +1,8 @@
+/**
+ * Owns: the app's notion of today (the frozen dataset date unless DATASET_CLOCK=live) and day arithmetic.
+ * Not here: writing that date, which pipeline/build_scores.py emits and scripts/copy-pipeline-output.mjs
+ * copies into data/dataset_meta.json.
+ */
 import datasetMeta from "@/data/dataset_meta.json";
 
 /**

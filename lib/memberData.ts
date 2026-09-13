@@ -1,3 +1,7 @@
+/**
+ * Owns: deriving the router's Member (signals, contract, cohort) from member, contract and check-in rows.
+ * Not here: reading or writing those rows in Supabase, which lives in lib/memberStore.ts.
+ */
 import type { Channel, Cohort, Member, Signals } from "@/lib/types";
 
 /**

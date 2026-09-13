@@ -1,4 +1,8 @@
 /**
+ * Owns: the ONBOARDING_WRITES switch that keeps gym saves and member imports off unless a deploy enables it.
+ * Not here: the equivalent structural guard on who may be dialled, which lives in lib/dialSafety.ts.
+ */
+/**
  * Whether onboarding may write: save a gym, import member data.
  *
  * Neither route has a login — nothing in this app does — and both write the

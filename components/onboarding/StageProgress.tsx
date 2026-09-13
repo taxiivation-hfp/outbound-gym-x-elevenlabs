@@ -4,8 +4,9 @@
  * Four named stages — Upload, Read, Extract, Check — each advanced only by the
  * request behind it actually finishing. The upload bar is byte-accurate (it is
  * driven by the browser's upload progress events); the other stages have no
- * percentage to report, so they say "Working" and, for the model call, how long
- * it has been working. Nothing here moves on a timer.
+ * percentage to report, so their track sweeps while they work and, for the
+ * model call, the label says how long it has been working. Nothing here moves
+ * on a timer.
  */
 
 export type StageKey = "upload" | "read" | "extract" | "check";
@@ -48,22 +49,26 @@ function announcementFor(stages: StageState[], failureMessage?: string | null): 
 export default function StageProgress({ stages, failureMessage }: { stages: StageState[]; failureMessage?: string | null }) {
   return (
     <div>
-      <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-zinc-800 bg-zinc-800 sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="m-0 grid list-none grid-cols-2 gap-x-2.5 gap-y-4 p-0 @xl:grid-cols-4">
         {stages.map((stage, index) => (
-          <li
-            key={stage.key}
-            aria-current={stage.status === "working" ? "step" : undefined}
-            className="relative bg-black px-4 py-3.5"
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="whitespace-nowrap text-sm font-semibold text-white">
-                <span className="mr-1.5 tabular-nums text-zinc-400">{index + 1}</span>
-                {stage.label}
-              </p>
-              <StatusWord status={stage.status} elapsed={stage.elapsed} />
+          <li key={stage.key} aria-current={stage.status === "working" ? "step" : undefined} className="flex min-w-0 flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <StageDot status={stage.status} index={index + 1} />
+              <span className={`text-[12px] font-bold ${stage.status === "waiting" ? "text-dim" : "text-ink"}`}>{stage.label}</span>
+              <span className="sr-only">
+                {" "}
+                {STATUS_WORD[stage.status]}
+              </span>
+              {stage.status === "working" && stage.elapsed !== undefined && stage.elapsed >= 1 && (
+                <span className="ml-auto text-[11px] font-semibold tabular-nums text-dim" aria-hidden="true">
+                  {stage.elapsed}s
+                </span>
+              )}
             </div>
-            <p className="mt-1 min-h-[1.25rem] text-xs leading-snug text-zinc-400 wrap-anywhere">{stage.fact ?? " "}</p>
             <StageTrack stage={stage} />
+            <span className={`min-h-[15px] text-[11px] leading-snug wrap-anywhere ${stage.status === "failed" ? "font-semibold text-flag-ink" : "text-dim"}`}>
+              {stage.status === "failed" ? `Failed${stage.fact ? ` · ${stage.fact}` : ""}` : (stage.fact ?? " ")}
+            </span>
           </li>
         ))}
       </ol>
@@ -71,6 +76,22 @@ export default function StageProgress({ stages, failureMessage }: { stages: Stag
         {announcementFor(stages, failureMessage)}
       </p>
     </div>
+  );
+}
+
+function StageDot({ status, index }: { status: StageStatus; index: number }) {
+  const look =
+    status === "done"
+      ? "border-accent-line bg-accent text-on-accent"
+      : status === "working"
+        ? "border-accent-line bg-accent-wash text-accent-ink"
+        : status === "failed"
+          ? "border-flag bg-flag-wash text-flag-ink"
+          : "border-line bg-control text-dim";
+  return (
+    <span aria-hidden="true" className={`flex h-5 w-5 flex-none items-center justify-center rounded-full border text-[10.5px] font-bold ${look}`}>
+      {status === "done" ? "✓" : status === "failed" ? "!" : index}
+    </span>
   );
 }
 
@@ -82,7 +103,7 @@ export default function StageProgress({ stages, failureMessage }: { stages: Stag
  * how far the bytes got and for the rest is nothing.
  */
 function StageTrack({ stage }: { stage: StageState }) {
-  const track = "mt-2 h-1 overflow-hidden rounded-full bg-zinc-900";
+  const track = "h-1 overflow-hidden rounded-[3px] bg-row-line";
 
   if (stage.key === "upload") {
     const progress = stage.status === "waiting" ? 0 : (stage.progress ?? 0);
@@ -99,8 +120,8 @@ function StageTrack({ stage }: { stage: StageState }) {
             fast-then-slow on each one and the bar pulses; a linear one about two
             events long carries it between them at a constant speed. */}
         <div
-          className="h-full origin-left rounded-full bg-zinc-300 transition-transform duration-100 ease-linear motion-reduce:transition-none"
-          style={{ transform: `scaleX(${progress})` }}
+          className="h-full origin-left rounded-[3px] transition-transform duration-100 ease-linear motion-reduce:transition-none"
+          style={{ transform: `scaleX(${progress})`, background: "var(--bar)" }}
         />
       </div>
     );
@@ -108,25 +129,8 @@ function StageTrack({ stage }: { stage: StageState }) {
 
   return (
     <div className={track} aria-hidden="true">
-      {stage.status === "working" && <div className="stage-sweep h-full w-1/3 rounded-full bg-zinc-500" />}
-      {stage.status === "done" && <div className="h-full w-full rounded-full bg-zinc-300" />}
+      {stage.status === "working" && <div className="stage-sweep h-full w-1/3 rounded-[3px]" style={{ background: "var(--bar)", opacity: 0.7 }} />}
+      {stage.status === "done" && <div className="h-full w-full rounded-[3px]" style={{ background: "var(--bar)" }} />}
     </div>
-  );
-}
-
-function StatusWord({ status, elapsed }: { status: StageStatus; elapsed?: number }) {
-  const color =
-    status === "done"
-      ? "text-signal"
-      : status === "failed"
-        ? "text-red-300"
-        : status === "working"
-          ? "text-white"
-          : "text-zinc-400";
-  return (
-    <span className={`whitespace-nowrap text-xs font-semibold tabular-nums ${color}`}>
-      {STATUS_WORD[status]}
-      {status === "working" && elapsed !== undefined && elapsed >= 1 ? ` · ${elapsed}s` : ""}
-    </span>
   );
 }

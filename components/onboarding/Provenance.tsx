@@ -1,7 +1,7 @@
 "use client";
 
 import type { FieldOutcome } from "@/lib/extraction/sanitize";
-import { Button, Literal } from "./ui";
+import { Button } from "./ui";
 
 /**
  * Where a prefilled value came from, under its field.
@@ -14,18 +14,18 @@ import { Button, Literal } from "./ui";
  * they miss.
  */
 
-function Quote({ text, framed = true }: { text: string; framed?: boolean }) {
+function QuoteText({ text }: { text: string }) {
   return (
-    <blockquote
-      className={`text-xs leading-relaxed text-pretty wrap-anywhere ${
-        framed ? "rounded-lg border border-zinc-900 bg-zinc-950/60 px-3 py-2 text-zinc-300" : "text-amber-100"
-      }`}
-    >
+    <blockquote className="m-0 text-[11.5px] leading-[1.45] text-ink-2 text-pretty wrap-anywhere">
       <span aria-hidden="true">“</span>
       {text}
       <span aria-hidden="true">”</span>
     </blockquote>
   );
+}
+
+function Source({ children }: { children: React.ReactNode }) {
+  return <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-dim wrap-anywhere">{children}</span>;
 }
 
 export default function Provenance({
@@ -47,57 +47,54 @@ export default function Provenance({
 }) {
   if (outcome.status === "blank") {
     return (
-      <p className="text-xs text-zinc-400">
-        Not in <Literal className="text-xs text-zinc-400">{fileName}</Literal>.
+      <p className="text-[11.5px] text-dim">
+        Not in <span className="font-mono text-[11px] text-muted wrap-anywhere">{fileName}</span>.
       </p>
     );
   }
 
   if (outcome.status === "filled") {
     return (
-      <div className="space-y-1.5">
-        <p className="text-xs text-zinc-400">
-          {changed ? (
-            <>
-              <span className="font-semibold text-zinc-200">You changed this.</span>{" "}
-              <Literal className="text-xs text-zinc-400">{fileName}</Literal> says:
-            </>
-          ) : (
-            <>
-              From <Literal className="text-xs text-zinc-400">{fileName}</Literal>:
-            </>
-          )}
-        </p>
-        <Quote text={outcome.quote} />
+      <div className="flex gap-[9px] rounded-[9px] border border-line bg-accent-wash px-[11px] py-[9px]">
+        <span aria-hidden="true" className="text-[11px] text-accent-ink">
+          ❝
+        </span>
+        <div className="flex min-w-0 flex-col gap-[3px]">
+          {changed && <span className="text-[11.5px] font-bold text-ink">You changed this. The document says:</span>}
+          <QuoteText text={outcome.quote} />
+          <Source>from {fileName}</Source>
+        </div>
       </div>
     );
   }
 
   if (outcome.status === "unsupported") {
     return (
-      <div className="space-y-2 rounded-lg border border-amber-800/70 bg-amber-950/30 px-3 py-2.5">
-        <p className="text-xs leading-relaxed text-amber-200">
-          <span className="font-semibold text-amber-300">
-            {accepted ? "You filled this in — the document doesn't back it up." : "Check this — not filled in."}
-          </span>{" "}
+      <div className="flex flex-col gap-2 rounded-[9px] border border-flag bg-flag-wash px-[11px] py-[9px]">
+        <p className="text-[11.5px] leading-[1.45] text-ink-2 text-pretty">
+          <strong className="text-flag-ink">
+            {accepted ? "You filled this in. The document doesn't back it up." : "Couldn't support this, so it's left blank."}
+          </strong>{" "}
           {outcome.reason}
         </p>
-        {outcome.quote && <Quote text={outcome.quote} framed={false} />}
+        {outcome.quote && <QuoteText text={outcome.quote} />}
         {!accepted && suggestionLabel && (
-          <Button variant="secondary" tone="caution" onClick={onUseSuggestion}>
-            Use {suggestionLabel}
-          </Button>
+          <div>
+            <Button variant="secondary" tone="caution" onClick={onUseSuggestion}>
+              Use {suggestionLabel}
+            </Button>
+          </div>
         )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-amber-800/70 bg-amber-950/30 px-3 py-2.5">
-      <p className="text-xs leading-relaxed text-amber-200">
-        <span className="font-semibold text-amber-300">Not used from the document.</span> {outcome.reason}
+    <div className="flex flex-col gap-2 rounded-[9px] border border-flag bg-flag-wash px-[11px] py-[9px]">
+      <p className="text-[11.5px] leading-[1.45] text-ink-2 text-pretty">
+        <strong className="text-flag-ink">Not used from the document.</strong> {outcome.reason}
       </p>
-      {outcome.quote && <Quote text={outcome.quote} framed={false} />}
+      {outcome.quote && <QuoteText text={outcome.quote} />}
     </div>
   );
 }

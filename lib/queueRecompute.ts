@@ -1,3 +1,7 @@
+/**
+ * Owns: the nightly recompute: the clock plan, the routing snapshot and reason themes, and the latest run.
+ * Not here: the live queue the dashboard and /api/queue render, which is built in lib/queueView.ts.
+ */
 import type { CallHistory } from "@/lib/callHistory";
 import { NO_HISTORY, getAllCallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";

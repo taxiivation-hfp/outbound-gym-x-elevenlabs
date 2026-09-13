@@ -1,3 +1,8 @@
+/**
+ * Owns: which single offer an "incentive" text and its landing page may describe, for a gym and call type.
+ * Not here: the incentives sentences it reads from are compiled in lib/incentives.ts;
+ * sending the text is app/api/send-text/route.ts.
+ */
 import type { CallType } from "@/lib/callType";
 import type { GymFields, SchedulableOffer } from "@/lib/gymConfig";
 import { compileIncentives, sentenceTemplate } from "@/lib/incentives";

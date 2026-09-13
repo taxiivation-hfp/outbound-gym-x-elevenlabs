@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0a0b09; overflow-y:hidden; }
+  * { box-sizing:border-box; }
+  a { color:#c4f24a; text-decoration:none; }
+  a:hover { color:#d8ff70; text-decoration:underline; }
+  ::selection { background:#c4f24a; color:#0a0b09; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:#0a0b09; }
+  ::-webkit-scrollbar-thumb { background:#26291f; border:2px solid #0a0b09; border-radius:6px; }
+  ::-webkit-scrollbar-thumb:hover { background:#3a3f2e; }
+  @keyframes liveblink { 0%,70%{opacity:1} 85%{opacity:.25} 100%{opacity:1} }
+</style>
+</helmet>
+<div style="height:100dvh; display:flex; flex-direction:column; background:#0a0b09; color:#e6e9e0; font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:12.5px; -webkit-font-smoothing:antialiased; min-width:1060px;">
+
+  <div style="flex:0 0 auto; min-width:1060px; height:38px; display:flex; align-items:center; gap:18px; padding:0 12px; border-bottom:1px solid #1e211c; background:#0d0f0c; white-space:nowrap;">
+    <div style="flex:0 0 auto; display:flex; align-items:baseline; gap:8px; white-space:nowrap;">
+      <span style="font-weight:600; letter-spacing:-0.01em;">Ironworks Gym</span>
+      <span style="color:#5f665a; font-size:11px;">/</span>
+      <span style="color:#a7ae9c;">Call queue</span>
+    </div>
+    <div style="flex:0 0 auto; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+      <span style="width:6px; height:6px; border-radius:50%; background:#c4f24a; animation:liveblink 3.2s infinite;"></span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8d9384;">agent live · {{ nowLabel }}</span>
+    </div>
+    <div style="flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:14px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8d9384; white-space:nowrap;">
+      <span><span style="color:#e6e9e0;">{{ nToCall }}</span> to call</span>
+      <span><span style="color:#e6e9e0;">{{ nDone }}</span> called</span>
+      <span><span style="color:#e6e9e0;">{{ nExcluded }}</span> excluded</span>
+      <span style="color:#c4f24a;">{{ nCancel }} cancel req</span>
+    </div>
+    <div style="flex:0 0 auto; display:flex; border:1px solid #2a2e26; border-radius:3px; overflow:hidden;">
+      <button onClick="{{ setA }}" style="{{ tabAStyle }}">A · one table</button>
+      <button onClick="{{ setB }}" style="{{ tabBStyle }}">B · stacked</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:0 0 auto; min-width:1060px; height:32px; display:flex; align-items:center; gap:6px; padding:0 12px; border-bottom:1px solid #1e211c; background:#0b0d0a; white-space:nowrap;">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.label }}<span style="{{ c.countStyle }}">{{ c.count }}</span></button>
+      </sc-for>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+        <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="filter name" style="width:150px; height:22px; padding:0 7px; background:#111310; border:1px solid #26291f; border-radius:2px; color:#e6e9e0; font-family:'IBM Plex Mono',monospace; font-size:11px; outline:none;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#7d8475;">cancel req → top</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex:1 1 auto; min-width:1060px; overflow-y:auto; overflow-x:hidden;">
+    <div>
+
+      <div style="position:sticky; top:0; z-index:6; display:grid; grid-template-columns:minmax(220px,1.8fr) 138px 66px 76px 104px 76px 86px 74px 24px; align-items:center; height:25px; padding:0 12px; background:#13150f; border-bottom:1px solid #2a2e26; font-size:10.5px; letter-spacing:0.07em; text-transform:uppercase; color:#787f70;">
+        <div>Name</div>
+        <div>Call type</div>
+        <div style="text-align:right;">Days</div>
+        <div style="text-align:right;">Visits 14d</div>
+        <div style="text-align:right;">Expires</div>
+        <div style="text-align:right;">Tenure</div>
+        <div style="text-align:right;">Fee</div>
+        <div style="text-align:right;">Attempts</div>
+        <div></div>
+      </div>
+
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <sc-if value="{{ g.label }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ g.headStyle }}">
+            <span style="font-size:10.5px; letter-spacing:0.09em; text-transform:uppercase; font-weight:500;">{{ g.label }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#8d9384;">{{ g.count }}</span>
+            <span style="flex:1 1 auto; height:1px; background:#1e211c;"></span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#8d9384;">{{ g.meta }}</span>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="10">
+          <div onClick="{{ r.toggle }}" style="{{ r.rowStyle }}" style-hover="background:#15180f;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; padding-right:10px;">
+              <span style="{{ r.nameStyle }}">{{ r.name }}</span>
+              <sc-if value="{{ r.tag }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ r.tagStyle }}">{{ r.tag }}</span>
+              </sc-if>
+              <sc-if value="{{ r.note }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:11px; color:#9aa18f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ r.note }}</span>
+              </sc-if>
+            </div>
+            <div style="{{ r.typeStyle }}">{{ r.type }}</div>
+            <div style="{{ r.cDays }}">{{ r.days }}</div>
+            <div style="{{ r.cV14 }}">{{ r.v14 }}</div>
+            <div style="{{ r.cExp }}">{{ r.exp }}</div>
+            <div style="{{ r.cTen }}">{{ r.ten }}</div>
+            <div style="{{ r.cFee }}">{{ r.feeLabel }}</div>
+            <div style="{{ r.cAtt }}">{{ r.attLabel }}</div>
+            <div style="{{ r.chevStyle }}">›</div>
+          </div>
+
+          <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr); background:#0c0e0a; border-bottom:1px solid #2a2e26; border-left:2px solid #c4f24a;">
+
+              <div style="padding:9px 14px 11px 12px; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+                  <span style="font-size:10px; letter-spacing:0.09em; text-transform:uppercase; color:#787f70;">Last call</span>
+                  <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#8d9384;">{{ r.callMeta }}</span>
+                </div>
+                <sc-if value="{{ r.hasCall }}" hint-placeholder-val="{{ true }}">
+                  <div style="max-height:188px; overflow:auto; padding-right:8px; display:flex; flex-direction:column; gap:5px;">
+                    <sc-for list="{{ r.lines }}" as="l" hint-placeholder-count="5">
+                      <div style="display:grid; grid-template-columns:58px minmax(0,1fr); gap:8px; align-items:start;">
+                        <span style="{{ l.whoStyle }}">{{ l.who }}</span>
+                        <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; line-height:1.45; color:#c3c9bb; text-wrap:pretty;">{{ l.text }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ r.noCall }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#5f665a;">—</div>
+                </sc-if>
+              </div>
+
+              <div style="padding:9px 14px 11px 14px; border-left:1px solid #1e211c; display:flex; flex-direction:column; gap:7px;">
+                <sc-for list="{{ r.colA }}" as="f" hint-placeholder-count="5">
+                  <div style="display:grid; grid-template-columns:84px minmax(0,1fr); gap:8px; align-items:baseline;">
+                    <span style="font-size:10px; letter-spacing:0.07em; text-transform:uppercase; color:#787f70;">{{ f.l }}</span>
+                    <span style="{{ f.vStyle }}">{{ f.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="padding:9px 12px 11px 14px; border-left:1px solid #1e211c; display:flex; flex-direction:column; gap:7px;">
+                <sc-for list="{{ r.colB }}" as="f" hint-placeholder-count="5">
+                  <div style="display:grid; grid-template-columns:84px minmax(0,1fr); gap:8px; align-items:baseline;">
+                    <span style="font-size:10px; letter-spacing:0.07em; text-transform:uppercase; color:#787f70;">{{ f.l }}</span>
+                    <span style="{{ f.vStyle }}">{{ f.v }}</span>
+                  </div>
+                </sc-for>
+                <div style="margin-top:auto; display:flex; gap:6px; padding-top:8px;">
+                  <button style="height:22px; padding:0 9px; background:#c4f24a; border:none; border-radius:2px; color:#0a0b09; font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600; cursor:pointer;" style-hover="background:#d8ff70;">Call now</button>
+                  <button style="height:22px; padding:0 9px; background:transparent; border:1px solid #2a2e26; border-radius:2px; color:#a7ae9c; font-size:11px; cursor:pointer;" style-hover="border-color:#4a5140; color:#e6e9e0;">Snooze 7d</button>
+                  <button style="height:22px; padding:0 9px; background:transparent; border:1px solid #2a2e26; border-radius:2px; color:#a7ae9c; font-size:11px; cursor:pointer;" style-hover="border-color:#4a5140; color:#e6e9e0;">Exclude</button>
+                </div>
+              </div>
+
+            </div>
+          </sc-if>
+        </sc-for>
+      </sc-for>
+
+      <div style="height:36px;"></div>
+    </div>
+  </div>
+
+  <div style="flex:0 0 auto; min-width:1060px; height:26px; display:flex; align-items:center; gap:16px; padding:0 12px; border-top:1px solid #1e211c; white-space:nowrap; background:#0d0f0c; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#7d8475;">
+    <span>{{ nVisible }} rows</span>
+    <span>{{ mrrLabel }} monthly at risk</span>
+    <span>avg tenure {{ avgTenure }}</span>
+    <span style="margin-left:auto;">{{ variantNote }}</span>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Tight&quot;,&quot;Regular&quot;],&quot;default&quot;:&quot;Tight&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Table&quot;},&quot;showExcluded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Table&quot;}}">
+const LIME = '#c4f24a';
+
+const T = [
+  [['Agent','Hi, is that Priya? I\'m calling from Ironworks about your membership — it renews on the 18th.'],
+   ['Priya','Yeah. I actually emailed about cancelling last week.'],
+   ['Agent','I can see that request, it\'s open. Can I ask what changed?'],
+   ['Priya','I moved offices in June, I\'m in Salford now. The 6am class was the only reason I came.'],
+   ['Agent','Salford is 20 minutes from the Deansgate site. Would a transfer to Deansgate work, or a two-month freeze while you settle?'],
+   ['Priya','Freeze, maybe. I don\'t want to pay £62 for nothing.'],
+   ['Agent','Understood. I\'ll leave the cancellation open and have Dan call you Tuesday with both options.'],
+   ['Priya','Tuesday after six.']],
+  [['Agent','Hi Tom, Ironworks here. Haven\'t seen you since the 14th of August — everything alright?'],
+   ['Tom','Been away with work. Back in the country now.'],
+   ['Agent','Good. Your membership runs to the 2nd of October. Want me to book you into something this week to get back in?'],
+   ['Tom','Thursday evening, whatever\'s on.'],
+   ['Agent','Thursday 6:30 conditioning, booked. See you then.']],
+  [['Agent','Hi Nadia, calling from Ironworks about your membership expiring on the 21st.'],
+   ['Nadia','Right, yes. I\'ve been meaning to sort that.'],
+   ['Agent','You\'ve been with us three years. The same plan renews at £58, or the off-peak one is £41 if you\'re mostly mornings.'],
+   ['Nadia','Off-peak. I never come after work.'],
+   ['Agent','I\'ll put the off-peak change through for the renewal date and email the confirmation.'],
+   ['Nadia','Perfect.']],
+  [['Agent','Hi Marcus, Ironworks calling — it\'s been about eleven weeks since your last visit.'],
+   ['Marcus','I know. Shoulder\'s been bad.'],
+   ['Agent','Sorry to hear it. Would a freeze help while you recover, rather than paying through it?'],
+   ['Marcus','How long can you freeze for?'],
+   ['Agent','Up to three months, no fee.'],
+   ['Marcus','Do that. I\'ll call when the physio clears me.']],
+  [['Agent','Hi, is that Elena? Ironworks — your membership lapsed at the end of June.'],
+   ['Elena','Yes, I let it go.'],
+   ['Agent','Can I ask what pushed you out?'],
+   ['Elena','Honestly the weights floor at 6pm. You queue twenty minutes for a rack.'],
+   ['Agent','That\'s fair. We added six racks in the August refit and moved the classes off that floor.'],
+   ['Elena','Hm. I\'d want to see it first.'],
+   ['Agent','I can put a two-week pass on your old account, no card needed.'],
+   ['Elena','Alright, send it.']],
+  [['Agent','Hi Dominic, Ironworks about your renewal on the 26th.'],
+   ['Dominic','I\'m not renewing. I\'ve joined the place by my flat.'],
+   ['Agent','Understood. Anything we could have done?'],
+   ['Dominic','It\'s a ten minute walk versus a bus. Nothing you can fix.'],
+   ['Agent','Noted, I\'ll close it out so you\'re not billed again. Door\'s open if you come back.'],
+   ['Dominic','Thanks.']],
+  [['Agent','Hi Aisha, Ironworks. You\'ve dropped from four visits a week to one — anything we can help with?'],
+   ['Aisha','New baby. I can only do the creche hours.'],
+   ['Agent','The creche runs 9:30 to 12 weekdays and 9 to 11 Saturdays. Would Saturdays suit better?'],
+   ['Aisha','Saturday morning would work, yes.'],
+   ['Agent','I\'ll add you to the Saturday creche list so there\'s always a slot.'],
+   ['Aisha','That helps. Thank you.']],
+  [['Agent','Hi Callum, Ironworks calling about your membership.'],
+   ['Callum','Now\'s not great, I\'m driving.'],
+   ['Agent','No problem — when suits?'],
+   ['Callum','Try me Friday morning.'],
+   ['Agent','Friday morning it is.']],
+  [['Agent','Hi Rachel, Ironworks. Your contract ends on the 30th and I see a cancellation request on the account.'],
+   ['Rachel','Yes — the price went up and nobody told me.'],
+   ['Agent','The increase was April, £54 to £62. I can hold you at the old rate for twelve months.'],
+   ['Rachel','Why wasn\'t that offered before I had to ask?'],
+   ['Agent','It should have been. I\'m escalating this to Dan today and he\'ll call you.'],
+   ['Rachel','Fine. But I want it in writing.']],
+  [['Agent','Hi Stefan, Ironworks — checking in, it\'s been five weeks.'],
+   ['Stefan','Yeah I\'ve been using the pool at the leisure centre.'],
+   ['Agent','Did you know your plan includes the Ironworks pool at Deansgate?'],
+   ['Stefan','No. Nobody said.'],
+   ['Agent','It\'s on your tier. I\'ll text you the access details after this.'],
+   ['Stefan','Then I\'ll come back this week.']],
+  [['Agent','Hi Grace, Ironworks about your renewal next Wednesday.'],
+   ['Grace','I want to think about it.'],
+   ['Agent','Of course. Is it the price or the usage?'],
+   ['Grace','Both. £75 is a lot for twice a week.'],
+   ['Agent','The ten-session pack is £48 and doesn\'t expire. Want me to email a comparison?'],
+   ['Grace','Yes, email it and I\'ll decide by Friday.']],
+  [['Agent','Hi Owen, Ironworks. Your membership lapsed in May — calling to see if you\'d come back.'],
+   ['Owen','Not interested, sorry.'],
+   ['Agent','No problem. I\'ll take you off the call list.'],
+   ['Owen','Appreciate it.']]
+];
+
+const OUT = [
+  ['Escalated', 'Freeze or site transfer — human callback Tue after 18:00', 'Tue 15 Sep'],
+  ['Booked', 'Away with work, back now', 'Thu 17 Sep'],
+  ['Renewed', 'Switched to off-peak £41', 'Renews 21 Sep'],
+  ['Frozen', '3-month medical freeze, shoulder', '—'],
+  ['Trial sent', 'Left over rack queues at 18:00', 'Open 14d'],
+  ['Lost', 'Joined a gym nearer home', '—'],
+  ['Resolved', 'Moved to Saturday creche slot', 'Sat 19 Sep'],
+  ['Callback', 'Driving — retry Friday am', 'Fri 18 Sep'],
+  ['Escalated', 'Price increase not communicated, wants it in writing', 'Wed 16 Sep'],
+  ['Recovered', 'Did not know pool was included', 'This week'],
+  ['Considering', 'Wants pack vs membership comparison', 'Fri 18 Sep'],
+  ['Opted out', 'Asked not to be contacted again', '—']
+];
+
+const K = ['name','type','days','v14','exp','expd','ten','fee','att','flag','call'];
+const mk = a => { const o = {}; K.forEach((k, i) => o[k] = a[i]); return o; };
+
+const QUEUE = [
+  ['Priya Raman','Renewal',9,1,'18 Sep',5,'2y 4m',62,2,'c',0],
+  ['Rachel Okonjo','Renewal',4,3,'30 Sep',17,'4y 1m',62,3,'c',8],
+  ['Dominic Feltz','Renewal',22,0,'26 Sep',13,'1y 7m',54,1,'c',5],
+  ['Grace Whitworth','Renewal',6,2,'23 Sep',10,'3y 0m',75,1,0,10],
+  ['Nadia Sørensen','Renewal',11,1,'21 Sep',8,'3y 2m',58,1,0,2],
+  ['Tomas Bielik','Renewal',31,0,'19 Sep',6,'11m',49,0,0,-1],
+  ['Hannah Vail','Renewal',3,4,'20 Sep',7,'2y 8m',58,0,0,-1],
+  ['Idris Mahmood','Renewal',17,1,'24 Sep',11,'1y 2m',54,0,0,-1],
+  ['Ffion Prydderch','Renewal',8,2,'25 Sep',12,'5y 6m',44,0,0,-1],
+  ['Leon Achterberg','Renewal',26,0,'27 Sep',14,'1y 0m',62,1,0,7],
+  ['Marta Kowalczyk','Renewal',5,3,'29 Sep',16,'2y 1m',49,0,0,-1],
+  ['Sean Doherty','Renewal',13,1,'1 Oct',18,'7m',54,0,0,-1],
+  ['Beatrice Lund','Renewal',19,0,'2 Oct',19,'4y 4m',41,0,0,-1],
+  ['Yusuf Aydin','Renewal',2,5,'3 Oct',20,'1y 9m',58,0,0,-1],
+  ['Marcus Field','Reengagement',77,0,'14 Jan',123,'3y 5m',54,2,0,3],
+  ['Aisha Bello','Reengagement',12,1,'8 Mar',176,'2y 2m',62,1,0,6],
+  ['Stefan Nowak','Reengagement',35,0,'11 Nov',59,'1y 4m',49,1,0,9],
+  ['Callum Reid','Reengagement',41,0,'2 Dec',80,'2y 7m',54,2,0,7],
+  ['Tom Ashworth','Reengagement',30,0,'2 Oct',19,'1y 1m',58,1,0,1],
+  ['Verity Chase','Reengagement',48,0,'19 Feb',159,'6y 2m',41,0,0,-1],
+  ['Oskar Lindqvist','Reengagement',29,1,'30 Nov',78,'8m',62,0,0,-1],
+  ['Nia Ferreira','Reengagement',52,0,'5 Jan',114,'3y 9m',54,1,0,7],
+  ['Gareth Pym','Reengagement',38,0,'22 Oct',39,'2y 0m',49,0,0,-1],
+  ['Lucia Marchetti','Reengagement',61,0,'17 Dec',95,'4y 8m',58,0,0,-1],
+  ['Hassan Rafiq','Reengagement',33,1,'9 Nov',57,'1y 6m',54,0,0,-1],
+  ['Elena Vasquez','Winback',83,0,'expired 30 Jun',-75,'2y 11m',49,1,0,4],
+  ['Owen Pritchard','Winback',104,0,'expired 12 May',-124,'1y 3m',44,2,0,11],
+  ['Sadie Kerrigan','Winback',71,0,'expired 21 Jul',-54,'3y 4m',58,1,0,7],
+  ['Bruno Costa','Winback',96,0,'expired 4 Jun',-101,'2y 5m',54,0,0,-1],
+  ['Imogen Blythe','Winback',68,0,'expired 2 Aug',-42,'1y 8m',49,0,0,-1],
+  ['Kwame Mensah','Winback',112,0,'expired 28 Apr',-138,'4y 0m',62,1,0,7],
+  ['Ruth Ellingham','Winback',88,0,'expired 15 Jul',-60,'5y 1m',41,0,0,-1]
+];
+
+const EXCL = [
+  ['Jonah Priest','Renewal',15,2,'22 Sep',9,'2y 3m',58,3,'3 attempts, cooldown to 24 Sep',7],
+  ['Annika Roos','Reengagement',44,0,'12 Dec',90,'1y 5m',54,1,'do not call — written request',11],
+  ['Fergus Bain','Winback',97,0,'expired 19 Jun',-86,'2y 9m',49,2,'do not call — written request',11],
+  ['Delphine Aubert','Renewal',7,3,'28 Sep',15,'3y 7m',62,0,'in dispute — billing, open ticket',-1],
+  ['Ravi Chandran','Reengagement',36,1,'4 Nov',52,'10m',49,0,'joined under 90 days',-1],
+  ['Moira Kinsella','Renewal',21,0,'17 Sep',4,'6y 4m',41,1,'staff account',-1],
+  ['Piotr Zawadzki','Winback',119,0,'expired 3 Mar',-194,'1y 0m',44,4,'4 attempts, no contact',11],
+  ['Bea Hollings','Reengagement',27,2,'9 Jan',118,'2y 6m',58,0,'freeze active to 1 Nov',-1],
+  ['Nathan Ozu','Renewal',10,1,'5 Oct',22,'1y 11m',54,0,'renewal handled in person 11 Sep',-1]
+];
+
+const ROW_GRID = 'display:grid; grid-template-columns:minmax(220px,1.8fr) 138px 66px 76px 104px 76px 86px 74px 24px; align-items:center; height:HPX; padding:0 12px; border-bottom:1px solid #15180f; cursor:pointer; user-select:none;';
+const NUM = 'text-align:right; font-family:\'IBM Plex Mono\',monospace; font-variant-numeric:tabular-nums;';
+
+class Component extends DCLogic {
+  state = { variant: 'A', types: [], open: {}, query: '' };
+
+  toggle(id) {
+    this.setState(s => {
+      const o = Object.assign({}, s.open);
+      if (o[id]) delete o[id]; else o[id] = true;
+      return { open: o };
+    });
+  }
+
+  build(src, excluded, rowH) {
+    return src.map((a, i) => {
+      const r = mk(a);
+      const id = (excluded ? 'x' : 'q') + i;
+      const cancel = r.flag === 'c';
+      const ci = r.call;
+      const out = ci >= 0 ? OUT[ci] : null;
+      const dim = excluded ? 0.5 : 1;
+      const feeStart = new Date(2026, 8, 13);
+
+      const hot = cancel || (r.expd >= 0 && r.expd <= 7) || r.days >= 60;
+      const mute = v => excluded ? '#6f766a' : v;
+      const rowBg = cancel ? 'rgba(196,242,74,0.055)' : (excluded ? '#090a08' : 'transparent');
+
+      const lines = out ? T[ci].map(l => ({
+        who: l[0] === 'Agent' ? 'AGENT' : 'MEMBER',
+        text: l[1],
+        whoStyle: 'font-family:\'IBM Plex Mono\',monospace; font-size:10px; letter-spacing:0.08em; padding-top:1px; color:' + (l[0] === 'Agent' ? '#787f70' : LIME) + ';'
+      })) : [];
+
+      const lbl = (v, c) => ({ v: v, vStyle: 'font-family:\'IBM Plex Mono\',monospace; font-size:11.5px; color:' + (c || '#d3d8c9') + '; text-wrap:pretty;' });
+
+      const attHist = [];
+      for (let k = 0; k < r.att; k++) attHist.push(['11 Sep 09:12', '11 Sep 17:40', '12 Sep 10:05', '12 Sep 18:22'][k] || '—');
+
+      const colA = [
+        Object.assign({ l: 'Outcome' }, lbl(out ? out[0] : '—', out ? (out[0] === 'Lost' || out[0] === 'Opted out' ? '#8d9384' : LIME) : '#5f665a')),
+        Object.assign({ l: 'They said' }, lbl(out ? out[1] : '—')),
+        Object.assign({ l: 'Committed' }, lbl(out ? out[2] : '—')),
+        Object.assign({ l: 'Attempts' }, lbl(r.att ? r.att + ' — ' + attHist.join(', ') : '0')),
+        Object.assign({ l: 'Cooldown' }, lbl(excluded ? (r.flag.indexOf('cooldown') > -1 ? 'to 24 Sep' : 'suppressed') : (r.att >= 2 ? '48h — next 15 Sep' : 'none'), excluded ? '#8d9384' : '#d3d8c9')),
+        Object.assign({ l: 'Phone' }, lbl('+44 7700 900' + String(114 + i * 7).slice(-3)))
+      ];
+
+      const colB = [
+        Object.assign({ l: 'Plan' }, lbl(r.fee >= 62 ? 'Full 24/7 + classes' : r.fee >= 54 ? 'Full peak' : r.fee >= 49 ? 'Standard' : 'Off-peak')),
+        Object.assign({ l: 'Fee' }, lbl('£' + r.fee + '/mo · DD 1st')),
+        Object.assign({ l: 'Term' }, lbl(r.expd < 0 ? '12mo, lapsed' : '12mo rolling')),
+        Object.assign({ l: r.expd < 0 ? 'Lapsed' : 'Expires' }, lbl(r.exp.replace('expired ', ''), r.expd >= 0 && r.expd <= 7 ? LIME : '#d3d8c9')),
+        Object.assign({ l: 'Joined' }, lbl(r.ten.replace('y', ' yr').replace('m', ' mo') + ' ago')),
+        Object.assign({ l: 'Freezes' }, lbl(i % 5 === 0 ? '1 (Aug 2025, 1mo)' : 'none', i % 5 === 0 ? '#d3d8c9' : '#5f665a'))
+      ];
+
+      return {
+        id: id, name: r.name, type: r.type, days: r.days, v14: r.v14, exp: r.exp, ten: r.ten,
+        feeLabel: '£' + r.fee, fee: r.fee, attLabel: r.att || '—', cancel: cancel, excluded: excluded,
+        note: excluded ? r.flag : '', tag: cancel ? 'cancel requested' : '',
+        tagStyle: 'flex:0 0 auto; font-size:9.5px; letter-spacing:0.09em; text-transform:uppercase; color:#0a0b09; background:' + LIME + '; padding:1px 4px; border-radius:2px; font-weight:600;',
+        rowStyle: ROW_GRID.replace('HPX', rowH + 'px') + 'background:' + rowBg + ';' + (cancel ? 'box-shadow:inset 2px 0 0 ' + LIME + ';' : ''),
+        nameStyle: 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:' + (cancel ? 600 : 400) + '; color:' + (cancel ? '#f2f6e8' : mute('#e6e9e0')) + ';',
+        typeStyle: 'color:' + (excluded ? '#6f766a' : hot ? '#d3d8c9' : '#9aa18f') + ';',
+        cDays: NUM + 'color:' + mute(r.days >= 45 ? '#f2f6e8' : r.days >= 21 ? '#c3c9bb' : '#8d9384') + ';',
+        cV14: NUM + 'color:' + mute(r.v14 === 0 ? '#f2f6e8' : '#8d9384') + ';',
+        cExp: NUM + 'color:' + (excluded ? '#6f766a' : r.expd >= 0 && r.expd <= 7 ? LIME : r.expd < 0 ? '#8d9384' : '#c3c9bb') + ';',
+        cTen: NUM + 'color:' + mute('#8d9384') + ';',
+        cFee: NUM + 'color:' + mute('#a7ae9c') + ';',
+        cAtt: NUM + 'color:' + (excluded ? '#6f766a' : r.att >= 3 ? LIME : r.att > 0 ? '#c3c9bb' : '#6b7264') + ';',
+        chevStyle: 'text-align:right; font-size:14px; line-height:1; color:' + (this.state.open[id] ? LIME : '#3a4031') + '; transform:rotate(' + (this.state.open[id] ? 90 : 0) + 'deg); transition:transform .12s;',
+        open: !!this.state.open[id],
+        hasCall: !!out, noCall: !out,
+        callMeta: out ? (['12 Sep 18:22', '12 Sep 10:05', '11 Sep 17:40', '11 Sep 09:12'][i % 4]) + ' · ' + (68 + (i * 13) % 140) + 's' : 'never called',
+        lines: lines, colA: colA, colB: colB,
+        toggle: () => this.toggle(id)
+      };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const rowH = (this.props.density ?? 'Tight') === 'Tight' ? 26 : 32;
+    const variant = s.variant;
+    const q = s.query.trim().toLowerCase();
+
+    let queue = this.build(QUEUE, false, rowH);
+    let excl = this.build(EXCL, true, rowH);
+
+    const counts = { Renewal: 0, Reengagement: 0, Winback: 0 };
+    queue.forEach(r => counts[r.type]++);
+
+    const pass = r => (!s.types.length || s.types.indexOf(r.type) > -1) && (!q || r.name.toLowerCase().indexOf(q) > -1);
+    if (variant === 'A') { queue = queue.filter(pass); excl = excl.filter(pass); }
+
+    const hoist = arr => arr.slice().sort((a, b) => (b.cancel ? 1 : 0) - (a.cancel ? 1 : 0));
+    const showExcl = this.props.showExcluded ?? true;
+
+    let groups;
+    if (variant === 'A') {
+      groups = [{ label: '', count: '', meta: '', rows: hoist(queue), headStyle: '' }];
+    } else {
+      groups = ['Renewal', 'Reengagement', 'Winback'].map(t => {
+        const rows = hoist(queue.filter(r => r.type === t));
+        return {
+          label: t, count: rows.length, rows: rows,
+          meta: '£' + rows.reduce((n, r) => n + r.fee, 0).toLocaleString() + '/mo',
+          headStyle: 'position:sticky; top:25px; z-index:5; display:flex; align-items:center; gap:10px; height:24px; padding:0 12px; background:#0d0f0c; border-bottom:1px solid #1e211c; border-top:1px solid #1e211c; color:' + LIME + ';'
+        };
+      });
+    }
+    if (showExcl) groups.push({
+      label: 'Excluded', count: excl.length, rows: excl,
+      meta: 'not called today',
+      headStyle: 'position:sticky; top:25px; z-index:5; display:flex; align-items:center; gap:10px; height:24px; padding:0 12px; background:#0d0f0c; border-top:1px solid #3a4031; border-bottom:1px solid #1e211c; color:#8d9384;'
+    });
+
+    const chipStyle = on => 'display:flex; flex:0 0 auto; white-space:nowrap; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:2px; cursor:pointer; font-family:\'IBM Plex Sans\',sans-serif; font-size:11.5px; border:1px solid ' + (on ? LIME : '#26291f') + '; background:' + (on ? LIME : 'transparent') + '; color:' + (on ? '#0a0b09' : '#a7ae9c') + '; font-weight:' + (on ? 600 : 400) + ';';
+    const cs = on => 'font-family:\'IBM Plex Mono\',monospace; font-size:10.5px; color:' + (on ? 'rgba(10,11,9,0.6)' : '#5f665a') + ';';
+
+    const chips = [{
+      label: 'All', count: QUEUE.length, style: chipStyle(!s.types.length), countStyle: cs(!s.types.length),
+      onClick: () => this.setState({ types: [] })
+    }].concat(['Renewal', 'Reengagement', 'Winback'].map(t => {
+      const on = s.types.indexOf(t) > -1;
+      return {
+        label: t, count: counts[t], style: chipStyle(on), countStyle: cs(on),
+        onClick: () => this.setState(st => ({ types: on ? st.types.filter(x => x !== t) : st.types.concat([t]) }))
+      };
+    }));
+
+    const tab = on => 'height:22px; padding:0 10px; border:none; cursor:pointer; white-space:nowrap; flex:0 0 auto; line-height:22px; font-family:\'IBM Plex Sans\',sans-serif; font-size:11px; font-weight:' + (on ? 600 : 400) + '; background:' + (on ? LIME : 'transparent') + '; color:' + (on ? '#0a0b09' : '#8d9384') + ';';
+    const visible = groups.reduce((n, g) => n + g.rows.length, 0);
+    const mrr = groups.reduce((n, g) => n + g.rows.reduce((m, r) => m + r.fee, 0), 0);
+    const tenAvg = QUEUE.reduce((n, a) => n + (parseInt(a[6]) || 0) * (a[6].indexOf('y') > -1 ? 12 : 1), 0) / QUEUE.length;
+
+    return {
+      groups: groups, chips: chips, isA: variant === 'A', query: s.query,
+      onQuery: e => this.setState({ query: e.target.value }),
+      setA: () => this.setState({ variant: 'A' }), setB: () => this.setState({ variant: 'B' }),
+      tabAStyle: tab(variant === 'A'), tabBStyle: tab(variant === 'B'),
+      nowLabel: 'Sun 13 Sep 08:41',
+      nToCall: QUEUE.length, nDone: 14, nExcluded: EXCL.length,
+      nCancel: QUEUE.filter(r => r[9] === 'c').length,
+      nVisible: visible, mrrLabel: '£' + mrr.toLocaleString(),
+      avgTenure: (tenAvg / 12).toFixed(1) + 'y',
+      variantNote: variant === 'A' ? 'A · single table, type filters' : 'B · stacked by call type'
+    };
+  }
+}
+</script>
+</body>
+</html>

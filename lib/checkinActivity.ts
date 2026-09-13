@@ -1,3 +1,7 @@
+/**
+ * Owns: loading check-in activity (trend and busy hours) from the dataset JSON or a gym's database functions.
+ * Not here: shaping those rows into the CheckinActivity view, which lives in lib/gymHealth.ts.
+ */
 import activityData from "@/data/checkin_activity.json";
 import { activityFromRows, type CheckinActivity } from "@/lib/gymHealth";
 import type { MemberSource } from "@/lib/memberSource";

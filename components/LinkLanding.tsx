@@ -101,7 +101,10 @@ export default async function LinkLanding({
   const copy =
     kind === "incentive" ? incentiveCopy(landingOffer(gym, typeof params.offer === "string" ? params.offer : null)) : COPY[kind];
 
+  // A member opens this on their phone: always the dark palette, whatever
+  // theme the gym's staff last picked on this browser.
   return (
+    <div data-theme="dark" className="min-h-dvh bg-black text-white">
     <main className="mx-auto flex w-full max-w-md flex-col px-6 py-12">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6FF3D]">
         {copy.eyebrow}
@@ -141,6 +144,7 @@ export default async function LinkLanding({
         desk.
       </p>
     </main>
+    </div>
   );
 }
 

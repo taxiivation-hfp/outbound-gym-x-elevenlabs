@@ -1,3 +1,7 @@
+/**
+ * Owns: per-call cost, a saved member's value and break-even conversion, with every assumption named.
+ * Not here: the queue those figures are computed over, which lib/queueView.ts and lib/intelligence.ts build.
+ */
 import type { Member } from "@/lib/types";
 
 /**

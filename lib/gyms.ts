@@ -1,3 +1,7 @@
+/**
+ * Owns: loading and validating the seed gyms and the default gym id from data/gyms.json.
+ * Not here: the runtime gym lookup against the Supabase gyms table, which is lib/gymStore.ts.
+ */
 import gymsData from "@/data/gyms.json";
 import { parseGymConfig, type GymConfig } from "@/lib/gymConfig";
 

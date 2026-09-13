@@ -1,3 +1,7 @@
+/**
+ * Owns: reading call_records and summarising them into a member's CallHistory (attempts, DNC, offers made).
+ * Not here: the caps, cooldown and do-not-contact gates that use it, which live in lib/eligibility.ts.
+ */
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { PriorCallContext } from "@/lib/compileVariables";
 import { SCHEDULABLE_OFFERS, type SchedulableOffer } from "@/lib/gymConfig";

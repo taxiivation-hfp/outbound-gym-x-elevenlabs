@@ -1,3 +1,7 @@
+/**
+ * Owns: the display order of members — cohort priority first, then longest since last visit.
+ * Not here: who is actually due a call is decided by lib/callType.ts and lib/eligibility.ts.
+ */
 import type { Cohort } from "@/lib/types";
 
 // Actionability/urgency order, not alphabetical or generation order —

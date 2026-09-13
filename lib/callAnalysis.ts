@@ -1,4 +1,8 @@
 /**
+ * Owns: turning an ElevenLabs conversation payload (webhook or fetched) into the call_records patch.
+ * Not here: writing that patch to Supabase, which lives in lib/callRecords.ts.
+ */
+/**
  * Turns an ElevenLabs conversation payload — `data` from a `post_call_transcription`
  * webhook, or the body of `GET /v1/convai/conversations/{id}` once its `status`
  * is `"done"` — into the `call_records` patch. Both shapes carry the same
