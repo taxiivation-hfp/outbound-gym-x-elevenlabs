@@ -19,6 +19,7 @@ import EconomicsPanel from "@/components/EconomicsPanel";
 
 const CALL_TYPES: CallType[] = ["renewal", "reengagement", "winback"];
 const PER_COLUMN = 6;
+const PER_PLACED_COLUMN = 3;
 
 interface CallState {
   status: "idle" | "calling" | "placed" | "refused";
@@ -31,6 +32,7 @@ export default function Dashboard({ view }: { view: QueueView }) {
   const [records, setRecords] = useState<Record<string, CallRecord>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedPlaced, setExpandedPlaced] = useState<Record<string, boolean>>({});
 
   const due = useMemo(() => view.entries.filter((e) => e.call_type), [view.entries]);
   const byType = useMemo(() => {
@@ -127,6 +129,26 @@ export default function Dashboard({ view }: { view: QueueView }) {
     (e) => records[e.member_id] || callState[e.member_id]?.status === "placed"
   );
 
+  // Bucketed the same way as "Today's calls" so the section reads as one
+  // system: most recent call first within each call type, capped so a gym with
+  // a long call history doesn't turn this into an endless scroll.
+  const placedByType = useMemo(() => {
+    const out: Record<CallType, QueueEntry[]> = { renewal: [], reengagement: [], winback: [] };
+    for (const entry of placedEntries) {
+      const record = records[entry.member_id];
+      const type = (record?.call_type ?? entry.call_type ?? "winback") as CallType;
+      out[type].push(entry);
+    }
+    for (const type of CALL_TYPES) {
+      out[type].sort((a, b) => {
+        const ta = records[a.member_id]?.created_at;
+        const tb = records[b.member_id]?.created_at;
+        return (tb ? new Date(tb).getTime() : 0) - (ta ? new Date(ta).getTime() : 0);
+      });
+    }
+    return out;
+  }, [placedEntries, records]);
+
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-8 sm:px-8 sm:py-10">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -209,13 +231,16 @@ export default function Dashboard({ view }: { view: QueueView }) {
             extracted analysis land here when the call ends.
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {placedEntries.map((entry) => (
-              <CallCard
-                key={entry.member_id}
-                entry={entry}
-                record={records[entry.member_id] ?? null}
-                state={callState[entry.member_id]}
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {CALL_TYPES.map((type) => (
+              <PlacedColumn
+                key={type}
+                type={type}
+                entries={placedByType[type]}
+                records={records}
+                callState={callState}
+                expanded={Boolean(expandedPlaced[type])}
+                onToggle={() => setExpandedPlaced((s) => ({ ...s, [type]: !s[type] }))}
               />
             ))}
           </div>
@@ -323,6 +348,63 @@ function CallColumn({
       </div>
 
       {entries.length > PER_COLUMN && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-3 w-full rounded-lg border border-zinc-800 py-1.5 text-xs font-semibold text-zinc-500 transition hover:border-zinc-700 hover:text-zinc-300"
+        >
+          {expanded ? "Show fewer" : `Show all ${entries.length}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PlacedColumn({
+  type,
+  entries,
+  records,
+  callState,
+  expanded,
+  onToggle,
+}: {
+  type: CallType;
+  entries: QueueEntry[];
+  records: Record<string, CallRecord>;
+  callState: Record<string, CallState>;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const shown = expanded ? entries : entries.slice(0, PER_PLACED_COLUMN);
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={`inline-block rounded border px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${callTypeStyle[type]}`}
+        >
+          {callTypeLabel[type]}
+        </span>
+        <span className="text-2xl font-black tabular-nums text-white">{entries.length}</span>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {shown.map((entry) => (
+          <CallCard
+            key={entry.member_id}
+            entry={entry}
+            record={records[entry.member_id] ?? null}
+            state={callState[entry.member_id]}
+          />
+        ))}
+        {entries.length === 0 && (
+          <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-6 text-center text-xs text-zinc-600">
+            No {callTypeLabel[type].toLowerCase()} calls placed yet.
+          </p>
+        )}
+      </div>
+
+      {entries.length > PER_PLACED_COLUMN && (
         <button
           type="button"
           onClick={onToggle}
