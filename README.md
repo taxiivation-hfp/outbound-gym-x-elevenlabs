@@ -316,7 +316,7 @@ scripts/         sync-agents.mjs pushes agent config; agentConfig.mjs is its sou
 evals/           80 guards, 31 simulated calls, the adversarial document, every run committed
 app/             dashboard, intelligence, evals page, onboarding, API routes, texted-link landings
 supabase/        migrations for call_records, gyms, member data and queue runs
-docs/            architecture diagram
+docs/            architecture diagram, build log (every plan and report), design mockups
 ```
 
-Further reading: [`evals/README.md`](evals/README.md) for how evaluation works and what it misses; [`FEATURES_AND_DECISIONS.md`](FEATURES_AND_DECISIONS.md) for the build log; [`REVIEW_NOTES.md`](REVIEW_NOTES.md) for what still needs a human.
+Further reading: [`evals/README.md`](evals/README.md) for how evaluation works and what it misses; [`docs/build-log/`](docs/build-log/README.md) for the build log, every plan and report in order; [`REVIEW_NOTES.md`](REVIEW_NOTES.md) for what still needs a human.

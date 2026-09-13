@@ -1,3 +1,7 @@
+/**
+ * Owns: which reason_detail rows count, checking model-returned themes, and reading the stored summary.
+ * Not here: the nightly model call that produces the themes lives in lib/reasonThemesSummary.ts.
+ */
 import type { MemberSource } from "@/lib/memberSource";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 

@@ -1,3 +1,7 @@
+/**
+ * Owns: pure membership-health math: active, expiring, MRR, churn, 90-day retention, visit segments, busyness.
+ * Not here: reading check-ins from Supabase (lib/checkinActivity.ts) or composing the page (lib/intelligence.ts).
+ */
 import { ROUTING_THRESHOLDS, type CallType } from "@/lib/callType";
 import { daysUntil } from "@/lib/clock";
 import type { Eligibility } from "@/lib/eligibility";

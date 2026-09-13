@@ -1,3 +1,7 @@
+/**
+ * Owns: the overview's view model: stated churn reasons, call outcomes and economics, beside gym health.
+ * Not here: the health math (lib/gymHealth.ts) or the model call theming reasons (lib/reasonThemesSummary.ts).
+ */
 import { getAllCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import { readAllCallRows } from "@/lib/callRecords";
 import { loadCheckinActivity } from "@/lib/checkinActivity";

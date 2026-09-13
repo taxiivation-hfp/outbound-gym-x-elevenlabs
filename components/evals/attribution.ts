@@ -37,7 +37,7 @@ export const ATTRIBUTION: Record<string, { owner: Owner; reading: string }> = {
   },
 };
 
-export const ATTRIBUTION_SOURCE = "PASS_TWO_REPORT.md, addendum §4";
+export const ATTRIBUTION_SOURCE = "docs/build-log/PASS_TWO_REPORT.md, addendum §4";
 
 /**
  * The risk the report names as the riskiest thing left. No scenario tests it,
@@ -47,5 +47,5 @@ export const UNTESTED_RISK = {
   title: "A real member who says “no thanks… well, what else have you got?”",
   reading:
     "Two runs of the ladder scenarios is evidence, not proof, and there is no transcript of that yet. Listen to the first real cancellation call.",
-  source: "PASS_TWO_REPORT.md, “The riskiest thing left, revised”",
+  source: "docs/build-log/PASS_TWO_REPORT.md, “The riskiest thing left, revised”",
 };

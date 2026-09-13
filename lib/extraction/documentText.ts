@@ -1,3 +1,7 @@
+/**
+ * Owns: turning an uploaded PDF, .docx or text file into plain text, with a specific error for each failure.
+ * Not here: the model call that reads that text, which is lib/extraction/extract.ts.
+ */
 import mammoth from "mammoth";
 import { extractText, getDocumentProxy } from "unpdf";
 import { MAX_DOCUMENT_CHARS } from "@/lib/extraction/prompt";

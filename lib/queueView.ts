@@ -1,3 +1,7 @@
+/**
+ * Owns: the queue view model shared by the dashboard and /api/queue: entries, counts and economics.
+ * Not here: the priority ordering (lib/sortMembers.ts) or the nightly stored snapshot (lib/queueRecompute.ts).
+ */
 import { getAllCallHistory, NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import type { CallType } from "@/lib/callType";
 import { today } from "@/lib/clock";

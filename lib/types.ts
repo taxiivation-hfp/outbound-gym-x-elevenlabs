@@ -1,3 +1,7 @@
+/**
+ * Owns: the shared shapes of a scored Member and a call_records row, with their enums.
+ * Not here: gym config types live in lib/gymConfig.ts; CallType itself is defined in lib/callType.ts.
+ */
 import type { CallType } from "@/lib/callType";
 
 export type Cohort = "new_joiner" | "sliding" | "sleeping_dog" | "winback" | "steady";

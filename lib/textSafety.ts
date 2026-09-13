@@ -1,4 +1,8 @@
 /**
+ * Owns: the allowlist and instruction/offer checks on every free-text string that can reach a prompt.
+ * Not here: keeping only quote-supported extracted values lives in lib/extraction/sanitize.ts.
+ */
+/**
  * Free text that ends up inside an agent's system prompt.
  *
  * Gym config is structured on purpose — numbers, booleans, enums — but five

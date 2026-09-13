@@ -56,7 +56,7 @@ safety model for gym setup:
 - a synthetic number is never dialled, while an uploaded one needs the opt-in;
 - the nightly recompute refuses real members on the frozen clock.
 
-**Pass-one guards** — 20, added with `PASS_ONE.md` (details in `PASS_ONE_REPORT.md`):
+**Pass-one guards** — 20, added with `PASS_ONE.md` (details in `docs/build-log/PASS_ONE_REPORT.md`):
 - `healthGuards.tsx` (6): the gym-health numbers against a hand count, segments
   cut at the router's thresholds, the check-in summary against the raw CSV, the
   intelligence page rendered with no calls and with too few reasons, theme
@@ -76,7 +76,7 @@ safety model for gym setup:
   and the CSV column is optional.
 
 **Pass-two guards** — `cancellationGuards.ts` rewritten (10, of which 8 are
-new; details in `PASS_TWO_REPORT.md`). The pass-one tripwire is replaced by
+new; details in `docs/build-log/PASS_TWO_REPORT.md`). The pass-one tripwire is replaced by
 `cancellation-flip-is-narrow`: a flagged member is callable on the cancellation
 call and on nothing else, every other auto-renewer is refused exactly as
 before, do-not-contact holds, and a flagged member whose term has ended gets

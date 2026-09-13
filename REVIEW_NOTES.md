@@ -1,6 +1,6 @@
 # Review notes — read this first
 
-Written overnight, 13 September 2026. Everything in `MERGE_PLAN.md` is built and
+Written overnight, 13 September 2026. Everything in `MERGE_PLAN.md` (now `docs/build-log/MERGE_PLAN.md`) is built and
 pushed to `main`. This file is the handover: what needs a human, in the order it
 needs doing, then what I decided on your behalf and where the risk sits.
 
@@ -27,7 +27,7 @@ on the live URL, not just locally.
 Gym setup, document extraction, member CSV import and the nightly recompute are
 built on `feat/onboarding` and open as a pull request. Nothing there is deployed:
 `main` deploys to production, so it has not been merged. What it does, what was
-verified and what wasn't is in [`ONBOARDING_REPORT.md`](ONBOARDING_REPORT.md).
+verified and what wasn't is in [`ONBOARDING_REPORT.md`](docs/build-log/ONBOARDING_REPORT.md).
 After merging, all of it stays switched off, and says so on screen, until these
 are done by hand:
 
@@ -62,7 +62,7 @@ payload is byte-identical.
 ## 0a. Pass one — merged to `main` from the `pass-one` branch
 
 Business-side features from `PASS_ONE.md`; the report is
-[`PASS_ONE_REPORT.md`](PASS_ONE_REPORT.md). Five commits, one per item, merged
+[`PASS_ONE_REPORT.md`](docs/build-log/PASS_ONE_REPORT.md). Five commits, one per item, merged
 by pull request, so `main`'s production deploy carries them. Status:
 
 1. **Done on 13 September 2026:** the four migrations were applied to the
@@ -88,7 +88,7 @@ by pull request, so `main`'s production deploy carries them. Status:
 
 ## 0b. Pass two — the fourth agent and the exclusion flip
 
-The `pass-two` branch; the report is [`PASS_TWO_REPORT.md`](PASS_TWO_REPORT.md).
+The `pass-two` branch; the report is [`PASS_TWO_REPORT.md`](docs/build-log/PASS_TWO_REPORT.md).
 A member who has asked to cancel is now called once, on `charlie-cancellation`,
 with a freeze or a cheaper tier to offer, and the cancellation goes ahead
 regardless. Status:

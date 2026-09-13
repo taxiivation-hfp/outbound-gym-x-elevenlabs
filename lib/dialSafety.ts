@@ -1,3 +1,7 @@
+/**
+ * Owns: deciding which number, if any, may be dialled or texted for a member (CALL_OVERRIDE_NUMBER rules).
+ * Not here: whether the member is due a call at all, which lives in lib/callType.ts and lib/eligibility.ts.
+ */
 import datasetMeta from "@/data/dataset_meta.json";
 import type { MemberSource } from "@/lib/memberSource";
 

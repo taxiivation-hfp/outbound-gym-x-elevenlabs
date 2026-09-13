@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0c0e0a; }
+  * { box-sizing:border-box; }
+  a { color:var(--accent-ink); text-decoration:none; }
+  a:hover { color:var(--ink); text-decoration:underline; }
+  button:focus-visible, [role="row"]:focus-visible { outline:2px solid var(--accent-line); outline-offset:-2px; }
+  ::selection { background:var(--accent); color:var(--on-accent); }
+  ::-webkit-scrollbar { width:11px; height:11px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--line-strong); border:3px solid var(--surface); border-radius:8px; }
+  @keyframes liveblink { 0%,70%{opacity:1} 85%{opacity:.2} 100%{opacity:1} }
+  @keyframes livering { 0%{box-shadow:0 0 0 0 var(--bar); opacity:.5} 70%{box-shadow:0 0 0 7px transparent; opacity:0} 100%{box-shadow:0 0 0 0 transparent; opacity:0} }
+  @keyframes panelIn { from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:none} }
+  @keyframes lineIn { from{opacity:0; transform:translateY(3px)} to{opacity:1; transform:none} }
+  .queue__row { transition:background .14s ease, box-shadow .14s ease; }
+  .queue__row:active { transform:translateY(0.5px); }
+  .q button { transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .q nav button:hover, .queue__bar button:hover { transform:translateY(-1px); }
+  .q[data-theme="light"] {
+    --canvas:#eef0e9; --surface:#ffffff; --surface-2:#f8f9f3; --panel:#f9faf4; --panel-edge:#e6e8dd;
+    --line:#e0e2d8; --line-strong:#cdd1c0; --cell-line:#e9ebe1; --row-line:#eef0e7;
+    --row-hover:#f6f8ee; --row-open:#f2f3ed; --row-excl:#f6f7f1;
+    --ink:#1a1d16; --ink-2:#3a3f33; --muted:#5d6455; --dim:#656c60; --faint:#767d6c;
+    --accent:#d5e49b; --accent-line:#a7bc77; --accent-ink:#4c5b2c; --accent-wash:#f2f3ed; --on-accent:#2b3318; --bar:#a9c069;
+    --flag:#a34b3e; --flag-ink:#93463a; --flag-wash:#f9efec; --flag-open:#f3e5e1; --on-flag:#ffffff;
+    --control-bg:#f0f1ea; --control-line:#dcdfd2;
+    --t-renew-bg:#e7eed2; --t-renew-ink:#48562a; --t-reeng-bg:#dfeae6; --t-reeng-ink:#2c554c;
+    --t-winb-bg:#f3e6d3; --t-winb-ink:#6a4e2b; --t-off-bg:#ebede4; --t-off-ink:#6b7266;
+    --shadow:0 1px 2px rgba(26,29,22,0.12);
+    --window:0 24px 48px -28px rgba(26,29,22,0.4), 0 2px 8px rgba(26,29,22,0.06); color-scheme:light;
+  }
+  .q[data-theme="dark"] {
+    --canvas:#0c0e0a; --surface:#14170f; --surface-2:#101309; --panel:#181b13; --panel-edge:#2a2e21;
+    --line:#242920; --line-strong:#333a28; --cell-line:#20251a; --row-line:#1a1e14;
+    --row-hover:#1b2013; --row-open:#1f2319; --row-excl:#101209;
+    --ink:#eef1e4; --ink-2:#c9cfbc; --muted:#a2aa94; --dim:#949c85; --faint:#868e76;
+    --accent:#bcd47f; --accent-line:#6e8b45; --accent-ink:#c2d491; --accent-wash:#1c1f17; --on-accent:#181d0e; --bar:#a3bd6b;
+    --flag:#c96a57; --flag-ink:#e2a091; --flag-wash:#261510; --flag-open:#301b15; --on-flag:#241009;
+    --control-bg:#1a1e13; --control-line:#2c3222;
+    --t-renew-bg:#222814; --t-renew-ink:#bfd296; --t-reeng-bg:#14241f; --t-reeng-ink:#9cc4b9;
+    --t-winb-bg:#2a2114; --t-winb-ink:#d2b48d; --t-off-bg:#181c12; --t-off-ink:#7f8773;
+    --shadow:0 1px 3px rgba(0,0,0,0.6);
+    --window:0 28px 56px -30px rgba(0,0,0,0.85), 0 2px 10px rgba(0,0,0,0.4); color-scheme:dark;
+  }
+</style>
+</helmet>
+<main class="q" data-theme="{{ theme }}" style="height:100dvh; min-width:980px; display:flex; flex-direction:column; background:var(--canvas); color:var(--ink); font-family:'Figtree',system-ui,sans-serif; font-size:13px; -webkit-font-smoothing:antialiased; overflow:hidden;">
+
+  <header class="queue__bar" style="flex:0 0 auto; height:70px; display:flex; align-items:center; gap:26px; padding:0 14px; background:var(--surface); border-bottom:1px solid var(--line-strong); white-space:nowrap;">
+    <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:1px;">
+      <h1 style="margin:0; font-family:'Archivo',sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.03em; line-height:1.05;">Ironworks</h1>
+      <span style="font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim);">About</span>
+    </div>
+    <div style="flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:10px;">
+      <a href="Evals.dc.html" style="height:34px; display:flex; align-items:center; padding:0 14px; background:var(--control-bg); border:1px solid var(--line); border-radius:10px; color:var(--ink); font-size:12.5px; font-weight:700; text-decoration:none;" style-hover="border-color:var(--accent-line); text-decoration:none;">See the evals</a>
+      <a href="Call Queue.dc.html" style="height:34px; display:flex; align-items:center; padding:0 14px; background:var(--accent); border:1px solid var(--accent-line); border-radius:10px; color:var(--on-accent); font-size:12.5px; font-weight:700; text-decoration:none;" style-hover="text-decoration:none;">Open the product</a>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="Toggle colour theme" style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:var(--control-bg); border:1px solid var(--line); border-radius:10px; color:var(--muted); font-size:14px; cursor:pointer;" style-hover="color:var(--ink); border-color:var(--line-strong);">{{ themeGlyph }}</button>
+    </div>
+  </header>
+
+  <div style="flex:1 1 auto; min-height:0; display:flex; gap:14px; padding:14px;">
+    <aside class="queue__nav" aria-label="Sections" style="{{ navStyle }}">
+      <button type="button" onClick="{{ toggleNav }}" aria-expanded="{{ navOpen }}" aria-label="Expand or collapse navigation" style="{{ navToggle }}">
+        <span aria-hidden="true" style="{{ navToggleGlyph }}">‹</span><span style="{{ navLabel }}">Collapse</span>
+      </button>
+      <nav style="display:flex; flex-direction:column; gap:3px; padding:8px 8px 0 8px;">
+        <a href="Analytics.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><rect x="2.2" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="2.2" width="5" height="5" rx="1.2"></rect><rect x="2.2" y="8.8" width="5" height="5" rx="1.2"></rect><rect x="8.8" y="8.8" width="5" height="5" rx="1.2"></rect></svg>
+          <span style="{{ navLabel }}">Overview</span>
+        </a>
+        <a href="Call Queue.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 4h12M2 8h12M2 12h12"></path><circle cx="13.2" cy="4" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+          <span style="{{ navLabel }}">Call queue</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="6" cy="6" r="2.4"></circle><path d="M2 13c0-2.2 1.8-3.6 4-3.6s4 1.4 4 3.6"></path><path d="M11 5.2a2.2 2.2 0 0 1 0 4.1"></path><path d="M12 13c0-1.6-.6-2.7-1.6-3.3"></path></svg>
+          <span style="{{ navLabel }}">Members</span>
+          <span style="{{ navCount }}">498</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M3 3.8h2.4l1 2.6-1.5 1.1a7.4 7.4 0 0 0 3.6 3.6l1.1-1.5 2.6 1V13a9.6 9.6 0 0 1-9.2-9.2Z"></path></svg>
+          <span style="{{ navLabel }}">Call log</span>
+        </a>
+        <a href="Setup.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2 8h1.6M5 5v6M8 3v10M11 5.5v5M14 8h-1.6"></path></svg>
+          <span style="{{ navLabel }}">Voice agent</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M5.5 2.5 4 13.5M11.5 2.5 10 13.5M2.5 5.5h11M2 10.5h11"></path></svg>
+          <span style="{{ navLabel }}">Numbers</span>
+        </a>
+      </nav>
+      <div style="margin-top:auto; display:flex; flex-direction:column; gap:3px; padding:8px; border-top:1px solid var(--line);">
+        <a href="Evals.dc.html" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 8.6 5 11l3-4 2.6 2.4 3-4.4"></path><path d="M2.5 13.5h11"></path></svg>
+          <span style="{{ navLabel }}">Evals</span>
+        </a>
+        <a href="About.dc.html" aria-current="page" style="{{ navActive }}" style-hover="">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="8" cy="8" r="5.8"></circle><path d="M8 7v4.2M8 4.9v.2"></path></svg>
+          <span style="{{ navLabel }}">About</span>
+        </a>
+        <a href="#" onClick="{{ noop }}" style="{{ navItem }}" style-hover="background:var(--row-hover); color:var(--ink);">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><path d="M2.5 5h11M2.5 11h11"></path><circle cx="6" cy="5" r="1.7"></circle><circle cx="10.5" cy="11" r="1.7"></circle></svg>
+          <span style="{{ navLabel }}">Settings</span>
+        </a>
+      </div>
+    </aside>
+
+    <div style="flex:1 1 auto; min-width:0; overflow:auto; display:flex; justify-content:center; align-items:flex-start;">
+      <article style="flex:0 1 820px; min-width:420px; display:flex; flex-direction:column; padding:16px 40px 40px; background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--window);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">Why we built this</span>
+        <h2 style="margin:0 0 20px; max-width:24ch; font-family:'Archivo',sans-serif; font-size:38px; font-weight:700; line-height:1.1; letter-spacing:-0.04em; text-wrap:balance;">The call you shouldn’t make</h2>
+
+        <p style="margin:0 0 20px; font-size:17px; line-height:1.65; color:var(--muted); text-wrap:pretty;">There is a gym near us with about 1,200 members and one person on the front desk. They can already see who has stopped coming — the report is in the club system, and it is not wrong. Nobody rings anyone, because ringing sixty people is a day nobody has, and tomorrow there are sixty more.</p>
+
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">So we started where anyone would: automate the calls. Then we spent a week with the data and found the part nobody wants to say out loud.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">What everyone builds</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">Two halves of the same assumption</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">One half of the market predicts. Keepme, PredictStay and Glofox’s at-risk report will all score your members and hand you a list. The list is the product; what happens next is your problem.</p>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">The other half executes. Replify and Keepme’s Antares will make the calls at volume, and contact rate is the number they report back, because a call placed is the only thing they can prove happened.</p>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">Both halves assume the same thing: that contact is neutral. That the worst a call can do is nothing. Point either of them at the same data and they will ring every name on it.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">What we found</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">A call is not free</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">Phoning someone who has drifted reminds them they are paying for something they are not using. For plenty of members that is a useful nudge. For a particular kind of member — the one who was never really regular, who has not thought about the direct debit in four months — it is the reminder that ends the membership. You did that. The report said they were at risk, and the call is what made it true.</p>
+
+      <p style="margin:26px 0; font-family:'Archivo',sans-serif; font-size:25px; font-weight:600; line-height:1.35; letter-spacing:-0.025em; color:var(--accent-ink); text-wrap:balance;">So the first thing this thing predicts is not who is about to leave. It is who you would lose by getting in touch — and then it leaves them alone.</p>
+
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">On the gym we built it against, that is 145 members out of 500 who are never called. Not deferred, not queued for later, not tried once to see what happens. They sit in the same table as everyone else, below a divider, with the reason written next to them — cooling off, in a billing dispute, asked us to stop, or simply too quiet for a call to help. A manager can see exactly who is being protected and why, and override it. It just is not the default.</p>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">That is the whole product, really. Everything below this is in service of it.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">How it works</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">Four conversations, not one</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">A member whose contract ends on Friday and a member who lapsed in May need nothing in common from a phone call, so they do not share an agent. There are four, and each one only knows what it needs to.</p>
+        <dl style="margin:0 0 18px;">
+          <sc-for list="{{ callTypes }}" as="c" hint-placeholder-count="4">
+            <div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:18px; padding:12px 0; border-top:1px solid var(--row-line);">
+              <dt style="font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:{{ c.ink }};">{{ c.name }}</dt>
+              <dd style="margin:0; font-size:14.5px; line-height:1.6; color:var(--ink-2); text-wrap:pretty;">{{ c.what }}</dd>
+            </div>
+          </sc-for>
+        </dl>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">Each gym types in what it actually offers — the discount, the cheaper plan, the freeze, whether classes even need booking — and the wording the agent reads is generated from that. A blank field means the gym did not say, which is not the same as no. No gym gets a script we wrote for a different gym.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">The arithmetic</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">Forty-one cents</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">A call costs us $0.41. A saved member is worth $473 to the gym. Break-even is 0.09% — one save in roughly 1,200 calls, which is a bar so low it is almost embarrassing to state.</p>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">That is exactly why the restraint has to be built in rather than left to judgement. When calling is this cheap, nothing in the economics will ever stop you calling everybody. The only discipline left is the decision not to, and it has to live in the product, because it will not survive a quarterly target.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">What it will not do</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">Six things, not configurable</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">These are not switches a gym can turn off. They are in the agents and in the eval suite, and three of them are among the checks that still fail, which is why they are on the evals page rather than only here.</p>
+        <ul style="margin:0 0 18px; padding:0; list-style:none;">
+          <sc-for list="{{ commitments }}" as="c" hint-placeholder-count="6">
+            <li style="display:grid; grid-template-columns:20px minmax(0,1fr); gap:12px; padding:10px 0; border-top:1px solid var(--row-line); font-size:14.5px; line-height:1.6; color:var(--ink-2); text-wrap:pretty;"><span aria-hidden="true" style="color:var(--dim);">—</span><span>{{ c.t }}</span></li>
+          </sc-for>
+        </ul>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">The one we get asked about most is the last. A retention product that quietly makes leaving harder will always look like it is working.</p>
+
+      <hr style="width:64px; height:2px; margin:38px 0; border:none; background:var(--line-strong);">
+
+        <span style="display:block; margin:0 0 9px; font-size:10.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim);">Who we are</span>
+        <h3 style="margin:0 0 14px; font-family:'Archivo',sans-serif; font-size:23px; font-weight:700; letter-spacing:-0.025em; color:var(--ink); text-wrap:balance;">Four of us</h3>
+        <p style="margin:0 0 18px; font-size:15.5px; line-height:1.72; color:var(--ink-2); text-wrap:pretty;">We built the first version at a hackathon and have kept going. Nobody here has run a gym; everything above came from the data and from sitting with someone who does.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:26px; margin-top:8px;">
+          <sc-for list="{{ team }}" as="p" hint-placeholder-count="4">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="{{ p.src }}" alt="{{ p.alt }}" width="52" height="52" style="width:52px; height:52px; border-radius:50%; object-fit:cover; object-position:center top; background:var(--control-bg); border:1px solid var(--line);">
+              <span style="font-size:14px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap;">{{ p.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:36px; padding-top:24px; border-top:1px solid var(--line);">
+          <a href="Evals.dc.html" style="height:36px; display:flex; align-items:center; padding:0 15px; background:var(--control-bg); border:1px solid var(--line); border-radius:10px; color:var(--ink); font-size:13px; font-weight:700; text-decoration:none;" style-hover="border-color:var(--accent-line); text-decoration:none;">Every eval run, including the bad ones</a>
+          <a href="Call Queue.dc.html" style="height:36px; display:flex; align-items:center; padding:0 15px; background:transparent; border:1px solid var(--control-line); border-radius:10px; color:var(--muted); font-size:13px; font-weight:700; text-decoration:none;" style-hover="color:var(--ink); text-decoration:none;">See today’s queue</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:980},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dark&quot;,&quot;Light&quot;],&quot;default&quot;:&quot;Dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+const CALL_TYPES = [
+  ['Renewal', 'A fixed term is ending. It confirms what happens next and, if the gym allows one, makes the offer once.', 'var(--t-renew-ink)'],
+  ['Reengagement', 'Someone with a habit has lost it. It asks what got in the way before it offers anything at all.', 'var(--t-reeng-ink)'],
+  ['Winback', 'The membership has already lapsed. One call, no chasing, and a straight question about what changed.', 'var(--t-winb-ink)'],
+  ['Cancellation', 'A member has asked to leave. It never delays them, asks why once, and hands anything unresolved to a person.', 'var(--flag-ink)']
+];
+const COMMITMENTS = [
+  'It says it is an AI, plainly, the first time anyone asks.',
+  'Stop calling means permanently, across every call type and every future queue.',
+  'It never guilts anyone about missed visits or money already spent.',
+  'An injury gets a freeze and a human, never an opinion.',
+  'It never invents a fact about an account. If it does not have something, it says so.',
+  'It never obstructs a cancellation, or makes one harder to complete.'
+];
+const TEAM = [
+  ['Danar Tan', 'assets/founder-danar.png'],
+  ['Oliver Baldwin', 'assets/founder-oliver.png'],
+  ['Orlando Tan', 'assets/founder-orlando.png'],
+  ['Jesslyn Susanto', 'assets/founder-jesslyn.png']
+];
+const THEME_KEY = 'ironworks.queue.theme';
+
+class Component extends DCLogic {
+  state = { theme: null, nav: true };
+  componentDidMount() {
+    this.setState({ theme: this.props.theme === 'Light' ? 'light' : 'dark' });
+    this.onKeyDown = e => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'd' || e.key === 'D') this.toggleTheme();
+    };
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKeyDown); }
+  theme() { return this.state.theme || (this.props.theme === 'Light' ? 'light' : 'dark'); }
+  toggleTheme() {
+    const next = this.theme() === 'dark' ? 'light' : 'dark';
+    try { window.localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    this.setState({ theme: next });
+  }
+  renderVals() {
+    const s = this.state, dark = this.theme() === 'dark';
+    return {
+      theme: this.theme(), themeGlyph: dark ? '☀' : '☾', toggleTheme: () => this.toggleTheme(),
+      navOpen: s.nav, toggleNav: () => this.setState(st => ({ nav: !st.nav })), noop: e => e.preventDefault(),
+      navStyle: 'flex:0 0 auto; width:' + (s.nav ? 208 : 58) + 'px; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; transition:width .22s cubic-bezier(.2,.8,.2,1);',
+      navToggle: 'display:flex; align-items:center; gap:10px; height:38px; margin:8px 8px 0 8px; padding:0 ' + (s.nav ? '10px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; background:transparent; border:none; border-radius:9px; color:var(--dim); font:inherit; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;',
+      navToggleGlyph: 'display:inline-block; font-size:15px; line-height:1; transition:transform .22s; transform:rotate(' + (s.nav ? 0 : 180) + 'deg);',
+      navLabel: s.nav ? 'flex:1 1 auto; white-space:nowrap; overflow:hidden; text-align:left;' : 'display:none;',
+      navCount: 'flex:0 0 auto; font-size:11px; font-weight:700; color:var(--dim);' + (s.nav ? '' : ' display:none;'),
+      navItem: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; color:var(--muted); font-size:12.5px; font-weight:600; text-decoration:none; cursor:pointer; transition:background .15s, color .15s;',
+      navActive: 'display:flex; align-items:center; gap:11px; height:36px; padding:0 ' + (s.nav ? '11px' : '0') + '; justify-content:' + (s.nav ? 'flex-start' : 'center') + '; border-radius:9px; background:var(--control-bg); box-shadow:inset 2px 0 0 var(--bar); color:var(--ink); font-size:12.5px; font-weight:700; text-decoration:none; cursor:pointer;',
+      callTypes: CALL_TYPES.map(([name, what, ink]) => ({ name: name, what: what, ink: ink })),
+      commitments: COMMITMENTS.map(t => ({ t: t })),
+      team: TEAM.map(([name, src]) => ({ name: name, src: src, alt: name }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,3 +1,7 @@
+/**
+ * Owns: the extraction model id, system prompt, user message and JSON output schema, built from the field specs.
+ * Not here: the field definitions themselves (FIELD_SPECS, EXTRACTABLE_SPECS), which live in lib/gymConfig.ts.
+ */
 import { EXTRACTABLE_SPECS, type FieldSpec } from "@/lib/gymConfig";
 
 /**

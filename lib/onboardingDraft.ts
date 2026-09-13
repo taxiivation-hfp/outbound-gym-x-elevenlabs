@@ -1,3 +1,7 @@
+/**
+ * Owns: the onboarding form's text draft, its conversion to typed gym fields, and the compiled preview.
+ * Not here: saving the gym (lib/gymWrites.ts) or reading values from a document (lib/extraction/extract.ts).
+ */
 import type { CallType } from "@/lib/callType";
 import { compileGymFacts } from "@/lib/compileVariables";
 import {

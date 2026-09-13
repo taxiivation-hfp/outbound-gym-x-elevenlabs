@@ -1,3 +1,7 @@
+/**
+ * Owns: the nightly claude-haiku-4-5 call that groups members' stated reasons into themes.
+ * Not here: filtering the statements, checking the output and reading it back live in lib/reasonThemes.ts.
+ */
 import Anthropic from "@anthropic-ai/sdk";
 import { checkThemes, MAX_THEMES, MIN_REASON_DETAILS, type StoredReasonThemes } from "@/lib/reasonThemes";
 

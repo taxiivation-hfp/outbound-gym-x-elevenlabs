@@ -1,3 +1,8 @@
+/**
+ * Owns: settling call_records rows stuck "initiated" past ten minutes, by asking ElevenLabs directly.
+ * Not here: the normal completion path is the webhook (app/api/webhook/route.ts);
+ * row writes are in lib/callRecords.ts.
+ */
 import { buildCompletedPatch } from "@/lib/callAnalysis";
 import { updateCallRecordByConversation, updateCallRecordById } from "@/lib/callRecords";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";

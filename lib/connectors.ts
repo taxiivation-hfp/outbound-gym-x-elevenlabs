@@ -1,4 +1,8 @@
 /**
+ * Owns: the static, not-built list of gym-platform connectors and what each would need.
+ * Not here: the member import that works today (CSV), which lives in lib/memberImport.ts.
+ */
+/**
  * The gym-management platforms, and what connecting each would take.
  *
  * None of these is built. They are listed so the question "how would this plug

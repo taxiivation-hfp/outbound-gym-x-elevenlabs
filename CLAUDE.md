@@ -133,6 +133,17 @@ Server components in `app/` and the API routes in `app/api/` both call these
 same `lib/` functions directly — the dashboard and the endpoint cannot disagree
 about who is due a call.
 
+**Screens (`app/`, `components/`).** Five screens built from the approved
+mockups in `docs/design/mockups/`: the call queue (`/`, `components/calls/`),
+the overview (`/intelligence`, `components/intelligence/`), voice agent setup
+(`/onboarding`, `components/onboarding/`), evals (`/evals`, `components/evals/`)
+and about (`/about`, `components/about/`), plus `/members`. Every screen sits in
+`components/shell/AppShell.tsx` and uses the theme tokens in `app/globals.css`
+(light and dark; name a role like `bg-surface` or `text-dim`, never a hex).
+A panel shows only what `lib/` or a committed file computes — presentation
+helpers live beside the component, never as a changed `lib/` function. Build
+history (every plan and report) is in `docs/build-log/`.
+
 **3. Agents (`agents/prompts/`, `scripts/`).** Four separate ElevenLabs agents
 (renewal, reengagement, winback, cancellation) rather than one prompt with a
 `call_type` branch — kept narrow deliberately, see the README section "Four

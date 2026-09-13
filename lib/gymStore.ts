@@ -1,3 +1,8 @@
+/**
+ * Owns: reading and writing the Supabase gyms table; the seed stands in with no table or no Supabase,
+ * and in listings (never a call's lookup) when the table can't be read.
+ * Not here: parsing, compiling and validating a gym before it is saved, which lives in lib/gymWrites.ts.
+ */
 import { DEFAULT_GYM_ID, gyms as seedGyms } from "@/lib/gyms";
 import { GYM_FIELD_KEYS, parseGymConfig, type GymConfig } from "@/lib/gymConfig";
 import { memberSource } from "@/lib/memberSource";

@@ -1,3 +1,7 @@
+/**
+ * Owns: validating an uploaded members, contracts or check-ins CSV into typed rows with per-line errors.
+ * Not here: tokenising the CSV (lib/csv.ts) or writing the accepted rows to Supabase (lib/memberStore.ts).
+ */
 import { normaliseHeader, parseCsv } from "@/lib/csv";
 import type { ContractRecord, MemberRecord } from "@/lib/memberData";
 

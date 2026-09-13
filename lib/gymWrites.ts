@@ -1,3 +1,7 @@
+/**
+ * Owns: the save path for a new or edited gym: writes flag, parse, compile and validate each incentives block.
+ * Not here: the database insert and update and their error mapping, which live in lib/gymStore.ts.
+ */
 import { compileGymFacts } from "@/lib/compileVariables";
 import { parseGymFields, parseOfferSchedule, slugifyGymName, type GymConfig } from "@/lib/gymConfig";
 import { insertGym, updateGym, type CreatedVia, type InsertResult, type UpdateResult } from "@/lib/gymStore";

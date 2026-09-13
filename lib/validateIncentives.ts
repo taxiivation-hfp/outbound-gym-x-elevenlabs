@@ -1,3 +1,8 @@
+/**
+ * Owns: independently re-deriving from config what an incentives block may say, and rejecting anything else.
+ * Not here: writing the block's sentences is lib/incentives.ts;
+ * running both on every compile is lib/compileVariables.ts.
+ */
 import type { CallType } from "@/lib/callType";
 import {
   FREEZE_FEE_MAX,

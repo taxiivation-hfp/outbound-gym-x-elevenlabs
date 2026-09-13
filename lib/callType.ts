@@ -1,3 +1,7 @@
+/**
+ * Owns: the pure router choosing a member's call type, auto-renew exclusion first, with a reason per branch.
+ * Not here: do-not-contact, the 3-call cap, cooldowns and nothing-to-offer, which live in lib/eligibility.ts.
+ */
 import { daysUntil, today } from "@/lib/clock";
 import type { Member } from "@/lib/types";
 

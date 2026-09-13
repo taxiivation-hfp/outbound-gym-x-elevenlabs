@@ -1,3 +1,7 @@
+/**
+ * Owns: translating member facts, call history and gym config into the finished prompt variables for a call.
+ * Not here: the incentives sentences themselves, which come from the registry in lib/incentives.ts.
+ */
 import { ROUTING_THRESHOLDS, type CallType, type Routing } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { parseGymConfig, type FieldErrors, type GymFields } from "@/lib/gymConfig";

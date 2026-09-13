@@ -1,3 +1,7 @@
+/**
+ * Owns: the single Anthropic structured-output request that fills gym fields from a document's text.
+ * Not here: the prompt and schema (lib/extraction/prompt.ts) or judging the output (lib/extraction/sanitize.ts).
+ */
 import Anthropic from "@anthropic-ai/sdk";
 import {
   EXTRACTION_MODEL,

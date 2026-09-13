@@ -1,3 +1,7 @@
+/**
+ * Owns: the typed gym config (fields, field specs, offer schedule, freeze) and parsing it from untrusted input.
+ * Not here: any sentence the agent reads, which lib/incentives.ts and lib/compileVariables.ts write from it.
+ */
 import { checkText, normaliseText, type TextKind } from "@/lib/textSafety";
 
 /**

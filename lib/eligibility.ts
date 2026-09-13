@@ -1,3 +1,7 @@
+/**
+ * Owns: the dial gate after routing (do-not-contact, attempt caps, cooldowns) and which offers a call may carry.
+ * Not here: the call-type decision and the auto-renew exclusion, which live in lib/callType.ts.
+ */
 import { ROUTING_THRESHOLDS, routeMember, type CallType, type Routing } from "@/lib/callType";
 import { NO_HISTORY, type CallHistory } from "@/lib/callHistory";
 import { daysUntil, today } from "@/lib/clock";

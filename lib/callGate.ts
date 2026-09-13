@@ -1,3 +1,7 @@
+/**
+ * Owns: the exact 403 refusal body /api/call returns for a member who may not be called.
+ * Not here: deciding whether the member may be called, which lives in lib/eligibility.ts.
+ */
 import type { Eligibility } from "@/lib/eligibility";
 
 /**
