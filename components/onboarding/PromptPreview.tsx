@@ -141,10 +141,6 @@ export default function PromptPreview({
         </h2>
         <span className="ml-auto text-[11.5px] text-dim">rewritten as you type</span>
       </div>
-      <p className="-mt-1.5 text-[12px] leading-[1.5] text-muted text-pretty">
-        The offer text Charlie receives for each call, written by the app from your answers — none of it typed by a person
-        or written by AI — and checked before it can be used.
-      </p>
 
       {showWarnings && (preview.excluded.length > 0 || preview.tierIncomplete || preview.freezeIncomplete) && (
         <ul className="m-0 flex list-none flex-col gap-1 rounded-[11px] border border-flag bg-flag-wash px-3 py-2.5 text-[11.5px] leading-[1.45] text-ink-2">
@@ -184,10 +180,8 @@ export default function PromptPreview({
               </span>
             </div>
             <CompiledText text={block.text} />
-            <p className="text-[11.5px] leading-[1.45] text-muted text-pretty">
-              {block.offers.length === 0 ? (
-                "Offers nothing, and tells Charlie not to offer anything."
-              ) : (
+            {block.offers.length > 0 && (
+              <p className="text-[11.5px] leading-[1.45] text-muted text-pretty">
                 <>
                   Offers{" "}
                   {block.offers
@@ -203,12 +197,12 @@ export default function PromptPreview({
                               : `a ${OFFER_LABEL[o]}`
                     )
                     .join(" and ")}
-                  , then tells Charlie that&apos;s everything he has.
+                  .
                 </>
-              )}
-            </p>
+              </p>
+            )}
             {left.length > 0 && (
-              <p className="text-[11.5px] leading-[1.45] text-dim text-pretty">Left out because you haven&apos;t said: {left.join(", ")}.</p>
+              <p className="text-[11.5px] leading-[1.45] text-dim text-pretty">Not set: {left.join(", ")}.</p>
             )}
             {!block.ok && (
               <ul className="m-0 list-disc space-y-1 pl-5 text-[11.5px] text-flag-ink">
@@ -220,10 +214,6 @@ export default function PromptPreview({
           </div>
         );
       })}
-      <p className="-mt-1 text-[11px] text-dim">
-        Each block reaches Charlie as <code className="font-mono">{"{{incentives}}"}</code> on that call. Renewal prices come from each
-        member&apos;s own contract.
-      </p>
 
       <div className="flex flex-col gap-2 border-t border-line pt-[13px]">
         <Eyebrow>Facts Charlie may state</Eyebrow>
@@ -240,7 +230,7 @@ export default function PromptPreview({
       <div className="flex flex-col gap-[7px] border-t border-line pt-[13px]">
         <Eyebrow>Offer cadence</Eyebrow>
         {cadence.length === 0 ? (
-          <p className="text-[12px] text-dim">No offers configured, so there is nothing to limit.</p>
+          <p className="text-[12px] text-dim">No offers yet.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-[7px] p-0">
             {cadence.map((c) => (

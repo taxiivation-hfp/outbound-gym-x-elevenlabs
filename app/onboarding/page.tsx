@@ -4,6 +4,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/extraction/documentText";
 import { extractionConfigured } from "@/lib/extraction/extract";
 import { firstRunState } from "@/lib/firstRun";
 import { listGyms } from "@/lib/gymStore";
+import { memberDataCounts } from "@/lib/memberStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
 export const metadata: Metadata = {
@@ -27,6 +28,21 @@ export default async function OnboardingPage() {
   const saveAvailable = listing.source === "supabase" && writesEnabled;
   const saveAdminDetail = listing.source !== "supabase" ? listing.notice : writesEnabled ? null : ONBOARDING_WRITES_OFF;
   const defaultGym = listing.gyms.find((g) => g.gym_id === listing.default_gym_id) ?? null;
+  // How far each saved gym has got, so the list can say which one is waiting on
+  // member data. A count that can't be read shows as unknown, never as zero.
+  const existingGyms =
+    listing.source === "supabase"
+      ? await Promise.all(
+          listing.gyms.map(async (g) => ({
+            gym_id: g.gym_id,
+            gym_name: g.gym_name,
+            members: await memberDataCounts(g.gym_id).then(
+              (c) => c.members,
+              () => null
+            ),
+          }))
+        )
+      : [];
 
   return (
     <OnboardingFlow
@@ -34,7 +50,7 @@ export default async function OnboardingPage() {
       saveAdminDetail={saveAdminDetail}
       extractionAvailable={extractionAvailable}
       extractionAdminDetail={extractionAvailable ? null : "Set ANTHROPIC_API_KEY on the deployment to turn on document reading (model: claude-haiku-4-5)."}
-      existingGyms={listing.gyms.map((g) => ({ gym_id: g.gym_id, gym_name: g.gym_name }))}
+      existingGyms={existingGyms}
       defaultGym={defaultGym ? { gym_id: defaultGym.gym_id, gym_name: defaultGym.gym_name } : null}
       maxUploadMb={MAX_UPLOAD_BYTES / 1024 / 1024}
       firstRunStep={firstRun.gated ? firstRun.step : null}

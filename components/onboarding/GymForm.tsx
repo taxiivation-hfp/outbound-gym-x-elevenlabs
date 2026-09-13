@@ -214,9 +214,7 @@ export default function GymForm({
       {review && fileName && (
         <Notice tone={flagged.length > 0 ? "caution" : "info"} title={`Prefilled from ${fileName}`}>
           <p>
-            {review.summary.filled} answer{review.summary.filled === 1 ? "" : "s"} came from the document, each shown with
-            the sentence it came from. {review.summary.blank} {review.summary.blank === 1 ? "isn't" : "aren't"} in the
-            document and {review.summary.blank === 1 ? "is" : "are"} left as not stated.
+            {review.summary.filled} filled from the document, {review.summary.blank} not in it.
             {flagged.length > 0 && (
               <>
                 {" "}
@@ -232,19 +230,18 @@ export default function GymForm({
                 .
               </>
             )}{" "}
-            Nothing is saved until you press Save.
+            Check them, then save.
           </p>
           {review.ignored_keys.length > 0 && (
             <p>
-              The document reader also returned{" "}
+              Ignored, not on this form:{" "}
               {review.ignored_keys.map((k, i) => (
                 <span key={k}>
-                  {i > 0 ? (i === review.ignored_keys.length - 1 ? " and " : ", ") : ""}
+                  {i > 0 ? ", " : ""}
                   <Literal>{k}</Literal>
                 </span>
               ))}
-              , which {review.ignored_keys.length === 1 ? "isn't a question" : "aren't questions"} on this form, so{" "}
-              {review.ignored_keys.length === 1 ? "it was" : "they were"} ignored.
+              .
             </p>
           )}
         </Notice>
@@ -277,11 +274,7 @@ export default function GymForm({
           title="The gym’s details"
           aside={`${filled} of ${OPTIONAL_FIELD_KEYS.length} optional fields filled`}
         />
-        <p className="mb-5 max-w-[66ch] text-[13px] leading-[1.55] text-muted text-pretty">
-          Leave anything blank that you haven&apos;t decided or don&apos;t offer. Blank means{" "}
-          <em className="font-semibold not-italic text-ink-2">you didn&apos;t say</em> — never &ldquo;no&rdquo;. Each field
-          tells you what Charlie does when it&apos;s empty. You pick numbers, yes or no, and choices; the app writes the words.
-        </p>
+        <p className="mb-5 text-[13px] text-muted">Only the name is required. Leave blank anything you don&apos;t offer.</p>
 
         <div className="grid grid-cols-1 items-start gap-x-[26px] gap-y-6 @xl:grid-cols-2">
           <div className="@xl:col-span-2">
@@ -352,17 +345,13 @@ export default function GymForm({
           />
 
           <div className="@xl:col-span-2 border-t border-line pt-5">
-            <h3 className="m-0 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">What Charlie can offer</h3>
-            <p className="mt-1 max-w-[66ch] text-[12.5px] leading-[1.5] text-muted text-pretty">
-              The only things Charlie may put on the table. How each is delivered — a texted link, or a call from the gym to
-              book — follows from the offer itself.
-            </p>
+            <h3 className="m-0 text-[14px] font-bold text-ink">What Charlie can offer</h3>
           </div>
 
           <div className="@xl:col-span-2">
             <AffixField
               name="renewal_discount_percent"
-              chrome={chrome("renewal_discount_percent", { hint: `Offered once, only if a renewing member hesitates. A whole number from ${RENEWAL_DISCOUNT_MIN} to ${RENEWAL_DISCOUNT_MAX}.` })}
+              chrome={chrome("renewal_discount_percent", { hint: `Offered once, if a renewing member hesitates. ${RENEWAL_DISCOUNT_MIN}–${RENEWAL_DISCOUNT_MAX}.` })}
               value={draft.renewal_discount_percent}
               onChange={(v) => onChange("renewal_discount_percent", v)}
               onBlur={() => touch("renewal_discount_percent")}
@@ -373,7 +362,7 @@ export default function GymForm({
           <div className="flex min-w-0 flex-col gap-3.5 @xl:col-span-2">
             <ChoiceField<ReengagementPerk>
               name="reengagement_perk"
-              chrome={chrome("reengagement_perk", { hint: "For a member whose membership is live but who has stopped coming." })}
+              chrome={chrome("reengagement_perk", { hint: "For a current member who has stopped coming." })}
               value={draft.reengagement_perk}
               onChange={(v) => {
                 onChange("reengagement_perk", v);
@@ -405,7 +394,7 @@ export default function GymForm({
           <div className="flex min-w-0 flex-col gap-3.5 @xl:col-span-2">
             <ChoiceField<WinbackOffer>
               name="winback_offer"
-              chrome={chrome("winback_offer", { hint: "For someone whose membership has already ended." })}
+              chrome={chrome("winback_offer", { hint: "For someone whose membership has ended." })}
               value={draft.winback_offer}
               onChange={(v) => {
                 onChange("winback_offer", v);
@@ -441,8 +430,7 @@ export default function GymForm({
               <StatusPill status={groupStatus(["cheaper_tier_name", "cheaper_tier_price"])} />
             </legend>
             <p className="-mt-1 text-[11.5px] leading-[1.45] text-dim text-pretty">
-              Mentioned to a lapsed member who stopped because of money, and to a member who has asked to cancel. It needs
-              both a name and a monthly price, for example 45 or 39.50.
+              Needs a name and a monthly price.
             </p>
             <TextField
               name="cheaper_tier_name"
@@ -470,8 +458,7 @@ export default function GymForm({
               <StatusPill status={groupStatus(["freeze_max_weeks", "freeze_weekly_fee"])} />
             </legend>
             <p className="-mt-1 text-[11.5px] leading-[1.45] text-dim text-pretty">
-              Offered only to a member who has asked to cancel: the membership pauses instead of ending. Someone from the gym
-              calls to arrange it. It needs both the longest pause and the weekly fee — enter 0 if the freeze is free.
+              Only for members who ask to cancel. Needs the longest pause and a weekly fee (0 if free).
             </p>
             <AffixField
               name="freeze_max_weeks"
@@ -502,7 +489,7 @@ export default function GymForm({
         <CardHeader
           id="limits-title"
           title="Offer limits"
-          note="how often the agent may put each thing on the table"
+          note="optional"
           aside={
             configuredOffers.length === 0 ? (
               "nothing configured"

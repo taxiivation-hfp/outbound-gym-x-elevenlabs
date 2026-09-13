@@ -15,15 +15,10 @@ import ThemeToggle from "@/components/shell/ThemeToggle";
  * On a first run (no gym saved, or its members not imported yet — see
  * lib/firstRun.ts) the configuration screens pass `firstRunStep` and the nav is
  * left out entirely: there is nothing behind it yet, and the product should be
- * met in order. A pill in the header says which step this is.
+ * met in order. The setup screens' own step bar says which step this is.
  */
 
 export type FirstRunStep = "gym" | "members";
-
-const FIRST_RUN_STEP: Record<FirstRunStep, { n: number; label: string }> = {
-  gym: { n: 1, label: "save your gym" },
-  members: { n: 2, label: "import its members" },
-};
 
 export type NavKey = "overview" | "queue" | "members" | "setup" | "evals" | "about";
 
@@ -117,7 +112,7 @@ export default function AppShell({
   headerActions?: ReactNode;
   /** Shown beside Members in the nav, when the screen already has it. */
   memberCount?: number;
-  /** Set on a first run: hides the nav and names the step in the header. */
+  /** Set on a first run: hides the nav. */
   firstRunStep?: FirstRunStep;
   children: ReactNode;
 }) {
@@ -176,14 +171,6 @@ export default function AppShell({
           <h1 className="m-0 font-display text-[22px] font-bold leading-[1.05] tracking-[-0.03em]">{title}</h1>
           <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-dim">{eyebrow}</span>
         </div>
-        {firstRunStep && (
-          <HeaderPill>
-            <span className="font-bold">First run</span>
-            <span className="opacity-75">
-              step {FIRST_RUN_STEP[firstRunStep].n} of 2, {FIRST_RUN_STEP[firstRunStep].label}
-            </span>
-          </HeaderPill>
-        )}
         {headerBody}
         <div className="ml-auto flex flex-none items-center gap-2.5">
           {headerActions}

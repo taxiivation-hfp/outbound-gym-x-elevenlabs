@@ -18,13 +18,12 @@ import {
   validateDraft,
   type Draft,
 } from "@/lib/onboardingDraft";
-import Connectors from "./Connectors";
 import DemoReset from "./DemoReset";
 import DocumentReader, { type ReadResult } from "./DocumentReader";
 import GymForm, { SaveControls, SaveNotices, type SaveState } from "./GymForm";
 import PromptPreview, { PREVIEW_TITLE_ID } from "./PromptPreview";
-import { SampleCsvs, SamplePriceList } from "./SampleFiles";
-import { AdminDetail, Button, Card, CardHeader, Literal, Pill, buttonClass, focusRing } from "./ui";
+import SetupSteps, { SamplesHint } from "./SetupSteps";
+import { AdminDetail, Button, Card, CardHeader, Pill, buttonClass, focusRing } from "./ui";
 
 /**
  * The configuration screen, start to saved.
@@ -64,6 +63,7 @@ export default function OnboardingFlow({
   maxUploadMb,
   editing = null,
   firstRunStep = null,
+  editingMembersDone = false,
 }: {
   /**
    * Editing an existing gym: the form opens prefilled with its current values
@@ -74,7 +74,10 @@ export default function OnboardingFlow({
   saveAdminDetail: string | null;
   extractionAvailable: boolean;
   extractionAdminDetail: string | null;
-  existingGyms: Array<{ gym_id: string; gym_name: string }>;
+  /** Saved gyms, with how many members each has (null when it couldn't be counted). */
+  existingGyms: Array<{ gym_id: string; gym_name: string; members: number | null }>;
+  /** Editing only: whether that gym already has member data, for the setup steps. */
+  editingMembersDone?: boolean;
   /** The gym the call queue places calls as (`listGyms().default_gym_id`). */
   defaultGym: { gym_id: string; gym_name: string } | null;
   /** The document route's upload limit, from lib/extraction/documentText.ts. */
@@ -87,6 +90,9 @@ export default function OnboardingFlow({
   );
   const [draft, setDraft] = useState<Draft>(baseline);
   const [doc, setDoc] = useState<DocState>({ kind: "idle" });
+  // With gyms already saved, the page opens on them; the new-gym form (and its
+  // preview and Save button) appears only when someone asks for it.
+  const [creating, setCreating] = useState(false);
   const [read, setRead] = useState<ReadResult | null>(null);
   const [saved, setSaved] = useState<{ gym: GymConfig; incentives: Record<CallType, string> } | null>(null);
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
@@ -204,8 +210,27 @@ export default function OnboardingFlow({
             headingRef={savedHeading}
             edited={Boolean(editing)}
             defaultGym={defaultGym}
-            firstRun={Boolean(firstRunStep)}
+            membersDone={Boolean(editing) && editingMembersDone}
           />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!editing && !creating && existingGyms.length > 0) {
+    return (
+      <AppShell current="setup" title="Retention Router" eyebrow="Configuration" firstRunStep={firstRunStep ?? undefined}>
+        <div className="min-h-0 flex-1 overflow-auto pr-0.5">
+          <div className="mx-auto flex w-full max-w-[860px] flex-col gap-4">
+            <YourGyms gyms={existingGyms} defaultGymId={defaultGym?.gym_id ?? null} />
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-line-strong px-4 py-3.5">
+              <span className="text-[13px] text-ink-2">Adding another gym?</span>
+              <Button className="ml-auto" onClick={() => setCreating(true)}>
+                Set up a new gym
+              </Button>
+            </div>
+            <DemoReset available={saveAvailable} adminDetail={saveAdminDetail} />
+          </div>
         </div>
       </AppShell>
     );
@@ -248,14 +273,17 @@ export default function OnboardingFlow({
       <div className="min-h-0 flex-1 overflow-auto pr-0.5">
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px] 2xl:grid-cols-[minmax(0,1fr)_430px]">
           <div className="flex min-w-0 flex-col gap-4">
-            {editing && (
-              <p className="text-[12.5px] text-muted">
-                Editing <Literal>{editing.gym_id}</Literal>. Saving checks every answer again and replaces this gym&apos;s
-                config; its id stays the same.{" "}
-                <Link href="/onboarding" className={`rounded-sm font-semibold text-accent-ink underline underline-offset-2 hover:text-ink ${focusRing}`}>
-                  Leave without saving
-                </Link>
-              </p>
+            {editing ? (
+              <SetupSteps current="gym" gymId={editing.gym_id} gymDone membersDone={editingMembersDone} />
+            ) : existingGyms.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="quiet" onClick={() => setCreating(false)}>
+                  <span aria-hidden="true">←</span> Your gyms
+                </Button>
+                <h2 className="m-0 font-display text-[19px] font-bold tracking-[-0.02em] text-ink">Set up a new gym</h2>
+              </div>
+            ) : (
+              <SetupSteps current="gym" gymId={null} gymDone={false} membersDone={false} />
             )}
 
             <SaveNotices
@@ -268,13 +296,8 @@ export default function OnboardingFlow({
 
             {!editing && (
               <Card labelledBy="doc-title" prominent className="@container">
-                <CardHeader id="doc-title" title="Start from a document" note="or fill the form in yourself, below" aside={docStatus} />
-                <p className="mb-4 max-w-[62ch] text-[13px] leading-[1.55] text-muted text-pretty">
-                  A price list, a membership agreement, a sales handbook — whatever you already have. The answers are read out
-                  of it, each with the sentence it came from, and put in the form to check. A membership agreement is usually
-                  the most reliable: prices and terms have to be in it.
-                </p>
-                <SamplePriceList />
+                <CardHeader id="doc-title" title="Start from a document" note="or fill in the form below" aside={docStatus} />
+                <p className="mb-4 text-[13px] text-muted">Upload a price list or membership agreement. We fill in the form; you check it.</p>
 
                 {doc.kind === "reading" ? (
                   <DocumentReader
@@ -329,9 +352,7 @@ export default function OnboardingFlow({
                         <span className="text-[14px] font-bold text-ink">
                           {read ? "Drop another file here" : "Drop a PDF, Word or text file here"}
                         </span>
-                        <span className="text-[12.5px] text-dim">
-                          PDF, Word (.docx) or text, up to {maxUploadMb} MB. The file isn&apos;t kept.
-                        </span>
+                        <span className="text-[12.5px] text-dim">PDF, Word or text, up to {maxUploadMb} MB.</span>
                       </div>
                       <Button variant="primary" onClick={() => fileInput.current?.click()}>
                         Choose a file
@@ -349,13 +370,13 @@ export default function OnboardingFlow({
                           if (file) startReading(file);
                         }}
                       />
+                      <SamplesHint />
                     </div>
                   </>
                 ) : (
                   <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong bg-canvas px-[22px] py-5 text-[12.5px] leading-relaxed text-ink-2">
                     <p>
-                      <strong className="text-ink">Reading documents isn&apos;t switched on here.</strong> Fill the form in
-                      below instead — it&apos;s the same form, starting empty.
+                      <strong className="text-ink">Reading documents is off here.</strong> Fill in the form below.
                     </p>
                     {extractionAdminDetail && <AdminDetail>{extractionAdminDetail}</AdminDetail>}
                   </div>
@@ -403,8 +424,7 @@ export default function OnboardingFlow({
               />
             </div>
 
-            <MemberDataCard editing={editing} existingGyms={existingGyms} defaultGymId={defaultGym?.gym_id ?? null} />
-            {!editing && <DemoReset available={saveAvailable} adminDetail={saveAdminDetail} />}
+            {!editing && existingGyms.length === 0 && <DemoReset available={saveAvailable} adminDetail={saveAdminDetail} />}
             <div aria-hidden="true" className="h-1.5" />
           </div>
 
@@ -428,70 +448,53 @@ export default function OnboardingFlow({
   );
 }
 
-const LINK = `rounded-sm text-[12.5px] font-semibold text-accent-ink underline decoration-accent-line underline-offset-2 hover:text-ink ${focusRing}`;
-
 /**
- * Member data is stored against a saved gym, so the upload lives on each gym's
- * own page. This card says so, links there, and lists the platform connections
- * that are not built.
+ * Every saved gym, first on the page, with the two places a gym is continued
+ * from as buttons. A gym with no members yet has importing them as its primary
+ * action: that is the step it is waiting on.
  */
-function MemberDataCard({
-  editing,
-  existingGyms,
+function YourGyms({
+  gyms,
   defaultGymId,
 }: {
-  editing: GymConfig | null;
-  existingGyms: Array<{ gym_id: string; gym_name: string }>;
+  gyms: Array<{ gym_id: string; gym_name: string; members: number | null }>;
   defaultGymId: string | null;
 }) {
   return (
-    <Card labelledBy="members-title">
-      <CardHeader id="members-title" title="Member data" note="three CSVs: members, contracts, check-ins" />
-      {editing ? (
-        <div className="mb-6 mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="max-w-[60ch] text-[13px] leading-[1.55] text-muted text-pretty">
-            Upload the three tables your platform already exports. Each file is checked line by line before anything is
-            written.
-          </p>
-          <Link href={`/onboarding/${editing.gym_id}/members`} className={buttonClass("secondary")}>
-            Open member data
-          </Link>
-        </div>
-      ) : (
-        <div className="mb-6 mt-2 flex flex-col gap-3">
-          <p className="max-w-[62ch] text-[13px] leading-[1.55] text-muted text-pretty">
-            Member data is uploaded against a saved gym, so save this one first; the confirmation links to its member data.
-            For a gym that is already set up, open its member data below.
-          </p>
-          <SampleCsvs />
-          {existingGyms.length > 0 && (
-            <div role="group" aria-labelledby="existing-title">
-              <h3 id="existing-title" className="m-0 mb-2 text-[11px] font-bold uppercase tracking-[0.09em] text-dim">
-                Gyms already set up
-              </h3>
-              <ul className="m-0 flex list-none flex-col overflow-hidden rounded-xl border border-line p-0">
-                {existingGyms.map((g) => (
-                  <li key={g.gym_id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-row-line bg-canvas px-3.5 py-2.5 last:border-b-0">
-                    <span className="min-w-0 text-[13px] font-semibold text-ink">
-                      {g.gym_name} <Literal className="ml-1 text-[11px] text-dim">{g.gym_id}</Literal>
-                    </span>
-                    {g.gym_id === defaultGymId && <Pill tone="accent">the queue calls as this gym</Pill>}
-                    <span className="ml-auto flex items-center gap-4">
-                      <Link href={`/onboarding/${g.gym_id}/edit`} className={LINK}>
-                        Edit<span className="sr-only"> {g.gym_name}</span>
-                      </Link>
-                      <Link href={`/onboarding/${g.gym_id}/members`} className={LINK}>
-                        Member data<span className="sr-only"> for {g.gym_name}</span>
-                      </Link>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-      <Connectors />
+    <Card labelledBy="gyms-title" prominent>
+      <CardHeader id="gyms-title" title="Your gyms" note="pick up where you left off" />
+      <ul className="m-0 mt-3 flex list-none flex-col overflow-hidden rounded-xl border border-line p-0">
+        {gyms.map((g) => {
+          const needsMembers = g.members === 0;
+          return (
+            <li key={g.gym_id} className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-row-line bg-canvas px-3.5 py-3 last:border-b-0">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-[14px] font-bold text-ink wrap-anywhere">{g.gym_name}</span>
+                  {g.gym_id === defaultGymId && <Pill tone="accent">calls go out as this gym</Pill>}
+                </span>
+                <span className="text-[12px] text-dim">
+                  {g.members === null
+                    ? "Member data not readable"
+                    : g.members === 0
+                      ? "No members yet"
+                      : `${g.members.toLocaleString("en-AU")} members`}
+                </span>
+              </div>
+              <span className="ml-auto flex flex-wrap items-center gap-2">
+                <Link href={`/onboarding/${g.gym_id}/edit`} className={buttonClass("secondary")}>
+                  Settings<span className="sr-only"> for {g.gym_name}</span>
+                </Link>
+                <Link href={`/onboarding/${g.gym_id}/members`} className={buttonClass(needsMembers ? "primary" : "secondary")}>
+                  {needsMembers ? "Import members" : "Member data"}
+                  <span className="sr-only"> for {g.gym_name}</span>
+                  {needsMembers && <span aria-hidden="true">→</span>}
+                </Link>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </Card>
   );
 }
@@ -502,19 +505,19 @@ function Saved({
   headingRef,
   edited,
   defaultGym,
-  firstRun,
+  membersDone,
 }: {
   edited: boolean;
-  /** On a first run there is no queue yet, so the only way on is member data. */
-  firstRun: boolean;
   gym: GymConfig;
   incentives: Record<CallType, string>;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   defaultGym: { gym_id: string; gym_name: string } | null;
+  membersDone: boolean;
 }) {
   const callTypes = Object.keys(incentives) as CallType[];
   return (
-    <div className="mx-auto w-full max-w-[860px]">
+    <div className="mx-auto flex w-full max-w-[860px] flex-col gap-4">
+      <SetupSteps current="gym" gymId={gym.gym_id} gymDone membersDone={membersDone} status={edited ? "Changes saved." : "Gym saved."} />
       <Card labelledBy="saved-title" prominent>
         <h2 ref={headingRef} id="saved-title" tabIndex={-1} className="m-0 outline-none">
           <Pill tone="accent">{edited ? "Changes saved" : "Saved"}</Pill>
@@ -522,39 +525,29 @@ function Saved({
             {gym.gym_name}
           </span>
         </h2>
-        <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.55] text-muted text-pretty">
-          Stored as <Literal>{gym.gym_id}</Literal>. Calls placed as this gym are compiled from these answers; an offer the gym&apos;s
-          limits or a member&apos;s visit history withhold is left out of that call.{" "}
-          {defaultGym &&
-            (defaultGym.gym_id === gym.gym_id
-              ? "The call queue calls as this gym."
-              : `The call queue calls as ${defaultGym.gym_name}, not this gym.`)}
-        </p>
-        <div className="mt-5 flex flex-col gap-3">
-          {callTypes.map((callType) => {
-            const tint = CALL_TYPE_TINT[callType];
-            return (
-              <div key={callType} className="flex flex-col gap-2 rounded-xl border border-line bg-canvas p-3.5">
-                <h3 className={`m-0 w-fit rounded-md px-[9px] py-[3px] text-[10.5px] font-bold uppercase tracking-[0.11em] ${tint.bg} ${tint.ink}`}>
-                  {callTypeLabel[callType]} call
-                </h3>
-                <p className="m-0 rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13px] leading-[1.6] text-ink-2 text-pretty wrap-anywhere">
-                  {incentives[callType]}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-6 flex flex-wrap items-center gap-2.5">
-          <Link href={`/onboarding/${gym.gym_id}/members`} className={buttonClass("primary")}>
-            Connect member data
-          </Link>
-          {!firstRun && (
-            <Link href="/" className={buttonClass("secondary")}>
-              Back to the queue
-            </Link>
-          )}
-        </div>
+        {defaultGym && defaultGym.gym_id !== gym.gym_id && (
+          <p className="mt-2 text-[13px] text-muted">Calls still go out as {defaultGym.gym_name}.</p>
+        )}
+        <details className="group mt-4">
+          <summary className={`w-fit cursor-pointer rounded-sm text-[13px] font-semibold text-accent-ink underline decoration-accent-line underline-offset-2 hover:text-ink ${focusRing}`}>
+            What Charlie will offer
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">
+            {callTypes.map((callType) => {
+              const tint = CALL_TYPE_TINT[callType];
+              return (
+                <div key={callType} className="flex flex-col gap-2 rounded-xl border border-line bg-canvas p-3.5">
+                  <h3 className={`m-0 w-fit rounded-md px-[9px] py-[3px] text-[10.5px] font-bold uppercase tracking-[0.11em] ${tint.bg} ${tint.ink}`}>
+                    {callTypeLabel[callType]} call
+                  </h3>
+                  <p className="m-0 rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13px] leading-[1.6] text-ink-2 text-pretty wrap-anywhere">
+                    {incentives[callType]}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </details>
       </Card>
     </div>
   );

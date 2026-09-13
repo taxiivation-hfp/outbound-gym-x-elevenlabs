@@ -40,19 +40,11 @@ export default function DemoReset({ available, adminDetail }: { available: boole
 
   return (
     <Card labelledBy="reset-title">
-      <CardHeader id="reset-title" title="Reset the demo" note="back to an empty first run" />
-      <p className="mb-4 mt-2 max-w-[62ch] text-[13px] leading-[1.55] text-muted text-pretty">
-        Deletes every saved gym (the two seed gyms included), every imported member, contract and check-in, every call record and every
-        queue run. The committed evaluation runs are files in the repository, not rows, and are never touched.
+      <CardHeader id="reset-title" title="Reset the demo" />
+      <p className="mb-4 mt-1 text-[13px] text-ink-2">
+        <strong className="text-flag-ink">This clears shared data for everyone. One person should test at a time.</strong> Deletes all gyms,
+        members and call records.
       </p>
-      <div className="mb-4">
-        <Notice tone="caution" title="This clears shared data. One person should test at a time.">
-          <p>
-            There are no accounts here. Everyone who opens this demo is looking at the same gym, the same members and the same call
-            records, so a reset clears them for whoever else is testing right now, and anything they save lands in yours.
-          </p>
-        </Notice>
-      </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
         {state.kind === "confirming" ? (
@@ -79,7 +71,7 @@ export default function DemoReset({ available, adminDetail }: { available: boole
       <div aria-live="polite" className="mt-3 empty:hidden">
         {state.kind === "done" && (
           <p role="status" className="text-[12.5px] text-ink-2">
-            <strong className="text-accent-ink">Reset.</strong> No gyms, no members, no calls. Start again from the top of this page.
+            <strong className="text-accent-ink">Reset.</strong> Start again from the top.
           </p>
         )}
         {state.kind === "error" && (
