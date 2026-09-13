@@ -6,7 +6,7 @@ import type { CallType } from "@/lib/callType";
 import { compileVariables } from "@/lib/compileVariables";
 import { resolveDialTarget } from "@/lib/dialSafety";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { getGym } from "@/lib/gyms";
+import { resolveGym } from "@/lib/gymStore";
 import { insertCallRecord } from "@/lib/callRecords";
 import type { Member } from "@/lib/types";
 
@@ -73,7 +73,18 @@ export async function POST(req: NextRequest) {
   }
 
   const callType = eligibility.routing.call_type;
-  const gym = getGym(typeof body?.gym_id === "string" ? body.gym_id : null);
+
+  // Which gym's rules the agent speaks for. Read from the gyms table (or the
+  // seed before its migration), and an id that resolves to nothing is refused:
+  // substituting another gym would put that gym's offers in this gym's mouth.
+  if (body?.gym_id !== undefined && body?.gym_id !== null && typeof body.gym_id !== "string") {
+    return NextResponse.json({ error: "gym_id must be a string" }, { status: 400 });
+  }
+  const gymLookup = await resolveGym(body?.gym_id ?? null);
+  if (!gymLookup.ok) {
+    return NextResponse.json({ error: gymLookup.error, blocked_by: "gym_config" }, { status: gymLookup.status });
+  }
+  const gym = gymLookup.gym;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const agentId = process.env[AGENT_ID_ENV[callType]];

@@ -9,6 +9,8 @@
     "lint": "eslint",
     "evals": "tsx evals/run.ts",
     "evals:guards": "tsx evals/run.ts --guards-only",
+    "gyms:seed-sql": "node scripts/gym-seed-sql.mjs",
+    "gyms:seed-check": "node scripts/gym-seed-sql.mjs --check",
     "agents:sync": "node scripts/sync-agents.mjs",
     "agents:diff": "node scripts/sync-agents.mjs --dry-run",
     "data:build": "python pipeline/generate_gym_data.py && python pipeline/build_scores.py && node scripts/copy-pipeline-output.mjs"

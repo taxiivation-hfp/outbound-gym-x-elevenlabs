@@ -1,6 +1,6 @@
 import membersData from "@/data/members_scored.json";
-import { firstName } from "@/lib/compileVariables";
-import { getGym } from "@/lib/gyms";
+import { firstName, formatLocations } from "@/lib/compileVariables";
+import { resolveGym } from "@/lib/gymStore";
 import type { Member } from "@/lib/types";
 
 const members = membersData as Member[];
@@ -60,7 +60,12 @@ export default async function LinkLanding({
   const params = await searchParams;
   const memberId = typeof params.m === "string" ? params.m : null;
   const code = typeof params.code === "string" ? params.code : null;
-  const gym = getGym(typeof params.gym === "string" ? params.gym : null);
+  const gymLookup = await resolveGym(typeof params.gym === "string" ? params.gym : null);
+  // A link for a gym that can no longer be resolved still carries a valid code;
+  // it just cannot name the gym or list its hours, and says nothing it can't
+  // back up.
+  const gym = gymLookup.ok ? gymLookup.gym : null;
+  const gymName = gym?.gym_name ?? "the gym";
   const member = memberId ? members.find((m) => m.member_id === memberId) : undefined;
   const copy = COPY[kind];
 
@@ -71,7 +76,7 @@ export default async function LinkLanding({
       </p>
       <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight">
         {member ? `${firstName(member.name)}, ` : ""}
-        {copy.heading(gym.gym_name).toLowerCase()}
+        {copy.heading(gymName).toLowerCase()}
       </h1>
       <p className="mt-4 text-sm leading-relaxed text-zinc-400">{copy.body}</p>
 
@@ -86,14 +91,17 @@ export default async function LinkLanding({
         </div>
       )}
 
-      <dl className="mt-8 space-y-3 border-t border-zinc-900 pt-6 text-sm">
-        <Row label="Gym" value={gym.gym_name} />
-        <Row label="Open" value={gym.opening_hours} />
-        <Row label="Quietest" value={gym.quiet_hours} />
-        {gym.other_locations !== "none" && (
-          <Row label="Also at" value={gym.other_locations} />
-        )}
-      </dl>
+      {gym && (
+        <dl className="mt-8 space-y-3 border-t border-zinc-900 pt-6 text-sm">
+          <Row label="Gym" value={gym.gym_name} />
+          {/* Blank config stays off the page rather than becoming a placeholder. */}
+          {gym.opening_hours && <Row label="Open" value={gym.opening_hours} />}
+          {gym.quiet_hours && <Row label="Quietest" value={gym.quiet_hours} />}
+          {gym.other_locations && gym.other_locations.length > 0 && (
+            <Row label="Also at" value={formatLocations(gym.other_locations)} />
+          )}
+        </dl>
+      )}
 
       <p className="mt-10 rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-xs leading-relaxed text-zinc-500">
         This is a demo build of a retention product. No payment is taken on this page and no

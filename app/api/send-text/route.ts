@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import membersData from "@/data/members_scored.json";
 import { firstName } from "@/lib/compileVariables";
 import { resolveDialTarget } from "@/lib/dialSafety";
-import { getGym } from "@/lib/gyms";
+import { gymOfRecentCall } from "@/lib/callRecords";
+import { resolveGym } from "@/lib/gymStore";
 import type { Member } from "@/lib/types";
 
 const members = membersData as Member[];
@@ -122,7 +123,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const gym = getGym(typeof body?.gym_id === "string" ? body.gym_id : null);
+  // Which gym's name and link this text carries. The agent's tool sends only
+  // `member_id` and `link_type`, so the gym comes from the call it is making:
+  // `/api/call` records the gym on the call record before the phone rings.
+  // With no such record the text is refused rather than sent under the default
+  // gym's name — a text branded as the wrong gym is a text that shouldn't go.
+  let gymId: string | null = typeof body?.gym_id === "string" && body.gym_id.trim() ? body.gym_id : null;
+  if (!gymId) {
+    const recent = await gymOfRecentCall(memberId);
+    if (!recent.ok) {
+      console.error("send_text refused: no gym for this call", recent.error, { memberId, linkType });
+      return NextResponse.json({
+        success: false,
+        message: "I couldn't send that text just now — someone from the gym will follow up.",
+        detail: recent.error,
+      });
+    }
+    gymId = recent.gymId;
+  }
+
+  const gymLookup = await resolveGym(gymId);
+  if (!gymLookup.ok) {
+    console.error("send_text refused: gym config", gymLookup.error, { memberId, linkType });
+    return NextResponse.json({
+      success: false,
+      message: "I couldn't send that text just now — someone from the gym will follow up.",
+      detail: gymLookup.error,
+    });
+  }
+  const gym = gymLookup.gym;
   const baseUrl =
     process.env.PUBLIC_BASE_URL?.trim() ||
     req.nextUrl.origin;

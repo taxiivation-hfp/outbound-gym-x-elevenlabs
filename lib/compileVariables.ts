@@ -1,5 +1,6 @@
 import type { CallType, Routing } from "@/lib/callType";
 import { today } from "@/lib/clock";
+import type { GymFields } from "@/lib/gymConfig";
 import { incentivesFor, type Gym } from "@/lib/gyms";
 import type { Member } from "@/lib/types";
 
@@ -256,6 +257,12 @@ function priorCallSentences(priorCall?: PriorCallContext | null): string[] {
  * Every variable the three prompts reference, with a default for each. A
  * missing variable must degrade to a sentence the agent can say, never fail the
  * call — which is why the defaults are phrases and not empty strings.
+ *
+ * `NOT_RECORDED` is also what a gym's blank opening hours or quiet times compile
+ * to. It is an absence the agent is told to admit, not a value it can
+ * paraphrase: the first eval run caught an agent inventing quiet times when the
+ * placeholder read like a fact, and the `unanswered-gym-question-degrades`
+ * scenario has asserted this exact string against the live agent since.
  */
 export const NOT_RECORDED = "not recorded — tell them you don't have that in front of me";
 
@@ -278,6 +285,65 @@ export const VARIABLE_DEFAULTS: Record<string, string> = {
   incentives:
     "You have nothing to offer. Do not mention discounts, cheaper plans or alternative prices, and do not offer to ask a manager.",
 };
+
+/** "Brisbane CBD and Fortitude Valley"; "none" for a single site or a blank field. */
+export function formatLocations(locations: string[] | null): string {
+  if (!locations || locations.length === 0) return "none";
+  if (locations.length === 1) return locations[0];
+  return `${locations.slice(0, -1).join(", ")} and ${locations[locations.length - 1]}`;
+}
+
+/**
+ * The gym facts the Environment section lists, from typed config.
+ *
+ * Blank fields do not become plausible values. Opening hours, quiet times and
+ * online training the gym never gave compile to `NOT_RECORDED`, which tells the
+ * agent to admit it doesn't have them — "no online training" is a fact about a
+ * business, and nobody stated it. Two blanks compile to the literal words the
+ * prompts branch on, because anything else would be worse:
+ *
+ * - `other_locations` → "none". The winback prompt says to mention the nearest
+ *   site when this is not "none"; an absence sentence there would send the agent
+ *   looking for a site it was never given.
+ * - `books_classes` → "no". It describes what the agent can do for the member,
+ *   not a fact about the gym, and the prompt only offers a booking on "yes".
+ */
+export function compileGymFacts(gym: GymFields): {
+  gym_name: string;
+  opening_hours: string;
+  quiet_hours: string;
+  other_locations: string;
+  has_online: string;
+  books_classes: "yes" | "no";
+} {
+  return {
+    gym_name: gym.gym_name,
+    opening_hours: gym.opening_hours ?? NOT_RECORDED,
+    quiet_hours: gym.quiet_hours ?? NOT_RECORDED,
+    other_locations: formatLocations(gym.other_locations),
+    has_online: gym.has_online === null ? NOT_RECORDED : gym.has_online ? "yes" : "no",
+    books_classes: gym.books_classes === true ? "yes" : "no",
+  };
+}
+
+/**
+ * Sentences about the gym that belong in `context` because the prompt cannot
+ * branch on them. Empty for any gym that gave the facts involved, so the two
+ * seed gyms' payloads are unchanged.
+ *
+ * The winback prompt suggests "the quiet times" when time or routine is why a
+ * member stopped. A gym that never gave its quiet times would have the agent
+ * offering something it doesn't have, so the compiler tells it not to, in the
+ * same finished-sentence form as every other call-time instruction.
+ */
+export function gymContextSentences(gym: GymFields, callType: CallType): string[] {
+  if (callType === "winback" && gym.quiet_hours === null) {
+    return [
+      "You don't have this gym's quiet times. If time or routine is why they stopped, suggest shorter sessions and don't mention quiet times.",
+    ];
+  }
+  return [];
+}
 
 export interface CompileInput {
   member: Member;
@@ -309,16 +375,11 @@ export function compileVariables(input: CompileInput): Record<string, string> {
     tenure: formatTenure(member.signals.tenure_days),
     last_visit: formatLastVisit(member.signals.days_since_visit),
     time_left: timeLeft,
-    context: compileContext(callType, member, priorCall),
+    context: [compileContext(callType, member, priorCall), ...gymContextSentences(gym, callType)].join(" "),
     attempt_number: String(attemptNumber),
     renewal_price: formatPrice(member.renewal_fee),
     expiry_line: compileExpiryLine(routing.days_to_expiry, timeLeft),
-    gym_name: gym.gym_name,
-    opening_hours: gym.opening_hours,
-    quiet_hours: gym.quiet_hours,
-    other_locations: gym.other_locations,
-    has_online: gym.has_online,
-    books_classes: gym.books_classes,
+    ...compileGymFacts(gym),
     incentives: incentivesFor(gym, callType),
   };
 }

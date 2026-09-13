@@ -73,6 +73,42 @@ export async function updateCallRecordByConversation(conversationId: string, pat
   return { error: retry.error, degraded: true as const };
 }
 
+/** A call placed this long ago can no longer be the one asking to send a text. */
+const RECENT_CALL_WINDOW_MS = 30 * 60 * 1000;
+
+/**
+ * The gym a member's in-progress call was placed for.
+ *
+ * The agent's `send_text` tool knows the member, not the gym, and the tool
+ * config lives on ElevenLabs. `/api/call` writes `gym_id` on the call record
+ * before the phone rings, so the most recent record for this member — placed in
+ * the last half hour — is the call the agent is on.
+ */
+export async function gymOfRecentCall(
+  memberId: string
+): Promise<{ ok: true; gymId: string } | { ok: false; error: string }> {
+  try {
+    // Wall clock, not lib/clock.ts: call records are stamped with real time.
+    const since = new Date(Date.now() - RECENT_CALL_WINDOW_MS).toISOString();
+    const { data, error } = await supabaseAdmin
+      .from("call_records")
+      .select("gym_id, created_at")
+      .eq("member_id", memberId)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .abortSignal(AbortSignal.timeout(3000));
+    if (error) return { ok: false, error: `call record read failed: ${error.message}` };
+    const gymId = (data?.[0] as { gym_id?: string | null } | undefined)?.gym_id;
+    if (typeof gymId !== "string" || gymId.trim() === "") {
+      return { ok: false, error: "no call placed to this member in the last 30 minutes records a gym" };
+    }
+    return { ok: true, gymId };
+  } catch (err) {
+    return { ok: false, error: `call record read failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 /**
  * For a row that never got a `conversation_id` at all — ElevenLabs refused the
  * dial before a conversation existed to key on. `updateCallRecordByConversation`

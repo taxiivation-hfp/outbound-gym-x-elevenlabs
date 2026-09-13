@@ -6,28 +6,28 @@
       "gym_name": "Southbank Strength",
       "opening_hours": "5am to 10pm weekdays, 7am to 7pm weekends",
       "quiet_hours": "weekdays before 8am and after 7pm",
-      "other_locations": "Brisbane CBD and Fortitude Valley",
-      "has_online": "yes",
-      "books_classes": "yes",
-      "incentives": {
-        "renewal": "You have one thing you can offer, and only after they hesitate or say the price is a problem: 20% off their renewal. Text it as a link — never read out a code. That is everything you have. No other discount exists, no cheaper plan exists, and you cannot ask a manager for more.",
-        "reengagement": "You are calling with something to give them: a guest pass so they can bring a mate in. Lead with it — it is your reason for calling, not their absence. Text it as a link. That guest pass is the only thing you have. There is no discount, no free month and nothing else to add to it.",
-        "winback": "If they lost momentum, you can offer a free PT session. It needs booking, so don't text it — say someone from the gym will call to lock in a time. If money is the reason they stopped, you can mention the off-peak membership at $39 a month. Those two things are everything you have."
-      }
+      "other_locations": ["Brisbane CBD", "Fortitude Valley"],
+      "has_online": true,
+      "books_classes": true,
+      "renewal_discount_percent": 20,
+      "reengagement_perk": "guest_pass",
+      "winback_offer": "free_pt_session",
+      "cheaper_tier_name": "off-peak membership",
+      "cheaper_tier_price": 39
     },
     {
       "gym_id": "kensington",
       "gym_name": "Kensington Barbell",
       "opening_hours": "6am to 9pm weekdays, 8am to 2pm Saturdays, closed Sundays",
       "quiet_hours": "weekday mornings before 7am and Saturday afternoons",
-      "other_locations": "none",
-      "has_online": "no",
-      "books_classes": "no",
-      "incentives": {
-        "renewal": "You have nothing to offer. If they say it's too expensive, say you understand, you'll pass it on, and leave it there. Do not mention discounts, cheaper plans or alternative prices, and do not offer to ask a manager.",
-        "reengagement": "You have nothing to give them. Your reason for calling is to check nothing's wrong and that the gym isn't the problem. Do not offer anything.",
-        "winback": "You have nothing to put on the table — no free session, no cheaper plan, no discount. If money or motivation is the reason they stopped, say you understand and you'll pass it on. All you can offer is the quiet times and the door being open. Do not invent anything else and do not offer to ask a manager."
-      }
+      "other_locations": [],
+      "has_online": false,
+      "books_classes": false,
+      "renewal_discount_percent": null,
+      "reengagement_perk": "none",
+      "winback_offer": "none",
+      "cheaper_tier_name": null,
+      "cheaper_tier_price": null
     }
   ]
 }

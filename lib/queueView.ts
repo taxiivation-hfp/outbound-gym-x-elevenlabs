@@ -4,7 +4,7 @@ import type { CallType } from "@/lib/callType";
 import { referenceDate } from "@/lib/compileVariables";
 import { campaignEconomics, ASSUMPTIONS, type CampaignEconomics, type Assumption } from "@/lib/economics";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { DEFAULT_GYM_ID, gyms } from "@/lib/gyms";
+import { listGyms, type GymSource } from "@/lib/gymStore";
 import { sortByPriority } from "@/lib/sortMembers";
 import type { Cohort, Member } from "@/lib/types";
 
@@ -74,6 +74,10 @@ export interface QueueView {
   economics: CampaignEconomics & { assumptions: Assumption[] };
   /** Set when Supabase could not be read; the counts are then history-blind. */
   history_error: string | null;
+  /** Where the gym list came from: the gyms table, or the repo seed before its migration. */
+  gym_source: GymSource;
+  /** Why the gym list is the seed, or which rows failed validation. */
+  gym_notice: string | null;
 }
 
 function toEntry(member: Member, history: CallHistory): QueueEntry {
@@ -107,6 +111,10 @@ function toEntry(member: Member, history: CallHistory): QueueEntry {
 }
 
 export async function buildQueueView(): Promise<QueueView> {
+  // The gym list doesn't depend on call history, so both reads start at once.
+  // `listGyms` never rejects — every failure comes back as a notice — so the
+  // early start cannot leave an unhandled rejection behind.
+  const gymListingRead = listGyms();
   let history = new Map<string, CallHistory>();
   let historyError: string | null = null;
   try {
@@ -138,6 +146,10 @@ export async function buildQueueView(): Promise<QueueView> {
   const dueIds = new Set(entries.filter((e) => e.call_type).map((e) => e.member_id));
   const dueMembers = members.filter((m) => dueIds.has(m.member_id));
 
+  // The gym switcher offers whatever the gyms table holds — including gyms
+  // added through onboarding — or the two seed gyms before its migration runs.
+  const gymListing = await gymListingRead;
+
   return {
     as_of: referenceDate(),
     counts,
@@ -145,9 +157,11 @@ export async function buildQueueView(): Promise<QueueView> {
       (e) => e.blocked_by === "auto_renew" && e.days_to_expiry >= 0 && e.days_to_expiry <= 14
     ),
     entries,
-    gyms: gyms.map((g) => ({ gym_id: g.gym_id, gym_name: g.gym_name })),
-    default_gym_id: DEFAULT_GYM_ID,
+    gyms: gymListing.gyms.map((g) => ({ gym_id: g.gym_id, gym_name: g.gym_name })),
+    default_gym_id: gymListing.default_gym_id,
     economics: { ...campaignEconomics(dueMembers), assumptions: ASSUMPTIONS },
     history_error: historyError,
+    gym_source: gymListing.source,
+    gym_notice: gymListing.notice,
   };
 }
