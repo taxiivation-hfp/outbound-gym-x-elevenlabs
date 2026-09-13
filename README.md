@@ -125,6 +125,10 @@ npm run gyms:seed-check        # the gyms migration's seed block matches data/gy
 - **`CALL_OVERRIDE_NUMBER`** — routes every call and text to one verified number. The 500 member phone numbers are synthetic and belong to nobody. Leave this set for any demo.
 - **`DATASET_CLOCK`** — set it to `live` to measure time against the wall clock instead of the dataset's frozen reference date. The date is frozen because the dataset is synthetic, not because the design needs it: set `live` for any gym's real member data, and the nightly recompute refuses to run uploaded members without it.
 
+### Sample files
+
+No gym paperwork of your own? Use the files the checks already run on. At `/onboarding`, drop [`evals/documents/pdf/sample-price-list.pdf`](evals/documents/pdf/sample-price-list.pdf) into "Start from a document", then save the gym. On its member data page, import [`pipeline/data/members.csv`](pipeline/data/members.csv), [`contracts.csv`](pipeline/data/contracts.csv) and [`checkins.csv`](pipeline/data/checkins.csv), in that order. These are 500 synthetic members whose phone numbers belong to nobody, so keep `CALL_OVERRIDE_NUMBER` set.
+
 Before the first call works end to end, three things have to be done by hand and are listed with exact steps in [`REVIEW_NOTES.md`](REVIEW_NOTES.md): apply the `call_records` migration, deploy, and register the post-call webhook. Onboarding needs three more migrations and two keys, listed in the same file.
 
 ## Architecture

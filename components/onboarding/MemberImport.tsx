@@ -51,21 +51,18 @@ const SLOT_BADGE: Record<SlotState["phase"], { label: string; tone: PillTone }> 
   imported: { label: "imported", tone: "accent" },
 };
 
-const TITLES: Record<ImportKind, { title: string; what: string; rule: string }> = {
+const TITLES: Record<ImportKind, { title: string; what: string }> = {
   members: {
     title: "Members",
     what: "One row per member.",
-    rule: "Re-uploading updates names and numbers. Nobody is removed.",
   },
   contracts: {
     title: "Contracts",
-    what: "One row per membership term — a renewal is a new row with its own dates.",
-    rule: "Rows are only ever added. The latest term is the current one — and if rows disagree about whether it auto-renews, the member is treated as auto-renewing and isn't called.",
+    what: "One row per membership term.",
   },
   checkins: {
     title: "Check-ins",
     what: "One row per visit.",
-    rule: "Rows are only ever added. Days since the last visit are worked out when the queue is built.",
   },
 };
 
@@ -189,7 +186,7 @@ function Slot({
         </div>
       </div>
       <p className="max-w-[70ch] text-[12.5px] leading-[1.5] text-muted text-pretty">
-        {copy.what} {copy.rule}
+        {copy.what}
       </p>
       <p className="text-[11.5px] leading-[1.5] text-dim">
         Columns:{" "}

@@ -87,14 +87,11 @@ export default function OfferScheduleField({
     <fieldset data-field="offer_schedule" className="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
       <legend className="sr-only">How often each offer can be made</legend>
       <p className="max-w-[66ch] text-[12.5px] leading-[1.5] text-muted text-pretty">
-        Per member, per offer. An offer with no limit here can be made on every call it applies to. &ldquo;Never&rdquo; switches
-        it off. Offers go to renewals, and to members who stopped coming after a regular habit. A call to a member who has
-        asked to cancel ignores these limits and the habit rule: the cheaper membership is offered there whatever it is set
-        to.
+        How often one member can get each offer. No limit means every call. Cancellation calls ignore these limits.
       </p>
       {configured.length === 0 && rows.length === 0 && (
         <p className="rounded-[11px] border border-dashed border-line-strong bg-canvas px-[13px] py-[11px] text-[12.5px] text-dim">
-          This gym has no offers yet, so there is nothing to limit. Choose an offer in the gym&apos;s details first.
+          Choose an offer above first.
         </p>
       )}
       {rows.map((row, i) => {

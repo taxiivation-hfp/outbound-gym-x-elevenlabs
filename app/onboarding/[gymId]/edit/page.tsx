@@ -7,6 +7,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/extraction/documentText";
 import { extractionConfigured } from "@/lib/extraction/extract";
 import { firstRunState } from "@/lib/firstRun";
 import { listGyms, resolveGym } from "@/lib/gymStore";
+import { memberDataCounts } from "@/lib/memberStore";
 import { ONBOARDING_WRITES_OFF, onboardingWritesEnabled } from "@/lib/onboardingWrites";
 
 export const metadata: Metadata = {
@@ -23,7 +24,12 @@ export const dynamic = "force-dynamic";
  */
 export default async function EditGymPage({ params }: { params: Promise<{ gymId: string }> }) {
   const { gymId } = await params;
-  const [lookup, listing, firstRun] = await Promise.all([resolveGym(gymId), listGyms(), firstRunState()]);
+  const [lookup, listing, firstRun, counts] = await Promise.all([
+    resolveGym(gymId),
+    listGyms(),
+    firstRunState(),
+    memberDataCounts(gymId).catch(() => null),
+  ]);
   if (!lookup.ok && lookup.status === 404) notFound();
 
   const writesEnabled = onboardingWritesEnabled();
@@ -62,6 +68,7 @@ export default async function EditGymPage({ params }: { params: Promise<{ gymId:
       defaultGym={defaultGym ? { gym_id: defaultGym.gym_id, gym_name: defaultGym.gym_name } : null}
       maxUploadMb={MAX_UPLOAD_BYTES / 1024 / 1024}
       firstRunStep={firstRun.gated ? firstRun.step : null}
+      editingMembersDone={Boolean(counts && counts.members > 0 && counts.contracts > 0 && counts.checkins > 0)}
     />
   );
 }

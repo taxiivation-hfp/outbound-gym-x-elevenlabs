@@ -10,6 +10,11 @@ import { Pill, focusRing } from "./ui";
  * aria-describedby. Blank is a first-class answer: the tri-state and choice
  * controls have an explicit "Not stated" option rather than an unticked box that
  * could mean "no".
+ *
+ * The hint and the "if you leave this blank" line appear while the field has
+ * focus, so a form of eighteen questions reads as eighteen questions. Errors and
+ * provenance stay visible: they are about the value, not the question. The
+ * preview beside the form shows what every blank answer compiles to.
  */
 
 /** Where a field's current value stands. Computed by the form from the draft and the extraction review. */
@@ -61,7 +66,7 @@ function Captions({
   return (
     <>
       {chrome.hint && (
-        <p id={ids.hint} className="text-[11.5px] leading-[1.45] text-dim text-pretty">
+        <p id={ids.hint} className="hidden text-[11.5px] leading-[1.45] text-dim text-pretty group-focus-within/field:block">
           {chrome.hint}
         </p>
       )}
@@ -71,7 +76,7 @@ function Captions({
         </p>
       )}
       {!chrome.error && chrome.blank && chrome.blankNote && (
-        <p id={ids.blank} className="text-[11.5px] leading-[1.45] text-dim text-pretty">
+        <p id={ids.blank} className="hidden text-[11.5px] leading-[1.45] text-dim text-pretty group-focus-within/field:block">
           <span className="font-semibold text-muted">{chrome.blankLabel ?? "Not stated:"}</span> {chrome.blankNote}
         </p>
       )}
@@ -141,7 +146,7 @@ export function TextField({
 }) {
   const ids = useFieldIds();
   return (
-    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+    <div data-field={name} className="group/field flex min-w-0 flex-col gap-2">
       <LabelRow chrome={chrome} htmlFor={ids.control} />
       <input
         id={ids.control}
@@ -189,7 +194,7 @@ export function AffixField({
 }) {
   const ids = useFieldIds();
   return (
-    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+    <div data-field={name} className="group/field flex min-w-0 flex-col gap-2">
       {labelOverride ? (
         <label htmlFor={ids.control} className="whitespace-nowrap text-[11.5px] font-semibold text-muted">
           {labelOverride}
@@ -250,7 +255,7 @@ export function ChoiceField<T extends string | boolean>({
   const all: Array<{ value: T | null; label: string; note?: string }> = [...options, { value: null, label: "Not stated" }];
   const description = describedBy(ids, chrome);
   return (
-    <fieldset data-field={name} className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
+    <fieldset data-field={name} className="group/field m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
       <LabelRow chrome={chrome} as="legend" />
       <div className="flex flex-wrap gap-1.5">
         {all.map((option) => {
@@ -344,7 +349,7 @@ export function ListField({
   };
 
   return (
-    <div data-field={name} className="flex min-w-0 flex-col gap-2">
+    <div data-field={name} className="group/field flex min-w-0 flex-col gap-2">
       <LabelRow chrome={chrome} htmlFor={ids.control} />
       {values.length > 0 && (
         <ul ref={listRef} className="m-0 flex list-none flex-wrap gap-[7px] p-0" aria-label={`${chrome.label} added`}>
