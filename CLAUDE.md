@@ -137,7 +137,7 @@ about who is due a call.
 **Screens (`app/`, `components/`).** Five screens built from the approved
 mockups in `docs/design/mockups/`: the call queue (`/`, `components/calls/`),
 the overview (`/intelligence`, `components/intelligence/`), configuration
-(`/onboarding`, `components/onboarding/`), evals (`/evals`, `components/evals/`)
+(`/onboarding`, `components/onboarding/`), Our Journey (`/our-journey`, `components/evals/`)
 and about (`/about`, `components/about/`), plus `/members`. Every screen sits in
 `components/shell/AppShell.tsx` and uses the theme tokens in `app/globals.css`
 (light and dark; name a role like `bg-surface` or `text-dim`, never a hex).
@@ -187,7 +187,7 @@ Two suites in one runner (`evals/run.ts`), full rationale in `evals/README.md`:
   checks both a local regex condition (for anything about ordering — regexes
   settle ordering exactly, judges don't) and one judge condition (for genuine
   judgment calls, e.g. "did it invent a fact"). Results are committed under
-  `evals/results/`; `/evals` in the app renders `results/latest.json`.
+  `evals/results/`; `/our-journey` in the app renders `results/latest.json`.
 
 The conversation score is **not deterministic** — it moved between 11/15 and
 15/15 across runs that changed nothing about the agents, because both the

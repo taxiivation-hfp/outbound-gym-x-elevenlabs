@@ -51,10 +51,10 @@ export default async function AboutPage() {
       headerActions={
         <>
           <Link
-            href="/evals"
+            href="/our-journey"
             className="flex h-[34px] items-center rounded-[10px] border border-line bg-control px-3.5 text-[12.5px] font-bold text-ink no-underline transition-colors hover:border-accent-line"
           >
-            See the evals
+            See our journey
           </Link>
           <Link
             href="/"

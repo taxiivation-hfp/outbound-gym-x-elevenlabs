@@ -69,7 +69,7 @@ const PRIMARY: Array<{ key: NavKey; href: string; label: string }> = [
 ];
 
 const SECONDARY: Array<{ key: NavKey; href: string; label: string }> = [
-  { key: "evals", href: "/evals", label: "Evals" },
+  { key: "evals", href: "/our-journey", label: "Our Journey" },
   { key: "about", href: "/about", label: "About" },
 ];
 
@@ -103,7 +103,7 @@ export default function AppShell({
   children,
 }: {
   current: NavKey;
-  /** The gym's name on an operator screen, the product's on Evals and About. */
+  /** The gym's name on an operator screen, the product's on Our Journey and About. */
   title: string;
   /** What this screen is, under the title. */
   eyebrow: string;

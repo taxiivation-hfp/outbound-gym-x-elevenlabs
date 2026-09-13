@@ -3,7 +3,7 @@ import latest from "@/evals/results/latest.json";
 /**
  * What the latest committed eval run says about each commitment on the About
  * page. Nothing here is typed in: every status is read out of
- * `evals/results/latest.json`, the same file `/evals` renders, so the page
+ * `evals/results/latest.json`, the same file `/our-journey` renders, so the page
  * cannot claim a check passed that the run file says failed.
  */
 

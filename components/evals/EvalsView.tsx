@@ -114,7 +114,7 @@ export default function EvalsView({ data }: { data: EvalsData }) {
     <AppShell
       current="evals"
       title="Retention Router"
-      eyebrow="Build journey"
+      eyebrow="Our Journey"
       headerActions={
         <Link
           href="/about"

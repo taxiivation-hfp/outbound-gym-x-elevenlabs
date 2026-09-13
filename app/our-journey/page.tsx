@@ -2,7 +2,7 @@ import EvalsView from "@/components/evals/EvalsView";
 import { loadEvalsData } from "@/components/evals/data";
 
 /**
- * The build journey: the decisions and what broke, with the evals as the
+ * Our Journey: the decisions and what broke, with the evals as the
  * evidence, rendered from committed files. Written for a judge, not a gym
  * manager.
  *
@@ -16,9 +16,9 @@ import { loadEvalsData } from "@/components/evals/data";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Build journey — Retention Router",
+  title: "Our Journey — Retention Router",
 };
 
-export default function EvalsPage() {
+export default function OurJourneyPage() {
   return <EvalsView data={loadEvalsData()} />;
 }
