@@ -118,7 +118,8 @@ actually lives:
   verbatim quote from the document supports it. A person reviews every value
   before `POST /api/gyms` saves it.
 - Member data — `memberSource.ts` picks the synthetic dataset (default) or one
-  gym's uploaded members (`MEMBER_SOURCE=supabase`, `MEMBER_SOURCE_GYM_ID`).
+  gym's uploaded members (`MEMBER_SOURCE=supabase`, `MEMBER_SOURCE_GYM_ID`), or the
+  members of whichever gym was saved at onboarding (`MEMBER_SOURCE=onboarded`).
   Uploaded data is stored as members (upsert), contracts (one row per term,
   insert-only) and check-ins (insert-only) by `memberStore.ts`, imported by
   `memberImport.ts`/`csv.ts`, and derived into the router's `Member` shape by

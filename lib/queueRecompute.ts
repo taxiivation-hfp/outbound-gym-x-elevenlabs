@@ -9,7 +9,7 @@ import { DATA_AS_OF } from "@/lib/clock";
 import { evaluateEligibility } from "@/lib/eligibility";
 import type { GymFields } from "@/lib/gymConfig";
 import { resolveGym } from "@/lib/gymStore";
-import { loadMembers, memberSource, type MemberSource } from "@/lib/memberSource";
+import { loadMembers, memberSource, onboardedGymId, type MemberSource } from "@/lib/memberSource";
 import { readAllCallRows } from "@/lib/callRecords";
 import { reasonDetails, type ReasonRow, type StoredReasonThemes } from "@/lib/reasonThemes";
 import { summariseReasonThemes } from "@/lib/reasonThemesSummary";
@@ -46,10 +46,15 @@ export type RecomputePlan =
   | { ok: false; status: number; reason: string };
 
 /** Decides whether and how tonight's run happens. Pure, so a guard can pin it. */
-export function planRecompute(env: { MEMBER_SOURCE?: string; MEMBER_SOURCE_GYM_ID?: string; DATASET_CLOCK?: string }, now: Date): RecomputePlan {
+export function planRecompute(
+  env: { MEMBER_SOURCE?: string; MEMBER_SOURCE_GYM_ID?: string; DATASET_CLOCK?: string },
+  now: Date,
+  /** For MEMBER_SOURCE=onboarded: the gym it resolved to (lib/memberSource.ts). */
+  onboardedGym: string | null = null
+): RecomputePlan {
   let source: MemberSource;
   try {
-    source = memberSource(env);
+    source = memberSource(env, onboardedGym);
   } catch (err) {
     return { ok: false, status: 409, reason: err instanceof Error ? err.message : String(err) };
   }
@@ -163,7 +168,8 @@ export async function runRecompute(now: Date): Promise<RecomputeResult> {
       MEMBER_SOURCE_GYM_ID: process.env.MEMBER_SOURCE_GYM_ID,
       DATASET_CLOCK: process.env.DATASET_CLOCK,
     },
-    now
+    now,
+    process.env.MEMBER_SOURCE?.trim() === "onboarded" ? await onboardedGymId() : null
   );
   if (!plan.ok) throw new RecomputeError(plan.reason, plan.status);
 

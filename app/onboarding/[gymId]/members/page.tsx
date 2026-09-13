@@ -11,6 +11,7 @@ import { routeMember } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { firstRunState } from "@/lib/firstRun";
 import { resolveGym } from "@/lib/gymStore";
+import { currentMemberSource } from "@/lib/memberSource";
 import { IMPORT_COLUMNS, IMPORT_KINDS, type ImportKind } from "@/lib/memberImport";
 import { MemberStoreError, loadGymMembers, memberDataCounts, type MemberDataCounts } from "@/lib/memberStore";
 import { latestRun } from "@/lib/queueRecompute";
@@ -54,7 +55,12 @@ function Tally({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
  */
 export default async function MemberDataPage({ params }: { params: Promise<{ gymId: string }> }) {
   const { gymId } = await params;
-  const [gym, firstRun] = await Promise.all([resolveGym(gymId), firstRunState()]);
+  const [gym, firstRun, queueSource] = await Promise.all([
+    resolveGym(gymId),
+    firstRunState(),
+    currentMemberSource().catch(() => null),
+  ]);
+  const queueUsesThisGym = queueSource?.kind === "supabase" && queueSource.gymId === gymId;
   if (!gym.ok && gym.status === 404) notFound();
 
   const asOf = today();
@@ -236,10 +242,17 @@ export default async function MemberDataPage({ params }: { params: Promise<{ gym
               )}
 
               <p className="border-t border-line pt-[13px] text-[11.5px] leading-[1.45] text-dim text-pretty">
-                The queue uses these members when the deployment sets{" "}
-                <code className="font-mono text-ink-2">MEMBER_SOURCE=supabase</code> and{" "}
-                <code className="font-mono text-ink-2 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>. Until then it uses the
-                synthetic dataset.
+                {queueUsesThisGym ? (
+                  <>The call queue, the overview and every call use these members.</>
+                ) : (
+                  <>
+                    The queue uses these members when the deployment sets{" "}
+                    <code className="font-mono text-ink-2">MEMBER_SOURCE=onboarded</code> (the gym saved at setup) or{" "}
+                    <code className="font-mono text-ink-2">MEMBER_SOURCE=supabase</code> with{" "}
+                    <code className="font-mono text-ink-2 break-all">MEMBER_SOURCE_GYM_ID={gymId}</code>, either with{" "}
+                    <code className="font-mono text-ink-2">DATASET_CLOCK=live</code>. Until then it uses the synthetic dataset.
+                  </>
+                )}
               </p>
             </div>
           </aside>
