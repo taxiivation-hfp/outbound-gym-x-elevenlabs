@@ -5,7 +5,7 @@ import type { CallType } from "@/lib/callType";
 import { today } from "@/lib/clock";
 import { compileVariables, GymConfigError } from "@/lib/compileVariables";
 import { IncentivesValidationError } from "@/lib/validateIncentives";
-import { resolveDialTarget } from "@/lib/dialSafety";
+import { parseTestNumber, resolveDialTarget, withTestNumber } from "@/lib/dialSafety";
 import { callRefusal } from "@/lib/callGate";
 import { evaluateEligibility, evaluateOffers, scheduleKey, withholdOffers } from "@/lib/eligibility";
 import { resolveGym } from "@/lib/gymStore";
@@ -38,6 +38,12 @@ export async function POST(req: NextRequest) {
   if (!memberId || typeof memberId !== "string") {
     return NextResponse.json({ error: "member_id is required" }, { status: 400 });
   }
+  // The sidebar's test number, if one was typed. Blank means CALL_OVERRIDE_NUMBER stands.
+  const testNumber = parseTestNumber(body?.test_number);
+  if (!testNumber.ok) {
+    return NextResponse.json({ error: "Refusing to dial", reason: testNumber.reason, blocked_by: "test_number" }, { status: 400 });
+  }
+  const dialEnv = withTestNumber(testNumber.number);
 
   // Read the member now, not from whatever the queue showed. The queue was
   // computed when the page rendered; since then a member can have renewed,
@@ -176,13 +182,13 @@ export async function POST(req: NextRequest) {
   // output — well-formed, and belonging to a stranger — so the route refuses to
   // dial it unless an override number is set or someone has deliberately opted
   // in. Nothing about the routing changes, only the last hop.
-  if (!member.phone.trim() && !process.env.CALL_OVERRIDE_NUMBER?.trim()) {
+  if (!member.phone.trim() && !dialEnv.CALL_OVERRIDE_NUMBER?.trim()) {
     return NextResponse.json(
       { error: "Refusing to dial", reason: "There is no mobile number on file for this member.", blocked_by: "no_number" },
       { status: 409 }
     );
   }
-  const dial = resolveDialTarget(member.phone, source);
+  const dial = resolveDialTarget(member.phone, source, dialEnv);
   if (!dial.allowed || !dial.to) {
     return NextResponse.json(
       { error: "Refusing to dial", reason: dial.reason, blocked_by: "unverified_number" },

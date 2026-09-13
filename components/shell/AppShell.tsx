@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { NAV_STORAGE_KEY } from "@/components/shell/theme";
 import ThemeToggle from "@/components/shell/ThemeToggle";
+import { looksLikeMobile, useTestNumber, writeTestNumber } from "@/components/shell/testNumber";
 
 /**
  * The frame every screen sits in: a header bar (whose title, eyebrow and
@@ -201,12 +202,51 @@ export default function AppShell({
               {open && <span>Collapse</span>}
             </button>
             <nav className="flex flex-col gap-[3px] px-2 pt-2">{PRIMARY.map(item)}</nav>
-            <div className="mt-auto flex flex-col gap-[3px] border-t border-line p-2">{SECONDARY.map(item)}</div>
+            <div className="mt-auto flex flex-col gap-[3px] border-t border-line p-2">
+              {open && <TestNumberField />}
+              {SECONDARY.map(item)}
+            </div>
           </aside>
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The number calls ring on this session, in place of CALL_OVERRIDE_NUMBER. No
+ * visible label by design: the fixed +61 and the example number say what it is.
+ * Screen readers get the name from aria-label.
+ */
+function TestNumberField() {
+  const value = useTestNumber();
+  const invalid = value !== "" && !looksLikeMobile(value);
+  return (
+    <div
+      className={`mb-1.5 flex h-9 items-center gap-1.5 rounded-[9px] border bg-canvas px-[11px] focus-within:bg-surface has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-line ${
+        invalid ? "border-flag" : "border-line-strong hover:border-accent-line focus-within:border-accent-line"
+      }`}
+    >
+      <span aria-hidden="true" className="flex-none text-[12.5px] font-semibold tabular-nums text-dim">
+        +61
+      </span>
+      <input
+        type="tel"
+        inputMode="numeric"
+        autoComplete="off"
+        aria-label="Test phone number, Australian mobile after +61. Blank uses the deployment's number."
+        aria-invalid={invalid || undefined}
+        value={value}
+        placeholder="470517310"
+        onChange={(e) => {
+          // A pasted +61 470 517 310 keeps only what goes after the fixed prefix.
+          const digits = e.target.value.replace(/\D/g, "");
+          writeTestNumber((/^61\d{9}$/.test(digits) ? digits.slice(2) : digits).slice(0, 10));
+        }}
+        className="h-full w-full min-w-0 bg-transparent text-[12.5px] tabular-nums text-ink placeholder:text-faint outline-none"
+      />
     </div>
   );
 }
