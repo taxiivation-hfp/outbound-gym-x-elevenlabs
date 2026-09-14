@@ -8,6 +8,12 @@
 
 🔴 **Live app:** [retention-router.vercel.app](https://retention-router.vercel.app) · 🎥 **Demo video:** `[add link]` · 📊 [Our Journey](https://retention-router.vercel.app/our-journey) · 📈 [Overview](https://retention-router.vercel.app/intelligence)
 
+IMPORTANT: QUICKLAUNCH INSTRUCTIONS
+
+- CHANGE PHONE NUMBER ON APP (BOTTOM LEFT CORNER)
+- WILL ROUTE ANY MEMBER CALL TO YOUR SPECIFIED PHONE
+- IF YOU WANT MESSAGES NEED TO CHANGE .ENV FILE (BACKUP)
+
 ---
 
 Retention Router reads a gym's member list and decides who to call. An ElevenLabs voice agent named Charlie then makes the call, live.
