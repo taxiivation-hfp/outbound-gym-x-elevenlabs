@@ -24,17 +24,17 @@ on the live URL, not just locally.
 
 ## 00. Apply this first: the text follows the call
 
-**Not done, needs you:** run
-`supabase/migrations/20260915050000_call_dialled_to.sql` in the Supabase
-project's SQL editor (one `alter table call_records add column if not exists
-dialled_to text;`, idempotent). No management token was available here, so it
-was verified only against an in-process Postgres (`npm run db:verify`).
+**Done on 14 September 2026:**
+`supabase/migrations/20260915050000_call_dialled_to.sql` was run in the
+Supabase project's SQL editor, and `call_records.dialled_to` read back over
+the REST API. For another project, apply it in order after the pass-two
+migration (`npm run db:verify`).
 
-Until it is applied, a call placed with the sidebar's test number rings that
-number but any text the agent sends during it goes to `CALL_OVERRIDE_NUMBER`.
-`/api/call` writes the dialled number on the call record and `send_text` reads
-it back; without the column the write is stripped, a warning is logged, and the
-text falls back to the environment's number.
+Before it, a call placed with the sidebar's test number rang that number but
+any text the agent sent during it went to `CALL_OVERRIDE_NUMBER`. `/api/call`
+now writes the dialled number on the call record and `send_text` reads it
+back; on a deployment without the column the write is stripped, a warning is
+logged, and the text falls back to the environment's number.
 
 ---
 
