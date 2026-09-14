@@ -4,7 +4,7 @@
 
 **Orlando · Dan · Oliver · Jesslyn**
 
-**Track 1: Improve an Existing Business Capability**, entered alongside the **ElevenLabs Special Track**
+**Track 3: Solve a Business Problem**, entered alongside the **ElevenLabs Special Track**
 
 🔴 **Live app:** [retention-router.vercel.app](https://retention-router.vercel.app) · 🎥 **Demo video:** `[add link]` · 📊 [Our Journey](https://retention-router.vercel.app/our-journey) · 📈 [Overview](https://retention-router.vercel.app/intelligence)
 
@@ -48,7 +48,7 @@ The staff can see who has stopped coming and whose membership is about to end. N
 
 **1. The calls worth making.** A member on a fixed term that won't renew itself, still training, fourteen days from the end. This is the cheapest retention call there is. The others are members who stopped coming while the membership is still live, and former members in the months after their term ended.
 
-**2. The calls we shouldn't make.** A member on a rolling monthly contract. An auto-renewing member who hasn't been in for six months is the most profitable member the gym has. They pay full price and take up no space. A call reminds them they are paying and gives them a reason to cancel. Uplift research calls these members sleeping dogs.
+**2. The calls we shouldn't make.** A member on a rolling monthly contract. An auto-renewing member who hasn't been in for six months is the most profitable member the gym has. They pay full price and take up no space. A call reminds them they are paying and gives them a reason to cancel. They are the one member a call can only make worse.
 
 > **`auto_renew == true` → never called. The one exception is a member who has already asked to cancel.**
 
@@ -60,7 +60,7 @@ Two kinds of product already exist in this space. Neither has the exclusion rule
 
 **Executors** carry out the outreach. Replify runs outbound retention calls. Keepme's Antares follows up with written messages. Both contact whoever the predictor or the sales funnel flags. Neither has a reason to hold a call back.
 
-Point either kind at this dataset and it would ring the 129 auto-renewing members this product never calls. It would ring hardest at the 60 of them whose renewal date is inside a fortnight. A high churn score plus a renewal date close by is exactly what a predictor flags as urgent. That call is the one that costs the gym a paying member.
+Point either kind at this dataset and it would ring the 129 auto-renewing members this product never calls, the number the live queue was still excluding on 14 September 2026. It would ring hardest at the 60 of them whose renewal date is inside a fortnight. A high churn score plus a renewal date close by is exactly what a predictor flags as urgent. That call is the one that costs the gym a paying member.
 
 The second difference is what comes back. A churn score is a number a front-desk manager can't argue with. This router gives back a sentence they can check against what they know about the member.
 
@@ -158,7 +158,7 @@ Shown on the Overview with every assumption next to the number it produces. The 
 | | |
 |---|---|
 | Cost per call | **$0.41**. $0.10/min ElevenLabs plus $0.055/min Twilio to an Australian mobile, for 2.5 minutes, plus an SMS on 35% of calls |
-| Today's queue | 145 calls, **$59** all in |
+| Today's queue | 145 calls, **$59** all in, as at 12 September 2026. The live queue read 146 calls on 14 September. |
 | A saved member | **$482**, their own monthly fee for six more months, averaged over the members due a call. Six months is one renewal cycle. |
 | **Break-even** | **0.084% conversion. One save in about 1,190 calls pays for the run.** |
 
@@ -180,7 +180,7 @@ What the Overview shows for the dataset on 12 September 2026, from `lib/gymHealt
 | Fixed terms ending in 14 / 30 / 90 days | 65 / 65 / 100 |
 | How members use the gym | 186 frequent, 107 occasional, 50 inactive after a habit, 37 inactive and never regular |
 | Revenue at risk, still paying | $8,088 a month: renewal $3,032 (38 members), reengagement $3,131 (39), cancellation $1,925 (25) |
-| Revenue at risk, lapsed and recoverable | $3,567 a month across 43 winback members |
+| Revenue at risk, lapsed and recoverable | $3,567 a month across 43 winback members on 12 September 2026. The live Overview read $3,646 across 44 on 14 September. |
 | Busiest hours | Monday 6pm, Tuesday 6pm, Monday 5pm, Tuesday 7am, Tuesday 5pm |
 
 ## Running it
@@ -351,7 +351,7 @@ Every run as it was scored at the time:
 
 Under today's leak checks the first five runs score lower. The third run, recorded as 15/15, is 9/15.
 
-**The conversation score isn't stable, and saying so is more useful than quoting the best number.** It moved between 11 and 15 across runs that changed nothing about the agents. The simulated member is a model, and so is the judge. The guards were 19/19 on every run but one, which scored 18/19. They were 20/20 once the pattern guard was added, and 80/80 on both runs with the cancellation agent. The deterministic half is steady, which is why it exists.
+**The conversation score isn't stable, and saying so is more useful than quoting the best number.** It moved between 11 and 15 across runs that changed nothing about the agents. The simulated member is a model, and so is the judge. The guards were 19/19 on every run but one, which scored 18/19. They were 20/20 once the pattern guard was added, and 80/80 or 81/81 across the four runs with the cancellation agent. The deterministic half is steady, which is why it exists.
 
 The most valuable thing the suite did was force a model change. `gemini-2.5-flash` added its own reasoning to the spoken turn on about one call in eight.
 
@@ -445,6 +445,7 @@ The one field that decides everything is whether a contract rolls over. Mindbody
 
 ```
 pipeline/        synthetic data generator, cancellation requests, the cohort rules (Python)
+data/            the generated dataset the app reads, and its frozen clock
 lib/             routing, eligibility, the variable compiler, economics, gym health
                  gym config, the incentives registry and its validator, member data
 lib/extraction/  document reading, the extraction call, the sanitiser that checks it
@@ -455,6 +456,7 @@ app/             the five screens, /members, API routes, texted-link landing pag
 components/      the screens' components and the shared shell
 supabase/        migrations for call_records, gyms, member data, gym health, offers and the freeze
 docs/            architecture diagram, build log (every plan and report), design mockups
+public/          static assets
 ```
 
 [`evals/README.md`](evals/README.md) covers how evaluation works and what it misses. [`docs/build-log/`](docs/build-log/README.md) holds the build log, every plan and report in order. [`REVIEW_NOTES.md`](REVIEW_NOTES.md) lists what still needs a human.

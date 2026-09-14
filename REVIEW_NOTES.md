@@ -22,6 +22,22 @@ on the live URL, not just locally.
 
 ---
 
+## 00. Apply this first: the text follows the call
+
+**Done on 14 September 2026:**
+`supabase/migrations/20260915050000_call_dialled_to.sql` was run in the
+Supabase project's SQL editor, and `call_records.dialled_to` read back over
+the REST API. For another project, apply it in order after the pass-two
+migration (`npm run db:verify`).
+
+Before it, a call placed with the sidebar's test number rang that number but
+any text the agent sent during it went to `CALL_OVERRIDE_NUMBER`. `/api/call`
+now writes the dialled number on the call record and `send_text` reads it
+back; on a deployment without the column the write is stripped, a warning is
+logged, and the text falls back to the environment's number.
+
+---
+
 ## 0. Onboarding — on the `feat/onboarding` branch, not on `main`
 
 Gym setup, document extraction, member CSV import and the nightly recompute are
@@ -122,9 +138,11 @@ regardless. Status:
 
 ## 1. Things only you can do
 
-> **The order of 1a and 1b matters.** The repository is currently private and has
-> to be public to be judged — and its git history contains a live Twilio auth
-> token. Rotate the token *before* you flip the repo to public, not after.
+> **Status, 14 September 2026: both are done, in the right order.** The token was
+> rotated first, then the repository was made public. An anonymous clone succeeds
+> while logged out. The rotated token is still readable in git history at commit
+> `4a04a89`. It no longer authenticates. Rewriting history to remove it is the
+> only part still outstanding, and the README states it plainly under LIMITATIONS.
 
 ### 1a. Rotate the Twilio credentials. Do this first.
 
@@ -142,8 +160,11 @@ here with a real-money downside.
 
 ### 1b. Make the repository public
 
-`https://github.com/taxiivation-hfp/outbound-gym-x-elevenlabs` returns a 404 to
-anyone who is not logged in as you — it is private. The preliminary round is
+> **Done. Verified on 14 September 2026:** an anonymous clone of
+> `https://github.com/taxiivation-hfp/outbound-gym-x-elevenlabs` succeeds while
+> logged out. The repository is public.
+
+It previously returned a 404 to anyone not logged in as you. The preliminary round is
 judged from *"the public repo, a live production URL and a demo video"*, so as
 things stand the judges can see two of those three, and the repo is where the
 code-quality and feasibility points live.
