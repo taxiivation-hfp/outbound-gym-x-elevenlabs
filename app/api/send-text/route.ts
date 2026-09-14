@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firstName } from "@/lib/compileVariables";
-import { resolveDialTarget } from "@/lib/dialSafety";
+import { resolveDialTarget, withTestNumber } from "@/lib/dialSafety";
 import { gymOfRecentCall } from "@/lib/callRecords";
 import { resolveGym } from "@/lib/gymStore";
 import type { CallType } from "@/lib/callType";
@@ -143,29 +143,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Which gym's name and link this text carries. The agent's tool sends only
-  // `member_id` and `link_type`, so the gym comes from the call it is making:
-  // `/api/call` records the gym on the call record before the phone rings.
-  // With no such record the text is refused rather than sent under the default
-  // gym's name — a text branded as the wrong gym is a text that shouldn't go.
-  // An incentive text also needs the call type, which only the call record has,
-  // because what "incentive" means depends on the call the agent is on.
+  // Which gym's name and link this text carries, and which number it goes to.
+  // The agent's tool sends only `member_id` and `link_type`, so both come from
+  // the call it is making: `/api/call` records the gym and the dialled number
+  // on the call record before the phone rings. With no such record the text is
+  // refused rather than sent under the default gym's name — a text branded as
+  // the wrong gym is a text that shouldn't go. An incentive text also needs
+  // the call type, which only the call record has, because what "incentive"
+  // means depends on the call the agent is on. A renewal or booking text with
+  // the gym given can go without a record; it then resolves its number from
+  // the environment, as the call did.
   let gymId: string | null = typeof body?.gym_id === "string" && body.gym_id.trim() ? body.gym_id : null;
   let callType: CallType | null = null;
   let offersAvailable: string[] | null = null;
-  if (!gymId || linkType === "incentive") {
-    const recent = await gymOfRecentCall(memberId);
-    if (!recent.ok) {
-      console.error("send_text refused: no call record for this text", recent.error, { memberId, linkType });
-      return NextResponse.json({
-        success: false,
-        message: "I couldn't send that text just now — someone from the gym will follow up.",
-        detail: recent.error,
-      });
-    }
+  let dialledTo: string | null = null;
+  const recent = await gymOfRecentCall(memberId);
+  if (recent.ok) {
     gymId = gymId ?? recent.gymId;
     callType = recent.callType;
     offersAvailable = recent.offersAvailable;
+    dialledTo = recent.dialledTo;
+  } else if (!gymId || linkType === "incentive") {
+    console.error("send_text refused: no call record for this text", recent.error, { memberId, linkType });
+    return NextResponse.json({
+      success: false,
+      message: "I couldn't send that text just now — someone from the gym will follow up.",
+      detail: recent.error,
+    });
+  } else {
+    console.warn("send_text: no call record, so the number comes from the environment", recent.error, { memberId, linkType });
   }
 
   // An uploaded member only ever hears from the gym they were uploaded for.
@@ -219,8 +225,11 @@ export async function POST(req: NextRequest) {
 
   // Same guard as the call route, same reason: these numbers belong to
   // strangers. A refusal here degrades into something the agent can say rather
-  // than an error it might read out.
-  const dial = resolveDialTarget(member.phone, source);
+  // than an error it might read out. The number the call went to stands in for
+  // the env override, exactly as the sidebar's test number did on the call:
+  // it was already the number dial safety allowed, and a text sent mid-call
+  // has to land on the handset that is on the call.
+  const dial = resolveDialTarget(member.phone, source, withTestNumber(dialledTo));
   if (!dial.allowed || !dial.to) {
     console.error("send_text refused:", dial.reason, { memberId, linkType });
     return NextResponse.json({
@@ -247,7 +256,7 @@ export async function POST(req: NextRequest) {
   console.log("send_text sent", {
     memberId,
     linkType,
-    to: dial.overridden ? "override" : "member",
+    to: dialledTo ? "the call's number" : dial.overridden ? "override" : "member",
     sid: result.sid,
   });
 
