@@ -1,6 +1,6 @@
 # Retention Router
 
-### An outbound voice agent for gyms. It calls the members worth calling and leaves the rest alone.
+### An outbound CRM voice agent for small-medium gyms. It calls the members worth calling and leaves the rest alone.
 
 **Orlando · Dan · Oliver · Jesslyn**
 
