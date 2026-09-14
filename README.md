@@ -46,9 +46,9 @@ It calls four kinds of member:
 
 ## The customer
 
-Retention Router is for mid-sized gyms and small franchises. They are big enough to lose members every month. They are too small to have anyone whose job is to stop it. There is no retention team, and no software beyond the gym management platform.
+Retention Router is for mid-sized gyms and small franchises. They are big enough to lose members every month. They are too small to have anyone whose job is to stop it. There is no retention team, and no software beyond the gym management platform. Competitors are too expensive and bloated for these purposes. 
 
-The staff can see who has stopped coming and whose membership is about to end. Nobody acts on it. Ringing dozens of people a day is a job nobody at the front desk has time for or wants.
+The staff can see who has stopped coming and whose membership is about to end. Nobody acts on it. Ringing dozens of people a day is a job nobody at the front desk has time for or wants. However; the customer still wants human interaction -- this is where ElevenLab's cutting edge voice models come in. An automated message can feel cold and passive, whereas a fake human can maintain relationships and keep customers on board.
 
 ### The two halves of the problem
 
@@ -69,6 +69,8 @@ Two kinds of product already exist in this space. Neither has the exclusion rule
 Point either kind at this dataset and it would ring the 129 auto-renewing members this product never calls, the number the live queue was still excluding on 14 September 2026. It would ring hardest at the 60 of them whose renewal date is inside a fortnight. A high churn score plus a renewal date close by is exactly what a predictor flags as urgent. That call is the one that costs the gym a paying member.
 
 The second difference is what comes back. A churn score is a number a front-desk manager can't argue with. This router gives back a sentence they can check against what they know about the member.
+
+
 
 ## What it does
 
