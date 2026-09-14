@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 700" width="1160" height="700" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 900" width="1160" height="900" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
   <title>Retention Router architecture</title>
-  <desc>An offline Python pipeline produces raw member facts. At call time TypeScript decides who is called, the variable compiler builds the payload, and one of three ElevenLabs agents makes the call over Twilio. The post-call webhook writes the analysis back to Supabase, which feeds both the dashboard and the next call.</desc>
+  <desc>Member facts come from an offline Python pipeline or a gym's upload, and gym config is typed data saved at onboarding. At call time TypeScript decides who is called and what may be offered, the variable compiler builds the payload, /api/call re-checks eligibility and dials, and one of four ElevenLabs agents speaks over Twilio. The post-call webhook writes the analysis back to Supabase, which the next call reads, the nightly recompute snapshots, and the five screens show.</desc>
 
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -11,12 +11,13 @@
     </marker>
   </defs>
 
-  <rect width="1160" height="700" fill="#09090b"/>
+  <rect width="1160" height="900" fill="#09090b"/>
 
   <text x="32" y="42" fill="#fafafa" font-size="20" font-weight="800" letter-spacing="0.5">RETENTION ROUTER</text>
   <text x="32" y="64" fill="#71717a" font-size="13">One member, from a row in a gym export to a phone call and back again.</text>
 
-  <text x="32" y="108" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">OFFLINE, PYTHON</text>
+  <!-- column 1: data -->
+  <text x="32" y="108" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">DATA: OFFLINE PYTHON, OR UPLOADED</text>
   <rect x="32" y="120" width="232" height="72" rx="10" fill="#18181b" stroke="#3f3f46"/>
   <text x="48" y="146" fill="#fafafa" font-size="13" font-weight="700">generate_gym_data.py</text>
   <text x="48" y="166" fill="#a1a1aa" font-size="11">members, contracts, check-ins</text>
@@ -32,102 +33,166 @@
   <text x="48" y="344" fill="#fafafa" font-size="12" font-weight="700">data/members_scored.json</text>
   <text x="48" y="364" fill="#71717a" font-size="11">+ dataset_meta.json, frozen date</text>
 
-  <rect x="32" y="398" width="232" height="58" rx="10" fill="#0c0a09" stroke="#52525b" stroke-dasharray="4 3"/>
-  <text x="48" y="422" fill="#fafafa" font-size="12" font-weight="700">data/gyms.json</text>
-  <text x="48" y="442" fill="#71717a" font-size="11">two gyms, hours, incentives</text>
+  <rect x="32" y="398" width="232" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="48" y="422" fill="#fafafa" font-size="12" font-weight="700">uploaded members, Supabase</text>
+  <text x="48" y="442" fill="#a1a1aa" font-size="11">one row per contract term, plus</text>
+  <text x="48" y="458" fill="#a1a1aa" font-size="11">check-ins; lib/memberData.ts ports</text>
+  <text x="48" y="474" fill="#a1a1aa" font-size="11">build_scores.py on every read</text>
+  <text x="48" y="492" fill="#71717a" font-size="11">MEMBER_SOURCE picks dataset or gym</text>
 
+  <rect x="32" y="522" width="232" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="48" y="546" fill="#fafafa" font-size="12" font-weight="700">gym config, gyms table</text>
+  <text x="48" y="566" fill="#a1a1aa" font-size="11">seed data/gyms.json; typed fields,</text>
+  <text x="48" y="582" fill="#a1a1aa" font-size="11">never prose: offers, cheaper tier,</text>
+  <text x="48" y="598" fill="#a1a1aa" font-size="11">freeze weeks and fee, schedules</text>
+  <text x="48" y="616" fill="#71717a" font-size="11">free text ruled by textSafety.ts</text>
+
+  <rect x="32" y="646" width="232" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="48" y="670" fill="#fafafa" font-size="12" font-weight="700">/onboarding, lib/extraction/</text>
+  <text x="48" y="690" fill="#a1a1aa" font-size="11">a document read, claude-haiku-4-5</text>
+  <text x="48" y="706" fill="#a1a1aa" font-size="11">fills typed fields; a value stays</text>
+  <text x="48" y="722" fill="#a1a1aa" font-size="11">only with a verbatim quote</text>
+  <text x="48" y="740" fill="#71717a" font-size="11">a person reviews before /api/gyms</text>
+
+  <!-- column 2: decide -->
   <text x="324" y="108" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">DECIDE, TYPESCRIPT, AT CALL TIME</text>
-  <rect x="324" y="120" width="252" height="116" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <rect x="324" y="120" width="252" height="148" rx="10" fill="#18181b" stroke="#3f3f46"/>
   <text x="340" y="146" fill="#fafafa" font-size="13" font-weight="700">lib/callType.ts</text>
   <text x="340" y="166" fill="#d6ff3d" font-size="11" font-weight="700">auto_renew, and nobody is called</text>
-  <text x="340" y="186" fill="#a1a1aa" font-size="11">renewal, 14 days before expiry</text>
-  <text x="340" y="202" fill="#a1a1aa" font-size="11">reengagement, 28 days absent</text>
-  <text x="340" y="218" fill="#a1a1aa" font-size="11">winback, 1, 3 and 6 months after</text>
+  <text x="340" y="182" fill="#a3b83a" font-size="11">except one who asked to cancel:</text>
+  <text x="340" y="198" fill="#a3b83a" font-size="11">cancellation, and nothing else</text>
+  <text x="340" y="216" fill="#a1a1aa" font-size="11">renewal, 14 days before expiry</text>
+  <text x="340" y="232" fill="#a1a1aa" font-size="11">reengagement, 28 days absent</text>
+  <text x="340" y="248" fill="#a1a1aa" font-size="11">winback, 1, 3 and 6 months after</text>
 
-  <rect x="324" y="256" width="252" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="340" y="282" fill="#fafafa" font-size="13" font-weight="700">lib/eligibility.ts</text>
-  <text x="340" y="302" fill="#a1a1aa" font-size="11">do-not-contact, permanent</text>
-  <text x="340" y="318" fill="#a1a1aa" font-size="11">attempt cap, three conversations</text>
-  <text x="340" y="334" fill="#a1a1aa" font-size="11">cooldown, three months, unless</text>
-  <text x="340" y="350" fill="#a1a1aa" font-size="11">the last call worked</text>
+  <rect x="324" y="288" width="252" height="150" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="340" y="314" fill="#fafafa" font-size="13" font-weight="700">lib/eligibility.ts</text>
+  <text x="340" y="334" fill="#a1a1aa" font-size="11">do-not-contact, permanent</text>
+  <text x="340" y="350" fill="#a1a1aa" font-size="11">three calls, one about cancelling</text>
+  <text x="340" y="366" fill="#a1a1aa" font-size="11">90-day cooldown, unless it worked</text>
+  <text x="340" y="382" fill="#a1a1aa" font-size="11">seven days after no answer</text>
+  <text x="340" y="398" fill="#a1a1aa" font-size="11">cancellation needs a freeze or</text>
+  <text x="340" y="414" fill="#a1a1aa" font-size="11">a cheaper tier to offer</text>
 
-  <rect x="324" y="380" width="252" height="112" rx="10" fill="#18181b" stroke="#d6ff3d" stroke-opacity="0.45"/>
-  <text x="340" y="406" fill="#fafafa" font-size="13" font-weight="700">lib/compileVariables.ts</text>
-  <text x="340" y="426" fill="#71717a" font-size="11">the only place app names become</text>
-  <text x="340" y="442" fill="#71717a" font-size="11">prompt names</text>
-  <text x="340" y="462" fill="#a1a1aa" font-size="11">context, expiry_line, time_left,</text>
-  <text x="340" y="478" fill="#a1a1aa" font-size="11">incentives: 16 variables, all set</text>
+  <rect x="324" y="458" width="252" height="124" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="340" y="484" fill="#fafafa" font-size="13" font-weight="700">lib/incentives.ts + validator</text>
+  <text x="340" y="504" fill="#a1a1aa" font-size="11">sentences from a fixed registry</text>
+  <text x="340" y="520" fill="#a1a1aa" font-size="11">one block per call type;</text>
+  <text x="340" y="536" fill="#a1a1aa" font-size="11">validateIncentives re-derives it</text>
+  <text x="340" y="552" fill="#71717a" font-size="11">schedules and the habit gate hide</text>
+  <text x="340" y="568" fill="#71717a" font-size="11">an offer as if never set</text>
 
+  <rect x="324" y="602" width="252" height="112" rx="10" fill="#18181b" stroke="#d6ff3d" stroke-opacity="0.45"/>
+  <text x="340" y="628" fill="#fafafa" font-size="13" font-weight="700">lib/compileVariables.ts</text>
+  <text x="340" y="648" fill="#71717a" font-size="11">the only place app names become</text>
+  <text x="340" y="664" fill="#71717a" font-size="11">prompt names; no ifs in prompts</text>
+  <text x="340" y="684" fill="#a1a1aa" font-size="11">context, expiry_line, time_left,</text>
+  <text x="340" y="700" fill="#a1a1aa" font-size="11">incentives: 16 variables, all set</text>
+
+  <!-- column 3: call -->
   <text x="636" y="108" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">CALL, ELEVENLABS</text>
-  <rect x="636" y="120" width="228" height="50" rx="10" fill="#18181b" stroke="#d6ff3d" stroke-opacity="0.45"/>
-  <text x="652" y="142" fill="#d6ff3d" font-size="12" font-weight="700">charlie-renewal</text>
-  <text x="652" y="160" fill="#71717a" font-size="11">still training, term lapsing</text>
+  <rect x="636" y="120" width="228" height="88" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="652" y="144" fill="#fafafa" font-size="12" font-weight="700">/api/call, lib/dialSafety.ts</text>
+  <text x="652" y="164" fill="#a1a1aa" font-size="11">re-reads the member, re-checks</text>
+  <text x="652" y="180" fill="#a1a1aa" font-size="11">eligibility at dial time</text>
+  <text x="652" y="198" fill="#71717a" font-size="11">dataset numbers: override only</text>
 
-  <rect x="636" y="182" width="228" height="50" rx="10" fill="#18181b" stroke="#22d3ee" stroke-opacity="0.4"/>
-  <text x="652" y="204" fill="#67e8f9" font-size="12" font-weight="700">charlie-reengagement</text>
-  <text x="652" y="222" fill="#71717a" font-size="11">live membership, stopped coming</text>
+  <rect x="636" y="228" width="228" height="50" rx="10" fill="#18181b" stroke="#d6ff3d" stroke-opacity="0.45"/>
+  <text x="652" y="250" fill="#d6ff3d" font-size="12" font-weight="700">charlie-renewal</text>
+  <text x="652" y="268" fill="#71717a" font-size="11">still training, term lapsing</text>
 
-  <rect x="636" y="244" width="228" height="50" rx="10" fill="#18181b" stroke="#a78bfa" stroke-opacity="0.4"/>
-  <text x="652" y="266" fill="#c4b5fd" font-size="12" font-weight="700">charlie-winback</text>
-  <text x="652" y="284" fill="#71717a" font-size="11">already lapsed</text>
+  <rect x="636" y="290" width="228" height="50" rx="10" fill="#18181b" stroke="#22d3ee" stroke-opacity="0.4"/>
+  <text x="652" y="312" fill="#67e8f9" font-size="12" font-weight="700">charlie-reengagement</text>
+  <text x="652" y="330" fill="#71717a" font-size="11">live membership, stopped coming</text>
 
-  <rect x="636" y="312" width="228" height="76" rx="10" fill="#0c0a09" stroke="#3f3f46"/>
-  <text x="652" y="336" fill="#a1a1aa" font-size="11">Four sections byte-identical:</text>
-  <text x="652" y="354" fill="#fafafa" font-size="11" font-weight="700">Personality, Tone, Guardrails, Tools</text>
-  <text x="652" y="374" fill="#71717a" font-size="11">stored once, assembled at sync</text>
+  <rect x="636" y="352" width="228" height="50" rx="10" fill="#18181b" stroke="#a78bfa" stroke-opacity="0.4"/>
+  <text x="652" y="374" fill="#c4b5fd" font-size="12" font-weight="700">charlie-winback</text>
+  <text x="652" y="392" fill="#71717a" font-size="11">already lapsed</text>
 
-  <rect x="636" y="408" width="228" height="84" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="652" y="432" fill="#fafafa" font-size="12" font-weight="700">Twilio</text>
-  <text x="652" y="452" fill="#a1a1aa" font-size="11">mu-law 8000, voice out</text>
-  <text x="652" y="470" fill="#a1a1aa" font-size="11">SMS via /api/send-text</text>
-  <text x="652" y="486" fill="#71717a" font-size="11">the agent never sees a URL</text>
+  <rect x="636" y="414" width="228" height="50" rx="10" fill="#18181b" stroke="#fb923c" stroke-opacity="0.4"/>
+  <text x="652" y="436" fill="#fdba74" font-size="12" font-weight="700">charlie-cancellation</text>
+  <text x="652" y="454" fill="#71717a" font-size="11">asked to cancel, never a gate</text>
 
+  <rect x="636" y="484" width="228" height="104" rx="10" fill="#0c0a09" stroke="#3f3f46"/>
+  <text x="652" y="508" fill="#a1a1aa" font-size="11">Five sections byte-identical:</text>
+  <text x="652" y="526" fill="#fafafa" font-size="11" font-weight="700">Personality, Incentives, Tone,</text>
+  <text x="652" y="542" fill="#fafafa" font-size="11" font-weight="700">Guardrails, Tools</text>
+  <text x="652" y="562" fill="#71717a" font-size="11">stored once, one sync script</text>
+  <text x="652" y="578" fill="#71717a" font-size="11">no procedures, no workflows</text>
+
+  <!-- column 4: member, back -->
   <text x="924" y="108" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">MEMBER</text>
   <rect x="924" y="120" width="204" height="68" rx="34" fill="#d6ff3d"/>
   <text x="1026" y="150" fill="#000000" font-size="15" font-weight="800" text-anchor="middle">A phone rings</text>
   <text x="1026" y="170" fill="#1c1917" font-size="11" text-anchor="middle">under three minutes, one ask</text>
 
-  <text x="924" y="232" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">BACK</text>
-  <rect x="924" y="244" width="204" height="116" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="940" y="270" fill="#fafafa" font-size="12" font-weight="700">/api/webhook</text>
-  <text x="940" y="290" fill="#a1a1aa" font-size="11">11 extracted fields, typed</text>
-  <text x="940" y="306" fill="#a1a1aa" font-size="11">3 criteria results</text>
-  <text x="940" y="322" fill="#a1a1aa" font-size="11">raw analysis, kept whole</text>
-  <text x="940" y="342" fill="#71717a" font-size="11">HMAC verified, forgeries 401</text>
+  <rect x="924" y="208" width="204" height="84" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="940" y="232" fill="#fafafa" font-size="12" font-weight="700">Twilio</text>
+  <text x="940" y="252" fill="#a1a1aa" font-size="11">mu-law 8000, voice out</text>
+  <text x="940" y="268" fill="#a1a1aa" font-size="11">SMS via /api/send-text</text>
+  <text x="940" y="284" fill="#71717a" font-size="11">the agent never sees a URL</text>
 
-  <rect x="924" y="380" width="204" height="72" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="940" y="406" fill="#fafafa" font-size="12" font-weight="700">Supabase, call_records</text>
-  <text x="940" y="426" fill="#a1a1aa" font-size="11">one row per dial</text>
-  <text x="940" y="442" fill="#71717a" font-size="11">the memory the next call reads</text>
+  <text x="924" y="308" fill="#52525b" font-size="11" font-weight="700" letter-spacing="1.4">BACK</text>
+  <rect x="924" y="316" width="204" height="116" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="940" y="342" fill="#fafafa" font-size="12" font-weight="700">/api/webhook</text>
+  <text x="940" y="362" fill="#a1a1aa" font-size="11">11 extracted fields, typed</text>
+  <text x="940" y="378" fill="#a1a1aa" font-size="11">3 criteria results</text>
+  <text x="940" y="394" fill="#a1a1aa" font-size="11">raw analysis, kept whole</text>
+  <text x="940" y="414" fill="#71717a" font-size="11">HMAC verified, forgeries 401</text>
 
-  <rect x="324" y="540" width="252" height="92" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="340" y="566" fill="#fafafa" font-size="13" font-weight="700">evals/</text>
-  <text x="340" y="586" fill="#a1a1aa" font-size="11">19 routing guards, no model</text>
-  <text x="340" y="602" fill="#a1a1aa" font-size="11">15 simulated calls, real agents</text>
-  <text x="340" y="622" fill="#71717a" font-size="11">same compiler as the live call</text>
+  <rect x="924" y="452" width="204" height="72" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="940" y="478" fill="#fafafa" font-size="12" font-weight="700">Supabase, call_records</text>
+  <text x="940" y="498" fill="#a1a1aa" font-size="11">one row per dial</text>
+  <text x="940" y="514" fill="#71717a" font-size="11">the memory the next call reads</text>
 
-  <rect x="636" y="540" width="492" height="92" rx="10" fill="#18181b" stroke="#3f3f46"/>
-  <text x="652" y="566" fill="#fafafa" font-size="13" font-weight="700">Dashboard, Next.js on Vercel</text>
-  <text x="652" y="586" fill="#a1a1aa" font-size="11">three call-type columns, and the excluded buckets with their reasons</text>
-  <text x="652" y="602" fill="#a1a1aa" font-size="11">why they leave, who is expected at the desk, cost and break-even</text>
-  <text x="652" y="622" fill="#71717a" font-size="11">server components share lib/ with the API, so the screen cannot disagree with it</text>
+  <rect x="924" y="544" width="204" height="76" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="940" y="568" fill="#fafafa" font-size="12" font-weight="700">/api/cron/recompute</text>
+  <text x="940" y="588" fill="#a1a1aa" font-size="11">nightly, one queue snapshot</text>
+  <text x="940" y="604" fill="#71717a" font-size="11">never decides a call</text>
 
+  <!-- bottom row -->
+  <rect x="324" y="770" width="252" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="340" y="796" fill="#fafafa" font-size="13" font-weight="700">evals/</text>
+  <text x="340" y="816" fill="#a1a1aa" font-size="11">81 guards, no model, no network</text>
+  <text x="340" y="832" fill="#a1a1aa" font-size="11">31 simulated calls, four real agents</text>
+  <text x="340" y="848" fill="#a1a1aa" font-size="11">every spoken turn checked for leaks</text>
+  <text x="340" y="866" fill="#71717a" font-size="11">same compiler as the live call</text>
+
+  <rect x="636" y="770" width="492" height="104" rx="10" fill="#18181b" stroke="#3f3f46"/>
+  <text x="652" y="796" fill="#fafafa" font-size="13" font-weight="700">Five screens, Next.js on Vercel</text>
+  <text x="652" y="816" fill="#a1a1aa" font-size="11">/ the queue: four call types, and every excluded member with its reason</text>
+  <text x="652" y="832" fill="#a1a1aa" font-size="11">/intelligence: gym health, themed reasons for leaving, cost and break-even</text>
+  <text x="652" y="848" fill="#a1a1aa" font-size="11">/onboarding: new gym or edit; /our-journey: this suite; /about; /members</text>
+  <text x="652" y="866" fill="#71717a" font-size="11">server components share lib/ with the API, so a screen cannot disagree with it</text>
+
+  <!-- column 1 flow -->
   <path d="M 148 192 L 148 212" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
   <path d="M 148 300 L 148 320" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 264 348 L 320 300" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 264 426 L 320 440" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 450 236 L 450 256" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 450 360 L 450 380" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 576 420 C 606 420, 606 152, 632 146" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 576 432 C 606 432, 606 212, 632 207" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 576 444 C 606 444, 606 272, 632 269" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 864 145 C 894 145, 894 410, 868 440" stroke="#3f3f46" stroke-width="1.5" fill="none"/>
-  <path d="M 868 434 L 920 176" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 1026 188 L 1026 244" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 1026 360 L 1026 380" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 920 416 L 600 416" stroke="#d6ff3d" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#arrowLime)"/>
-  <text x="612" y="408" fill="#d6ff3d" font-size="11" font-weight="700">the closed loop: which conversation this is, and what they already told us</text>
-  <path d="M 1026 452 L 1026 540" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 450 492 L 450 540" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <path d="M 576 586 L 632 586" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 264 349 L 320 226" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 264 450 L 320 246" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 264 574 L 320 520" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 148 646 L 148 626" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- column 2 flow -->
+  <path d="M 450 268 L 450 288" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 450 438 L 450 458" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 450 582 L 450 602" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 576 640 C 606 640, 606 170, 632 164" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 400 714 L 400 770" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- column 3 flow -->
+  <path d="M 750 208 L 750 228" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 864 253 L 884 253 M 864 315 L 884 315 M 864 377 L 884 377 M 864 439 L 884 439 M 884 253 L 884 439" stroke="#3f3f46" stroke-width="1.5" fill="none"/>
+  <path d="M 884 346 L 920 258" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- column 4 flow -->
+  <path d="M 1026 208 L 1026 188" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1026 292 L 1026 316" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1026 432 L 1026 452" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1026 524 L 1026 544" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1128 488 L 1144 488 L 1144 822 L 1132 822" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- the closed loop -->
+  <path d="M 920 490 L 900 490 L 900 740 L 500 740 L 500 718" stroke="#d6ff3d" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#arrowLime)"/>
+  <text x="520" y="732" fill="#d6ff3d" font-size="11" font-weight="700">the closed loop: the memory the next call reads</text>
 </svg>

@@ -36,6 +36,7 @@ const MIGRATIONS = [
   "20260915020000_other_offers.sql",
   "20260915030000_cancellation_requests.sql",
   "20260915040000_freeze_and_cancellation_call.sql",
+  "20260915050000_call_dialled_to.sql",
 ];
 
 let failures = 0;
@@ -128,6 +129,8 @@ async function main() {
   check("a schedule that isn't an object is refused", await rejects(db, `update gyms set offer_schedule = '["guest_pass"]' where gym_id = 'southbank'`));
   const offersColumn = await rejects(db, "insert into call_records (id, member_id, status, offers_available) values (gen_random_uuid(), 'M1', 'initiated', array['guest_pass'])");
   check("a call record stores the offers its block granted", !offersColumn);
+  const dialledColumn = await rejects(db, "insert into call_records (id, member_id, status, dialled_to) values (gen_random_uuid(), 'M2', 'initiated', '+61470000000')");
+  check("a call record stores the number it was dialled to", !dialledColumn);
   await db.exec("update gyms set offer_schedule = null where gym_id = 'southbank'; delete from call_records;");
 
   console.log("\nOther offers");

@@ -51,7 +51,7 @@ function isUnknownColumn(error: { code?: string; message?: string } | null): boo
  * loses only these, not the gym, call type and attempt number the analysis
  * migration added.
  */
-const LATER_COLUMNS = ["offers_available"];
+const LATER_COLUMNS = ["offers_available", "dialled_to"];
 
 function stripLater(row: Row): Row {
   return Object.fromEntries(Object.entries(row).filter(([k]) => !LATER_COLUMNS.includes(k)));
@@ -65,8 +65,9 @@ export async function insertCallRecord(row: Row) {
     const withoutLater = await supabaseAdmin.from("call_records").insert(stripLater(row));
     if (!withoutLater.error || !isUnknownColumn(withoutLater.error)) {
       console.warn(
-        "call_records has no offers_available column — apply supabase/migrations/20260915010000_offer_schedule.sql. " +
-          "This call's offers weren't recorded, so the next call's cooldowns count every offer its call type can carry."
+        "call_records is missing offers_available or dialled_to — apply supabase/migrations/20260915010000_offer_schedule.sql " +
+          "and 20260915050000_call_dialled_to.sql. This call's offers weren't recorded, so the next call's cooldowns count " +
+          "every offer its call type can carry, and a text on this call goes to the environment's number, not the call's."
       );
       return { error: withoutLater.error, degraded: true as const };
     }
@@ -122,16 +123,20 @@ export async function readAllCallRows<T = Record<string, unknown>>(): Promise<{ 
 const RECENT_CALL_WINDOW_MS = 30 * 60 * 1000;
 
 /**
- * The gym a member's in-progress call was placed for.
+ * The gym a member's in-progress call was placed for, and the number it went to.
  *
  * The agent's `send_text` tool knows the member, not the gym, and the tool
- * config lives on ElevenLabs. `/api/call` writes `gym_id` on the call record
- * before the phone rings, so the most recent record for this member — placed in
- * the last half hour — is the call the agent is on.
+ * config lives on ElevenLabs. `/api/call` writes `gym_id` and `dialled_to` on
+ * the call record before the phone rings, so the most recent record for this
+ * member — placed in the last half hour — is the call the agent is on.
+ * `dialledTo` is null on a record written before that column existed.
  */
 export async function gymOfRecentCall(
   memberId: string
-): Promise<{ ok: true; gymId: string; callType: CallType | null; offersAvailable: string[] | null } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; gymId: string; callType: CallType | null; offersAvailable: string[] | null; dialledTo: string | null }
+  | { ok: false; error: string }
+> {
   try {
     // Wall clock, not lib/clock.ts: call records are stamped with real time.
     const since = new Date(Date.now() - RECENT_CALL_WINDOW_MS).toISOString();
@@ -146,7 +151,9 @@ export async function gymOfRecentCall(
       .limit(1)
       .abortSignal(AbortSignal.timeout(3000));
     if (error) return { ok: false, error: `call record read failed: ${error.message}` };
-    const row = data?.[0] as { gym_id?: string | null; call_type?: string | null; offers_available?: unknown } | undefined;
+    const row = data?.[0] as
+      | { gym_id?: string | null; call_type?: string | null; offers_available?: unknown; dialled_to?: unknown }
+      | undefined;
     const gymId = row?.gym_id;
     if (typeof gymId !== "string" || gymId.trim() === "") {
       return { ok: false, error: "no call placed to this member in the last 30 minutes records a gym" };
@@ -156,7 +163,8 @@ export async function gymOfRecentCall(
         ? row.call_type
         : null;
     const offersAvailable = Array.isArray(row?.offers_available) ? (row.offers_available as unknown[]).filter((o): o is string => typeof o === "string") : null;
-    return { ok: true, gymId, callType, offersAvailable };
+    const dialledTo = typeof row?.dialled_to === "string" && row.dialled_to.trim() ? row.dialled_to.trim() : null;
+    return { ok: true, gymId, callType, offersAvailable, dialledTo };
   } catch (err) {
     return { ok: false, error: `call record read failed: ${err instanceof Error ? err.message : String(err)}` };
   }

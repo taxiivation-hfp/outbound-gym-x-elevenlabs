@@ -262,6 +262,9 @@ export async function POST(req: NextRequest) {
     attempt_number: eligibility.attemptNumber,
     gym_id: gym.gym_id,
     offers_available: offersAvailable,
+    // The number this call went to, so a text sent during it goes to the same
+    // one: with the sidebar's test number that is not the env override.
+    dialled_to: dial.to,
     transcript: null,
     outcome: null,
     created_at: new Date().toISOString(),
