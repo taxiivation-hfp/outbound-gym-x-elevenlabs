@@ -6,7 +6,7 @@
 
 **Track 3: Solve a Business Problem**, entered alongside the **ElevenLabs Special Track**
 
-🔴 **Live app:** [retention-router.vercel.app](https://retention-router.vercel.app) · 🎥 **Demo video:** `[https://www.youtube.com/watch?v=naHM8YY6trA]` · 📊 [Our Journey](https://retention-router.vercel.app/our-journey) · 📈 [Overview](https://retention-router.vercel.app/intelligence)
+🔴 **Live app:** [retention-router.vercel.app](https://retention-router.vercel.app) · 🎥 **Demo video:** [https://www.youtube.com/watch?v=naHM8YY6trA] · 📊 [Our Journey](https://retention-router.vercel.app/our-journey) · 📈 [Overview](https://retention-router.vercel.app/intelligence)
 
 IMPORTANT: QUICKLAUNCH INSTRUCTIONS
 
