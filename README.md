@@ -1,6 +1,7 @@
 # Retention Router
 
 ### An outbound CRM voice agent for small-medium gyms. It calls the members worth calling and leaves the rest alone.
+### Shortlisted in the top 8 of the Forward: AI in Business Hackathon @ The University of Melbourne
 
 **Orlando · Dan · Oliver · Jesslyn**
 
